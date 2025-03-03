@@ -11,7 +11,7 @@
               src="static/logo/b_64.png"
               style="width:50px;height:50px;margin-bottom:-10px;"
               alt
-            />ShowDoc
+            />OneDocs
           </h2>
         </div>
         <div class="header-btn-group pull-right">
@@ -483,7 +483,7 @@ export default {
       this.sortItem(data)
     },
     toRunApi() {
-      window.open('https://www.showdoc.cc/runapi')
+      window.open('https://onedocs.cn/runapi')
     },
     // 检测邮箱绑定情况
     checkEmail() {
@@ -543,7 +543,7 @@ export default {
       this.$router.push({ path: '/attachment/index' })
     },
     toPushLink() {
-      window.open('https://push.showdoc.com.cn')
+      window.open('https://push.onedocs.cn')
     }
   },
   created() {

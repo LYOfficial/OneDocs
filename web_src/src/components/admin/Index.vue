@@ -2,7 +2,7 @@
   <div class="hello">
     <el-container>
       <el-header>
-        <div class="header_title">ShowDoc</div>
+        <div class="header_title">OneDocs</div>
         <router-link class="goback" to="/item/index">{{
           $t('goback')
         }}</router-link>

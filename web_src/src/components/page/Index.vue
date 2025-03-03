@@ -216,7 +216,7 @@ export default {
     }
   },
   beforeDestroy() {
-    document.title = 'ShowDoc'
+    document.title = 'OneDocs'
   }
 }
 </script>
