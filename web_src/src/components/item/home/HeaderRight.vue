@@ -12,15 +12,7 @@
         </div>
       </el-tooltip>
       <el-tooltip effect="dark" :content="$t('my_notice')" placement="top">
-        <div
-          @click="
-            () => {
-              $store.dispatch('changeNewMsg', 0)
-              showMessage = true
-            }
-          "
-          class="icon-item"
-        >
+        <div @click="() => { $store.dispatch('changeNewMsg', 0); showMessage = true }" class="icon-item">
           <el-badge :value="$store.state.new_msg ? 'New' : ''">
             <i class="fas fa-message"></i>
           </el-badge>
@@ -36,96 +28,12 @@
           <i class="fas fa-user"></i>
         </div>
       </el-tooltip>
-      <el-tooltip
-        v-if="$lang == 'zh-cn'"
-        effect="dark"
-        content="客户端"
-        placement="top"
-      >
-        <div
-          @click="toOutLink('https://www.showdoc.com.cn/clients')"
-          class="icon-item"
-        >
-          <i class="fas fa-laptop-arrow-down"></i>
-        </div>
-      </el-tooltip>
-
-      <el-tooltip
-        v-if="isAdmin"
-        effect="dark"
-        :content="$t('background')"
-        placement="top"
-      >
+      <el-tooltip v-if="isAdmin" effect="dark" :content="$t('background')" placement="top">
         <div @click="toPath('/admin/index')" class="icon-item">
           <i class="fas fa-gear"></i>
         </div>
       </el-tooltip>
-      <div class="inline" v-if="$lang == 'zh-cn'">
-        <SDropdown
-          title="更多产品功能"
-          titleIcon="fas fa-ellipsis"
-          :menuList="menuList"
-          width="270px"
-        >
-          <div class="icon-item">
-            <span class="el-dropdown-link">
-              <i class="fas fa-ellipsis"></i>
-            </span>
-          </div>
-        </SDropdown>
-      </div>
-    </div>
-
-    <!-- 团队管理 -->
-    <Team
-      v-if="showTeam"
-      :callback="
-        () => {
-          showTeam = false
-        }
-      "
-    ></Team>
-
-    <!-- 文件库 -->
-    <Attachment
-      v-if="showAttachment"
-      :callback="
-        () => {
-          showAttachment = false
-        }
-      "
-    ></Attachment>
-
-    <!-- 我的消息 -->
-    <Message
-      v-if="showMessage"
-      :callback="
-        () => {
-          showMessage = false
-        }
-      "
-    ></Message>
-
-    <!-- 用户设置（用户中心） -->
-    <UserSetting
-      v-if="showUserSetting"
-      :callback="
-        () => {
-          showUserSetting = false
-        }
-      "
-    ></UserSetting>
-
-    <!-- 反馈 -->
-    <Feedback
-      v-if="showFeedback"
-      :callback="
-        () => {
-          showFeedback = false
-        }
-      "
-    ></Feedback>
-
+    </div> <!-- 新增此闭合标签，用于结束内部div -->
   </div>
 </template>
 

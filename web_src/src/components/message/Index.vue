@@ -50,18 +50,7 @@
                         <span>{{ props.row.message_content }}</span>
                       </div>
                     </div>
-                    <div v-if="props.row.object_type == 'vip'">
-                      你在showdoc购买的付费版资格很快过期了，你可以<a
-                        href="/user/setting"
-                        target="_blank"
-                        >点此进入用户中心</a
-                      >进行续费 (如已续费请忽略该通知)
-                      <el-badge
-                        class="mark"
-                        value="new"
-                        v-if="props.row.status == 0"
-                      />
-                    </div>
+                    
                   </div>
                 </template>
               </el-table-column>

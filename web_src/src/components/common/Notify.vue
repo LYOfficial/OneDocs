@@ -87,7 +87,7 @@ export default {
     // 浏览器通知
     brownNotify(msg, from_uid, message_content_id, toUrl) {
       if (!this.popup) return false
-      const title = 'showdoc通知'
+      const title = 'OneDocs通知'
       const options = {
         dir: 'auto', // 文字方向
         body: msg, // 通知主体

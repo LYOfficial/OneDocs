@@ -7,7 +7,7 @@
             <img class="logo-img" src="@/assets/Logo.svg" />
           </div>
           <div class="">
-            <div class=" font-bold logo-title">ShowDoc</div>
+            <div class=" font-bold logo-title">OneDocs</div>
             <div class="v3-color-aux logo-desc">
               {{ $t('home_logo_title') }}
             </div>
@@ -75,17 +75,7 @@
             </div>
           </div>
         </div>
-        <div v-if="$lang == 'zh-cn'" class="left-bottom-bar">
-          <div class="content">
-            <i class="far fa-fire "></i>
-            调试API并自动生成文档
-            <a
-              class="text-link ml-2"
-              @click="toOutLink('https://www.showdoc.com.cn/runapi')"
-              >试试</a
-            >
-          </div>
-        </div>
+        
       </div>
       <div class="right-side align-top  inline-block">
         <div class="search-box-div">

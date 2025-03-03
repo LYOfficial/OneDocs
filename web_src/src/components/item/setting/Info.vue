@@ -31,7 +31,7 @@
       <el-form-item>
         <el-tooltip
           effect="dark"
-          content="假如你的个性域名设置为abc，则你的项目地址为www.showdoc.com.cn/abc"
+          content="假如你的个性域名设置为abc，则你的项目地址为onedocs.cn/abc"
           placement="top-end"
         >
           <el-input
