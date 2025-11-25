@@ -7,6 +7,7 @@ import type {
   FileInfo,
   AnalysisProgress,
   AnalysisResult,
+  MultiFileAnalysisResult,
   ViewMode,
   ProviderSettings,
   CustomProviderSettings,
@@ -14,7 +15,15 @@ import type {
 import { MODEL_PROVIDERS, createCustomProvider } from '@/config/providers';
 
 interface AppState {
-  // File state
+  // File state - 支持多文件
+  files: FileInfo[];
+  currentFileId: string | null; // 当前选中的文件ID
+  setFiles: (files: FileInfo[]) => void;
+  addFile: (file: FileInfo) => void;
+  removeFile: (fileId: string) => void;
+  reorderFiles: (fileIds: string[]) => void;
+  setCurrentFileId: (fileId: string | null) => void;
+  // 向后兼容
   currentFile: FileInfo | null;
   setCurrentFile: (file: FileInfo | null) => void;
 
@@ -22,13 +31,17 @@ interface AppState {
   selectedFunction: PromptType;
   setSelectedFunction: (func: PromptType) => void;
 
-  // Analysis state
+  // Analysis state - 支持多文件分析结果
   isAnalyzing: boolean;
   analysisProgress: AnalysisProgress | null;
-  analysisResult: AnalysisResult | null;
+  analysisResult: AnalysisResult | null; // 当前选中文件的结果（向后兼容）
+  multiFileAnalysisResults: MultiFileAnalysisResult; // 所有文件的分析结果
+  mergedResult: AnalysisResult | null; // 合并后的结果
   setIsAnalyzing: (isAnalyzing: boolean) => void;
   setAnalysisProgress: (progress: AnalysisProgress | null) => void;
   setAnalysisResult: (result: AnalysisResult | null) => void;
+  setMultiFileAnalysisResult: (fileId: string, result: AnalysisResult) => void;
+  setMergedResult: (result: AnalysisResult | null) => void;
 
   // View mode
   viewMode: ViewMode;
@@ -55,6 +68,7 @@ interface AppState {
 
   // Reset
   resetAnalysis: () => void;
+  resetAll: () => void;
 }
 
 const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
@@ -69,9 +83,74 @@ const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      // File state
+      // File state - 多文件支持
+      files: [],
+      currentFileId: null,
+      setFiles: (files) => set({ files }),
+      addFile: (file) => {
+        const fileId = file.id || `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const fileWithId = { ...file, id: fileId };
+        set((state) => ({
+          files: [...state.files, fileWithId],
+          currentFileId: fileId,
+          currentFile: fileWithId, // 向后兼容
+        }));
+      },
+      removeFile: (fileId) => {
+        set((state) => {
+          const newFiles = state.files.filter((f) => f.id !== fileId);
+          const newCurrentFileId = 
+            state.currentFileId === fileId 
+              ? (newFiles.length > 0 ? newFiles[0].id || null : null)
+              : state.currentFileId;
+          const newCurrentFile = newFiles.find((f) => f.id === newCurrentFileId) || null;
+          // 清理对应的分析结果
+          const { [fileId]: removed, ...restResults } = state.multiFileAnalysisResults;
+          return {
+            files: newFiles,
+            currentFileId: newCurrentFileId,
+            currentFile: newCurrentFile, // 向后兼容
+            analysisResult: newCurrentFile ? restResults[newCurrentFileId || ''] || null : null,
+            multiFileAnalysisResults: restResults,
+          };
+        });
+      },
+      reorderFiles: (fileIds) => {
+        set((state) => {
+          const fileMap = new Map(state.files.map((f) => [f.id || '', f]));
+          const newFiles = fileIds.map((id) => fileMap.get(id)).filter(Boolean) as FileInfo[];
+          return { files: newFiles };
+        });
+      },
+      setCurrentFileId: (fileId) => {
+        set((state) => {
+          const file = state.files.find((f) => f.id === fileId) || null;
+          const result = fileId ? state.multiFileAnalysisResults[fileId] || null : null;
+          return {
+            currentFileId: fileId,
+            currentFile: file, // 向后兼容
+            analysisResult: result, // 向后兼容
+          };
+        });
+      },
+      // 向后兼容
       currentFile: null,
-      setCurrentFile: (file) => set({ currentFile: file }),
+      setCurrentFile: (file) => {
+        if (file) {
+          const fileId = file.id || `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const fileWithId = { ...file, id: fileId };
+          set((state) => {
+            const exists = state.files.find((f) => f.id === fileId);
+            return {
+              files: exists ? state.files : [...state.files, fileWithId],
+              currentFileId: fileId,
+              currentFile: fileWithId,
+            };
+          });
+        } else {
+          set({ currentFile: null, currentFileId: null });
+        }
+      },
 
       // Function selection
       selectedFunction: 'science',
@@ -81,9 +160,26 @@ export const useAppStore = create<AppState>()(
       isAnalyzing: false,
       analysisProgress: null,
       analysisResult: null,
+      multiFileAnalysisResults: {},
+      mergedResult: null,
       setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
       setAnalysisProgress: (progress) => set({ analysisProgress: progress }),
       setAnalysisResult: (result) => set({ analysisResult: result }),
+      setMultiFileAnalysisResult: (fileId, result) => {
+        set((state) => {
+          const newResults = {
+            ...state.multiFileAnalysisResults,
+            [fileId]: result,
+          };
+          // 如果当前文件ID匹配，也更新analysisResult（向后兼容）
+          const newAnalysisResult = state.currentFileId === fileId ? result : state.analysisResult;
+          return {
+            multiFileAnalysisResults: newResults,
+            analysisResult: newAnalysisResult,
+          };
+        });
+      },
+      setMergedResult: (result) => set({ mergedResult: result }),
 
       // View mode
       viewMode: 'render',
@@ -166,6 +262,19 @@ export const useAppStore = create<AppState>()(
         set({
           analysisProgress: null,
           analysisResult: null,
+          multiFileAnalysisResults: {},
+          mergedResult: null,
+          isAnalyzing: false,
+        }),
+      resetAll: () =>
+        set({
+          files: [],
+          currentFileId: null,
+          currentFile: null,
+          analysisProgress: null,
+          analysisResult: null,
+          multiFileAnalysisResults: {},
+          mergedResult: null,
           isAnalyzing: false,
         }),
     }),

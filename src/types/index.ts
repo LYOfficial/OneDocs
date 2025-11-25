@@ -54,6 +54,7 @@ export interface FileInfo {
   name: string;
   type: SupportedFileType;
   size: number;
+  id?: string; // 用于多文件管理
 }
 
 // Analysis Types
@@ -65,6 +66,12 @@ export interface AnalysisProgress {
 export interface AnalysisResult {
   content: string;
   timestamp: number;
+  fileId?: string; // 关联到文件ID
+}
+
+// 多文件分析结果
+export interface MultiFileAnalysisResult {
+  [fileId: string]: AnalysisResult;
 }
 
 // Settings Types

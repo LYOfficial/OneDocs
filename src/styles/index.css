@@ -478,10 +478,13 @@ body {
     padding: 1rem;
     gap: 1rem;
     overflow: hidden;
+    min-height: 0;
 }
 
 .upload-section {
     animation: slideInUp 0.6s ease-out;
+    flex-shrink: 0;
+    flex: 0 0 100px;
 }
 
 .format-notice {
@@ -544,11 +547,13 @@ body {
 .upload-area {
     border: 2px dashed var(--border-color);
     border-radius: var(--border-radius);
-    padding: 0.8rem 1rem; /* 减少垂直padding，让上传框变扁 */
+    padding: 1rem;
     text-align: center;
     transition: var(--transition);
     cursor: pointer;
     background: var(--background-color);
+    flex-shrink: 0;
+    box-shadow: var(--shadow-light);
 }
 
 .upload-area:hover {
@@ -566,20 +571,20 @@ body {
 /* 拖拽功能已禁用，相关样式已移除 */
 
 .upload-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
     opacity: 0.6;
 }
 
 .upload-text {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     color: var(--primary-color);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .upload-hint {
     color: var(--secondary-color);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .file-preview {
@@ -597,7 +602,150 @@ body {
 
 .file-name {
     font-weight: 500;
+}
+
+/* 多文件列表样式 */
+.files-list {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    flex-shrink: 1;
+    box-shadow: var(--shadow-light);
+    display: flex;
+    flex-direction: column;
+}
+
+.files-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
     color: var(--primary-color);
+}
+
+.files-hint {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+    font-weight: normal;
+}
+
+.files-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.file-item:hover {
+    border-color: var(--accent-color);
+    background: var(--hover-color);
+    transform: translateX(2px);
+}
+
+.file-item.active {
+    border-color: var(--accent-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.file-item-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-right: 0.25rem;
+}
+
+.file-item-arrow {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    padding: 0;
+    line-height: 1;
+}
+
+.file-item-arrow:hover:not(:disabled) {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+    transform: scale(1.1);
+}
+
+.file-item-arrow:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.file-item-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.file-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.file-item-name {
+    font-weight: 500;
+    color: var(--primary-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-item-size {
+    font-size: 0.75rem;
+    color: var(--secondary-color);
+}
+
+.file-item-remove {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--secondary-color);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.file-item-remove:hover {
+    background: var(--error-color);
+    color: white;
+    transform: scale(1.1);
 }
 
 .remove-file {
@@ -780,9 +928,11 @@ body {
     background: var(--background-color);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-light);
-    padding: 1.5rem;
+    padding: 1rem;
     margin-bottom: 1rem;
     animation: slideInUp 0.6s ease-out;
+    flex-shrink: 0;
+    flex: 0 0 auto;
 }
 
 .progress-header {
@@ -873,15 +1023,68 @@ body {
 
 .result-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.75rem;
     margin-bottom: 1rem;
     padding: 1rem 1.5rem 0.8rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
-    flex-wrap: wrap;
-    gap: 1rem;
     background: var(--background-color);
     border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.result-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.file-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+.file-tab {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--background-color);
+    color: var(--secondary-color);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.file-tab:hover:not(.no-result) {
+    border-color: var(--accent-color);
+    background: var(--hover-color);
+    color: var(--primary-color);
+}
+
+.file-tab.active {
+    border-color: var(--accent-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+.file-tab.no-result {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.result-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .result-controls {
@@ -972,6 +1175,62 @@ body {
 
 .copy-button:disabled {
     pointer-events: none;
+    opacity: 0.5;
+}
+
+.merge-button {
+    background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+    border: 1px solid var(--success-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-light);
+}
+
+.merge-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+}
+
+.merge-button:disabled,
+.merge-button.merging {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.back-button-small {
+    background: linear-gradient(135deg, var(--background-color) 0%, var(--surface-color) 100%);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-light);
+}
+
+.back-button-small:hover {
+    background: var(--hover-color);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+.result-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
 }
 
 .result-content {

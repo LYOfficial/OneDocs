@@ -13,18 +13,38 @@ interface ToolProps {
 
 export const Tool: React.FC<ToolProps> = ({ onBack }) => {
   const {
+    files,
     currentFile,
     isAnalyzing,
+    analysisResult,
+    multiFileAnalysisResults,
     setSettingsOpen,
     getCurrentSettings,
     showFormatNotice,
     setShowFormatNotice,
+    resetAll,
   } = useAppStore();
 
   const { analyzeDocument } = useAnalysis();
   const settings = getCurrentSettings();
 
-  const canAnalyze = currentFile && settings.apiKey && !isAnalyzing;
+  // 支持多文件分析：如果有多个文件，检查是否有文件；如果只有一个文件，检查currentFile（向后兼容）
+  const hasFiles = files.length > 0 || currentFile !== null;
+  const canAnalyze = hasFiles && settings.apiKey && !isAnalyzing;
+  
+  // 判断是否有分析结果
+  const hasAnalysisResults = analysisResult !== null || Object.keys(multiFileAnalysisResults).length > 0;
+  
+  // 处理按钮点击
+  const handleMainButtonClick = () => {
+    if (hasAnalysisResults) {
+      // 如果有分析结果，点击"新建析文"重置所有内容
+      resetAll();
+    } else {
+      // 如果没有分析结果，点击"开始析文"进行分析
+      analyzeDocument();
+    }
+  };
 
   return (
     <div className="tool-container">
@@ -38,11 +58,13 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
         <div className="header-right">
           <button
             className="analyze-button-mini"
-            onClick={analyzeDocument}
-            disabled={!canAnalyze}
-            style={{ opacity: canAnalyze ? 1 : 0.6 }}
+            onClick={handleMainButtonClick}
+            disabled={!hasAnalysisResults && !canAnalyze}
+            style={{ opacity: (!hasAnalysisResults && !canAnalyze) ? 0.6 : 1 }}
           >
-            <span className="button-text">开始析文</span>
+            <span className="button-text">
+              {hasAnalysisResults ? "新建析文" : "开始析文"}
+            </span>
             {isAnalyzing && <div className="button-loader"></div>}
           </button>
           <button
@@ -59,27 +81,27 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
 
         <div className="main-content">
           <div className="chat-container">
-            {showFormatNotice && (
-              <div className="format-notice">
-                <p>
-                  <strong>📋 格式说明：</strong>支持 <code>.pdf</code>、
-                  <code>.docx</code>、<code>.doc</code>、<code>.pptx</code>、
-                  <code>.ppt</code>、<code>.txt</code> 格式文件
-                </p>
-                <button
-                  className="notice-close"
-                  onClick={() => setShowFormatNotice(false)}
-                >
-                  ×
-                </button>
-              </div>
+            {!hasAnalysisResults && (
+              <>
+                {showFormatNotice && (
+                  <div className="format-notice">
+                    <p>
+                      <strong>📋 格式说明：</strong>支持 <code>.pdf</code>、
+                      <code>.docx</code>、<code>.doc</code>、<code>.pptx</code>、
+                      <code>.ppt</code>、<code>.txt</code> 格式文件
+                    </p>
+                    <button
+                      className="notice-close"
+                      onClick={() => setShowFormatNotice(false)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                <FileUpload />
+              </>
             )}
-
-            <FileUpload />
-
-            <div className="render-notice">
-              <p>渲染结果仅供预览，请复制到外部文档整理查看</p>
-            </div>
 
             <ProgressBar />
             <ResultDisplay />
