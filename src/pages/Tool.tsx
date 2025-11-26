@@ -50,10 +50,9 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
     <div className="tool-container">
       <header className="tool-header">
         <div className="header-left">
-          <button className="back-button" onClick={onBack}>
-            <i className="fas fa-arrow-left"></i>
+          <button className="tool-title-button" onClick={onBack}>
+            OneDocs
           </button>
-          <h1 className="tool-title">OneDocs</h1>
         </div>
         <div className="header-right">
           <button

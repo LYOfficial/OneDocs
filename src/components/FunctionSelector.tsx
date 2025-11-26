@@ -16,11 +16,11 @@ export const FunctionSelector: React.FC = () => {
 
   return (
     <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
+      <div className="sidebar-header" onClick={toggleSidebar}>
         <span className="sidebar-title">功能选择</span>
-        <button className="collapse-btn" onClick={toggleSidebar}>
+        <span className="collapse-icon">
           <i className={`fas fa-chevron-${isSidebarCollapsed ? 'right' : 'left'}`}></i>
-        </button>
+        </span>
       </div>
       <div className="sidebar-content">
         <div className="function-buttons">

@@ -286,6 +286,52 @@ body {
     box-shadow: 0 2px 4px rgba(74, 144, 226, 0.2);
 }
 
+.tool-title-button {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.tool-title-button {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--primary-color);
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.tool-title-button:hover {
+    color: var(--accent-color);
+    background: rgba(59, 130, 246, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.tool-title-button:active {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
+}
+
 .tool-title {
     font-size: 1.5rem;
     font-weight: 400;
@@ -410,6 +456,13 @@ body {
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.sidebar-header:hover {
+    background: var(--hover-color);
 }
 
 .sidebar-title {
@@ -422,6 +475,15 @@ body {
     display: none;
 }
 
+.collapse-icon {
+    font-size: 1.2rem;
+    color: var(--secondary-color);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .collapse-btn {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
     border: 1px solid var(--border-color);
@@ -431,7 +493,7 @@ body {
     transition: var(--transition);
     font-size: 0.85rem;
     color: var(--secondary-color);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -460,6 +522,9 @@ body {
 
 .sidebar.collapsed .sidebar-content {
     padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 /* 主内容区域 */
@@ -1864,23 +1929,4 @@ option[value^="custom_"] {
     color: var(--text-color);
     border: 2px solid var(--primary-color);
     box-shadow: 0 0 0 1px var(--primary-color);
-}
-
-/* 侧边栏折叠时的样式 */
-.sidebar.collapsed {
-    width: 50px;
-}
-
-.sidebar.collapsed .sidebar-title,
-.sidebar.collapsed .function-buttons {
-    display: none;
-}
-
-.sidebar.collapsed .sidebar-header {
-    justify-content: center;
-    padding: 0.5rem;
-}
-
-.sidebar.collapsed .collapse-btn {
-    margin: 0;
 }
