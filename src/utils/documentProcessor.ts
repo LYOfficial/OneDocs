@@ -3,16 +3,11 @@ import mammoth from "mammoth";
 import JSZip from "jszip";
 import type { SupportedFileType } from "@/types";
 
-// 设置 PDF.js worker - 使用 CDN 以确保稳定性
 if (typeof window !== "undefined") {
-  // 使用与安装版本 4.10.38 匹配的 worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs`;
 }
 
 export class DocumentProcessor {
-  /**
-   * 提取文件内容
-   */
   static async extractContent(file: File): Promise<string> {
     const fileType = file.type as SupportedFileType;
 
@@ -36,9 +31,6 @@ export class DocumentProcessor {
     }
   }
 
-  /**
-   * 提取纯文本文件
-   */
   private static async extractTextFile(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -57,21 +49,16 @@ export class DocumentProcessor {
     });
   }
 
-  /**
-   * 提取 PDF 文本
-   */
   private static async extractPDFText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = "";
 
-      // 遍历所有页面
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
 
-        // 提取文本内容
         const pageText = textContent.items
           .map((item: any) => item.str)
           .join(" ");
@@ -93,9 +80,6 @@ export class DocumentProcessor {
     }
   }
 
-  /**
-   * 提取 Word 文档文本
-   */
   private static async extractWordText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();

@@ -15,15 +15,14 @@ import type {
 import { MODEL_PROVIDERS, createCustomProvider } from '@/config/providers';
 
 interface AppState {
-  // File state - 支持多文件
   files: FileInfo[];
-  currentFileId: string | null; // 当前选中的文件ID
+  currentFileId: string | null;
   setFiles: (files: FileInfo[]) => void;
   addFile: (file: FileInfo) => void;
   removeFile: (fileId: string) => void;
   reorderFiles: (fileIds: string[]) => void;
   setCurrentFileId: (fileId: string | null) => void;
-  // 向后兼容
+  
   currentFile: FileInfo | null;
   setCurrentFile: (file: FileInfo | null) => void;
 
@@ -31,12 +30,11 @@ interface AppState {
   selectedFunction: PromptType;
   setSelectedFunction: (func: PromptType) => void;
 
-  // Analysis state - 支持多文件分析结果
   isAnalyzing: boolean;
   analysisProgress: AnalysisProgress | null;
-  analysisResult: AnalysisResult | null; // 当前选中文件的结果（向后兼容）
-  multiFileAnalysisResults: MultiFileAnalysisResult; // 所有文件的分析结果
-  mergedResult: AnalysisResult | null; // 合并后的结果
+  analysisResult: AnalysisResult | null;
+  multiFileAnalysisResults: MultiFileAnalysisResult;
+  mergedResult: AnalysisResult | null;
   setIsAnalyzing: (isAnalyzing: boolean) => void;
   setAnalysisProgress: (progress: AnalysisProgress | null) => void;
   setAnalysisResult: (result: AnalysisResult | null) => void;
@@ -83,7 +81,6 @@ const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      // File state - 多文件支持
       files: [],
       currentFileId: null,
       setFiles: (files) => set({ files }),
@@ -93,7 +90,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           files: [...state.files, fileWithId],
           currentFileId: fileId,
-          currentFile: fileWithId, // 向后兼容
+          currentFile: fileWithId,
         }));
       },
       removeFile: (fileId) => {

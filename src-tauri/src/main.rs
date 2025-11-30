@@ -36,16 +36,13 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
         ],
     };
 
-    // 根据不同的API提供商设置不同的认证头
     let mut request_builder = client
         .post(format!("{}/chat/completions", api_base_url))
         .json(&request_body);
 
-    // 智谱GLM需要特殊的认证头格式
-    if api_base_url.contains("bigmodel.cn") {
+    if (api_base_url.contains("bigmodel.cn")) {
         request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
     } else {
-        // OpenAI 和 DeepSeek 使用标准的 Bearer token
         request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
     }
 

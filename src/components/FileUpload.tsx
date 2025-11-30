@@ -15,7 +15,6 @@ export const FileUpload: React.FC = () => {
     if (selectedFiles.length > 0) {
       processFiles(selectedFiles);
     }
-    // 重置input，允许重复选择同一文件
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -25,7 +24,6 @@ export const FileUpload: React.FC = () => {
     const validFiles: FileInfo[] = [];
     
     fileList.forEach((file) => {
-      // 检查文件类型
       if (!DocumentProcessor.isValidFileType(file.type)) {
         toast.show(
           `文件 ${file.name} 格式不支持 (${file.type})，已跳过`,
@@ -33,13 +31,11 @@ export const FileUpload: React.FC = () => {
         return;
       }
 
-      // 检查文件大小
       if (file.size > FILE_SIZE_LIMIT) {
         toast.show(`文件 ${file.name} 过大（超过50MB），已跳过`);
         return;
       }
 
-      // 保存文件信息
       const fileInfo: FileInfo = {
         file,
         name: file.name,
@@ -69,10 +65,9 @@ export const FileUpload: React.FC = () => {
     setCurrentFileId(fileId);
   };
 
-  // 移动文件位置
   const handleMoveUp = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    if (index === 0) return; // 已经在最上面
+    if (index === 0) return;
     
     const newFiles = [...files];
     [newFiles[index - 1], newFiles[index]] = [newFiles[index], newFiles[index - 1]];
@@ -81,7 +76,7 @@ export const FileUpload: React.FC = () => {
 
   const handleMoveDown = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    if (index === files.length - 1) return; // 已经在最下面
+    if (index === files.length - 1) return;
     
     const newFiles = [...files];
     [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];

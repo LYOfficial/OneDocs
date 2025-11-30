@@ -28,20 +28,15 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
   const { analyzeDocument } = useAnalysis();
   const settings = getCurrentSettings();
 
-  // 支持多文件分析：如果有多个文件，检查是否有文件；如果只有一个文件，检查currentFile（向后兼容）
   const hasFiles = files.length > 0 || currentFile !== null;
   const canAnalyze = hasFiles && settings.apiKey && !isAnalyzing;
   
-  // 判断是否有分析结果
   const hasAnalysisResults = analysisResult !== null || Object.keys(multiFileAnalysisResults).length > 0;
   
-  // 处理按钮点击
   const handleMainButtonClick = () => {
     if (hasAnalysisResults) {
-      // 如果有分析结果，点击"新建析文"重置所有内容
       resetAll();
     } else {
-      // 如果没有分析结果，点击"开始析文"进行分析
       analyzeDocument();
     }
   };

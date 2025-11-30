@@ -56,14 +56,12 @@ export const ResultDisplay: React.FC = () => {
       });
 
       if (filePath) {
-        // 写入文件
         await writeTextFile(filePath, displayResult.content);
         toast.show(`文件已保存到: ${filePath}`);
       }
     } catch (error: any) {
       console.error("Tauri 导出失败，尝试使用浏览器下载:", error);
 
-      // 备用方案：使用浏览器的下载方式
       try {
         const blob = new Blob([displayResult.content], {
           type: "text/markdown;charset=utf-8",

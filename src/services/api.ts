@@ -20,9 +20,6 @@ interface CallCustomAIParams {
 }
 
 export class APIService {
-  /**
-   * 通用调用方法，支持内置和自定义提供商
-   */
   static async callAIWithProvider(
     provider: string,
     systemPrompt: string,
@@ -49,9 +46,6 @@ export class APIService {
     }
   }
 
-  /**
-   * 调用 AI API 进行文档分析
-   */
   static async callAI({
     systemPrompt,
     content,
@@ -75,7 +69,6 @@ export class APIService {
     });
 
     try {
-      // 通过 Tauri 后端调用 API
       const result = await invoke<string>("analyze_content_rust", {
         apiKey,
         apiBaseUrl: finalBaseUrl,
@@ -91,9 +84,6 @@ export class APIService {
     }
   }
 
-  /**
-   * 调用自定义 AI API 进行文档分析
-   */
   static async callCustomAI({
     systemPrompt,
     content,
