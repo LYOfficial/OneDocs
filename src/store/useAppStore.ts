@@ -70,6 +70,7 @@ interface AppState {
   // Reset
   resetAnalysis: () => void;
   resetAll: () => void;
+  clearAllCache: () => void;
 }
 
 const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
@@ -321,6 +322,44 @@ export const useAppStore = create<AppState>()(
           multiFileAnalysisResults: {},
           mergedResult: null,
           isAnalyzing: false,
+        }),
+      clearAllCache: () =>
+        set({
+          providerSettings: {
+            openai: getDefaultSettings('openai'),
+            anthropic: getDefaultSettings('anthropic'),
+            gemini: getDefaultSettings('gemini'),
+            moonshot: getDefaultSettings('moonshot'),
+            glm: getDefaultSettings('glm'),
+            deepseek: getDefaultSettings('deepseek'),
+            ollama: getDefaultSettings('ollama'),
+            lmstudio: getDefaultSettings('lmstudio'),
+            comp_share: getDefaultSettings('comp_share'),
+            '302_ai': getDefaultSettings('302_ai'),
+            pony: getDefaultSettings('pony'),
+            siliconflow: getDefaultSettings('siliconflow'),
+            ppio: getDefaultSettings('ppio'),
+            modelscope: getDefaultSettings('modelscope'),
+            oneapi: getDefaultSettings('oneapi'),
+          },
+          providerCustomModels: {
+            openai: [],
+            anthropic: [],
+            gemini: [],
+            moonshot: [],
+            glm: [],
+            deepseek: [],
+            ollama: [],
+            lmstudio: [],
+            comp_share: [],
+            '302_ai': [],
+            pony: [],
+            siliconflow: [],
+            ppio: [],
+            modelscope: [],
+            oneapi: [],
+          },
+          customProviders: {},
         }),
     }),
     {

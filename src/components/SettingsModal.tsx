@@ -20,6 +20,7 @@ export const SettingsModal: React.FC = () => {
     providerCustomModels,
     addProviderCustomModel,
     removeProviderCustomModel,
+    clearAllCache,
   } = useAppStore();
 
   const toast = useToast();
@@ -43,6 +44,9 @@ export const SettingsModal: React.FC = () => {
   const [isAddingModel, setIsAddingModel] = useState(false);
   const [newModelId, setNewModelId] = useState('');
   const [newModelName, setNewModelName] = useState('');
+  
+  // 清除缓存确认弹窗状态
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // 当打开设置时，重置视图
   useEffect(() => {
@@ -153,6 +157,16 @@ export const SettingsModal: React.FC = () => {
       setLocalModel('');
     }
     toast.show('模型已删除');
+  };
+
+  const handleClearCache = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClear = () => {
+    clearAllCache();
+    setShowClearConfirm(false);
+    toast.show('所有模型缓存已清除');
   };
 
   const handleTestConnection = async () => {
@@ -277,6 +291,15 @@ export const SettingsModal: React.FC = () => {
               >
                 <div className="provider-icon add">+</div>
                 <div className="provider-name">新建自定义模型</div>
+              </div>
+
+              <div 
+                className="provider-card clear-cache"
+                onClick={handleClearCache}
+                style={{ borderColor: '#fee2e2', backgroundColor: '#fef2f2' }}
+              >
+                <div className="provider-icon" style={{ fontSize: '20px' }}>🗑️</div>
+                <div className="provider-name" style={{ color: '#ef4444' }}>清除所有模型缓存</div>
               </div>
             </div>
           ) : (
@@ -527,6 +550,64 @@ export const SettingsModal: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {showClearConfirm && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '24px',
+            borderRadius: '12px',
+            width: '400px',
+            maxWidth: '90%',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#ef4444', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span> 确认清除缓存
+            </h3>
+            <p style={{ marginBottom: '12px', color: '#374151' }}>确认要删除所有模型缓存吗？若删除：</p>
+            <ul style={{ 
+              marginBottom: '24px', 
+              paddingLeft: '20px',
+              color: '#6b7280',
+              fontSize: '14px',
+              lineHeight: '1.6',
+              listStyleType: 'disc'
+            }}>
+              <li>所有API Base URL将恢复至默认</li>
+              <li>所有已填写的API Key将被清空</li>
+              <li>所有添加的自定义模型将被清空</li>
+              <li>所有添加的自定义模型服务商将被清空</li>
+            </ul>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowClearConfirm(false)}
+                style={{ padding: '8px 16px' }}
+              >
+                取消
+              </button>
+              <button 
+                className="btn btn-primary"
+                style={{ background: '#ef4444', borderColor: '#ef4444', padding: '8px 16px' }}
+                onClick={confirmClear}
+              >
+                确认清除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
