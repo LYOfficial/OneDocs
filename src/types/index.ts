@@ -1,5 +1,21 @@
 // AI Provider Types
-export type AIProvider = 'openai' | 'deepseek' | 'glm' | 'siliconflow';
+export type AIProvider = 
+  | 'openai' 
+  | 'anthropic'
+  | 'gemini'
+  | 'moonshot'
+  | 'glm'
+  | 'deepseek'
+  | 'ollama'
+  | 'lmstudio'
+  | 'comp_share'
+  | '302_ai'
+  | 'pony'
+  | 'siliconflow'
+  | 'ppio'
+  | 'modelscope'
+  | 'oneapi';
+
 export type CustomProviderKey = `custom_${string}`;
 export type AllProviders = AIProvider | CustomProviderKey;
 
@@ -17,6 +33,7 @@ export interface ProviderConfig {
   keyLabel: string;
   keyHint: string;
   baseUrlHint: string;
+  icon?: string;
 }
 
 export interface CustomProviderConfig {

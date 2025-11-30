@@ -48,9 +48,12 @@ interface AppState {
   // Settings
   currentProvider: AllProviders;
   providerSettings: Record<AIProvider, ProviderSettings>;
+  providerCustomModels: Record<AIProvider, ModelOption[]>; // 新增：每个提供商的自定义模型列表
   customProviders: Record<string, CustomProviderSettings>;
   setCurrentProvider: (provider: AllProviders) => void;
   updateProviderSettings: (provider: AIProvider, settings: Partial<ProviderSettings>) => void;
+  addProviderCustomModel: (provider: AIProvider, model: ModelOption) => void; // 新增：添加自定义模型
+  removeProviderCustomModel: (provider: AIProvider, modelValue: string) => void; // 新增：删除自定义模型
   addCustomProvider: (name: string, baseUrl: string, model: string, apiKey: string) => string;
   updateCustomProvider: (id: string, settings: Partial<CustomProviderSettings>) => void;
   deleteCustomProvider: (id: string) => void;
@@ -186,9 +189,37 @@ export const useAppStore = create<AppState>()(
       currentProvider: 'openai',
       providerSettings: {
         openai: getDefaultSettings('openai'),
-        deepseek: getDefaultSettings('deepseek'),
+        anthropic: getDefaultSettings('anthropic'),
+        gemini: getDefaultSettings('gemini'),
+        moonshot: getDefaultSettings('moonshot'),
         glm: getDefaultSettings('glm'),
+        deepseek: getDefaultSettings('deepseek'),
+        ollama: getDefaultSettings('ollama'),
+        lmstudio: getDefaultSettings('lmstudio'),
+        comp_share: getDefaultSettings('comp_share'),
+        '302_ai': getDefaultSettings('302_ai'),
+        pony: getDefaultSettings('pony'),
         siliconflow: getDefaultSettings('siliconflow'),
+        ppio: getDefaultSettings('ppio'),
+        modelscope: getDefaultSettings('modelscope'),
+        oneapi: getDefaultSettings('oneapi'),
+      },
+      providerCustomModels: {
+        openai: [],
+        anthropic: [],
+        gemini: [],
+        moonshot: [],
+        glm: [],
+        deepseek: [],
+        ollama: [],
+        lmstudio: [],
+        comp_share: [],
+        '302_ai': [],
+        pony: [],
+        siliconflow: [],
+        ppio: [],
+        modelscope: [],
+        oneapi: [],
       },
       customProviders: {},
       setCurrentProvider: (provider) => set({ currentProvider: provider }),
@@ -200,6 +231,22 @@ export const useAppStore = create<AppState>()(
               ...state.providerSettings[provider],
               ...settings,
             },
+          },
+        })),
+      addProviderCustomModel: (provider, model) =>
+        set((state) => ({
+          providerCustomModels: {
+            ...state.providerCustomModels,
+            [provider]: [...(state.providerCustomModels[provider] || []), model],
+          },
+        })),
+      removeProviderCustomModel: (provider, modelValue) =>
+        set((state) => ({
+          providerCustomModels: {
+            ...state.providerCustomModels,
+            [provider]: (state.providerCustomModels[provider] || []).filter(
+              (m) => m.value !== modelValue
+            ),
           },
         })),
       addCustomProvider: (name, baseUrl, model, apiKey) => {
