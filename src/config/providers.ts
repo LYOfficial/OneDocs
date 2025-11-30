@@ -59,6 +59,23 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '需要填入有效的智谱API密钥方可使用',
     baseUrlHint: '智谱GLM API服务器地址',
   },
+  siliconflow: {
+    name: '硅基流动',
+    baseUrl: 'https://api.siliconflow.cn/v1',
+    endpoint: '/chat/completions',
+    models: [
+      { value: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek-V3' },
+      { value: 'deepseek-ai/DeepSeek-R1', name: 'DeepSeek-R1' },
+      { value: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen2.5-72B' },
+      { value: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5-7B' },
+      { value: 'Qwen/QwQ-32B', name: 'QwQ-32B' },
+      { value: 'THUDM/glm-4-9b-chat', name: 'GLM-4-9B' },
+    ],
+    defaultModel: 'deepseek-ai/DeepSeek-V3',
+    keyLabel: 'SiliconFlow API Key',
+    keyHint: '需要填入有效的硅基流动API密钥方可使用',
+    baseUrlHint: '硅基流动 API服务器地址',
+  },
 };
 
 export const SUPPORTED_FILE_TYPES = [

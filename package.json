@@ -15,6 +15,7 @@
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-dialog": "^2.4.0",
     "@tauri-apps/plugin-fs": "^2.4.2",
+    "@tauri-apps/plugin-shell": "^2.3.3",
     "jszip": "^3.10.1",
     "katex": "^0.16.11",
     "mammoth": "^1.8.0",

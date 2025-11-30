@@ -1,5 +1,5 @@
 // AI Provider Types
-export type AIProvider = 'openai' | 'deepseek' | 'glm';
+export type AIProvider = 'openai' | 'deepseek' | 'glm' | 'siliconflow';
 export type CustomProviderKey = `custom_${string}`;
 export type AllProviders = AIProvider | CustomProviderKey;
 

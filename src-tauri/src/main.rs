@@ -40,7 +40,7 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
         .post(format!("{}/chat/completions", api_base_url))
         .json(&request_body);
 
-    if (api_base_url.contains("bigmodel.cn")) {
+    if api_base_url.contains("bigmodel.cn") {
         request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
     } else {
         request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));

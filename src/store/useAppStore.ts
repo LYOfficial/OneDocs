@@ -188,6 +188,7 @@ export const useAppStore = create<AppState>()(
         openai: getDefaultSettings('openai'),
         deepseek: getDefaultSettings('deepseek'),
         glm: getDefaultSettings('glm'),
+        siliconflow: getDefaultSettings('siliconflow'),
       },
       customProviders: {},
       setCurrentProvider: (provider) => set({ currentProvider: provider }),
