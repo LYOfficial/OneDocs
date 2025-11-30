@@ -48,12 +48,12 @@ interface AppState {
   // Settings
   currentProvider: AllProviders;
   providerSettings: Record<AIProvider, ProviderSettings>;
-  providerCustomModels: Record<AIProvider, ModelOption[]>; // 新增：每个提供商的自定义模型列表
+  providerCustomModels: Record<AIProvider, ModelOption[]>;
   customProviders: Record<string, CustomProviderSettings>;
   setCurrentProvider: (provider: AllProviders) => void;
   updateProviderSettings: (provider: AIProvider, settings: Partial<ProviderSettings>) => void;
-  addProviderCustomModel: (provider: AIProvider, model: ModelOption) => void; // 新增：添加自定义模型
-  removeProviderCustomModel: (provider: AIProvider, modelValue: string) => void; // 新增：删除自定义模型
+  addProviderCustomModel: (provider: AIProvider, model: ModelOption) => void;
+  removeProviderCustomModel: (provider: AIProvider, modelValue: string) => void;
   addCustomProvider: (name: string, baseUrl: string, model: string, apiKey: string) => string;
   updateCustomProvider: (id: string, settings: Partial<CustomProviderSettings>) => void;
   deleteCustomProvider: (id: string) => void;
@@ -110,7 +110,7 @@ export const useAppStore = create<AppState>()(
           return {
             files: newFiles,
             currentFileId: newCurrentFileId,
-            currentFile: newCurrentFile, // 向后兼容
+            currentFile: newCurrentFile,
             analysisResult: newCurrentFile ? restResults[newCurrentFileId || ''] || null : null,
             multiFileAnalysisResults: restResults,
           };
@@ -129,8 +129,8 @@ export const useAppStore = create<AppState>()(
           const result = fileId ? state.multiFileAnalysisResults[fileId] || null : null;
           return {
             currentFileId: fileId,
-            currentFile: file, // 向后兼容
-            analysisResult: result, // 向后兼容
+            currentFile: file,
+            analysisResult: result,
           };
         });
       },
@@ -172,7 +172,7 @@ export const useAppStore = create<AppState>()(
             ...state.multiFileAnalysisResults,
             [fileId]: result,
           };
-          // 如果当前文件ID匹配，也更新analysisResult（向后兼容）
+          // 如果当前文件ID匹配，也更新analysisResult
           const newAnalysisResult = state.currentFileId === fileId ? result : state.analysisResult;
           return {
             multiFileAnalysisResults: newResults,

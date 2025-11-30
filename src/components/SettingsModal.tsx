@@ -28,27 +28,22 @@ export const SettingsModal: React.FC = () => {
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
   const [view, setView] = useState<'grid' | 'form'>('grid');
 
-  // 本地状态用于表单
   const [localProvider, setLocalProvider] = useState<AllProviders>(currentProvider);
   const [localApiKey, setLocalApiKey] = useState('');
   const [localBaseUrl, setLocalBaseUrl] = useState('');
   const [localModel, setLocalModel] = useState('');
   
-  // 新建自定义模型的状态
   const [customName, setCustomName] = useState('');
   const [customBaseUrl, setCustomBaseUrl] = useState('');
   const [customModel, setCustomModel] = useState('');
   const [customApiKey, setCustomApiKey] = useState('');
 
-  // 添加模型的状态
   const [isAddingModel, setIsAddingModel] = useState(false);
   const [newModelId, setNewModelId] = useState('');
   const [newModelName, setNewModelName] = useState('');
   
-  // 清除缓存确认弹窗状态
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // 当打开设置时，重置视图
   useEffect(() => {
     if (isSettingsOpen) {
       setView('grid');
@@ -57,10 +52,8 @@ export const SettingsModal: React.FC = () => {
     }
   }, [isSettingsOpen, currentProvider]);
 
-  // 当选择提供商时，加载对应的设置
   useEffect(() => {
     if (typeof localProvider === 'string' && localProvider.startsWith('custom_')) {
-      // 自定义提供商
       const settings = customProviders[localProvider];
       if (settings) {
         setLocalApiKey(settings.apiKey);
@@ -68,7 +61,6 @@ export const SettingsModal: React.FC = () => {
         setLocalModel(settings.model);
       }
     } else {
-      // 内置提供商
       const settings = providerSettings[localProvider as AIProvider];
       if (settings) {
         setLocalApiKey(settings.apiKey);
@@ -91,7 +83,6 @@ export const SettingsModal: React.FC = () => {
 
   const handleSave = () => {
     if (typeof localProvider === 'string' && localProvider.startsWith('custom_')) {
-      // 保存自定义提供商设置
       updateCustomProvider(localProvider, {
         apiKey: localApiKey,
         baseUrl: localBaseUrl,
@@ -99,7 +90,6 @@ export const SettingsModal: React.FC = () => {
         name: customProviders[localProvider]?.name || '自定义模型',
       });
     } else {
-      // 保存内置提供商设置
       updateProviderSettings(localProvider as AIProvider, {
         apiKey: localApiKey,
         baseUrl: localBaseUrl,
@@ -107,7 +97,6 @@ export const SettingsModal: React.FC = () => {
       });
     }
 
-    // 如果提供商发生变化，也要更新
     if (localProvider !== currentProvider) {
       setCurrentProvider(localProvider);
     }
@@ -126,7 +115,6 @@ export const SettingsModal: React.FC = () => {
     setLocalProvider(newId as AllProviders);
     setIsCreatingCustom(false);
     
-    // 清空自定义模型表单
     setCustomName('');
     setCustomBaseUrl('');
     setCustomModel('');
@@ -178,14 +166,12 @@ export const SettingsModal: React.FC = () => {
     setIsTesting(true);
     try {
       if (typeof localProvider === 'string' && localProvider.startsWith('custom_')) {
-        // 测试自定义提供商连接
         await APIService.testCustomConnection(
           localApiKey,
           localBaseUrl,
           localModel
         );
       } else {
-        // 测试内置提供商连接
         await APIService.testConnection(
           localProvider as AIProvider,
           localApiKey,
@@ -195,7 +181,6 @@ export const SettingsModal: React.FC = () => {
       }
       toast.show('连接测试成功！');
     } catch (error: any) {
-      // 检查是否是余额不足的警告（连接正常但有余额问题）
       if (error.message === 'BALANCE_WARNING' && error.isWarning) {
         toast.show(`✅ ${error.originalMessage}`, 5000);
       } else {
@@ -212,12 +197,10 @@ export const SettingsModal: React.FC = () => {
   const config = isCustomProvider ? null : MODEL_PROVIDERS[localProvider as AIProvider];
   const currentCustom = isCustomProvider ? customProviders[localProvider] : null;
   
-  // 合并内置模型和自定义模型
   const providerModels = !isCustomProvider && config 
     ? [...config.models, ...(providerCustomModels[localProvider as AIProvider] || [])]
     : [];
 
-  // 获取提供商首字母或图标
   const getProviderIcon = (key: string) => {
     const provider = MODEL_PROVIDERS[key as AIProvider];
     if (provider?.icon) {
@@ -303,10 +286,8 @@ export const SettingsModal: React.FC = () => {
               </div>
             </div>
           ) : (
-            // 表单视图
             <>
               {isCreatingCustom ? (
-                // 新建自定义模型表单
                 <>
                   <div className="setting-item">
                     <label htmlFor="customName">模型名称</label>
@@ -357,7 +338,6 @@ export const SettingsModal: React.FC = () => {
                   </div>
                 </>
               ) : (
-                // 正常设置表单
                 <>
                   {isCustomProvider && currentCustom && (
                     <div className="setting-item">
@@ -434,7 +414,6 @@ export const SettingsModal: React.FC = () => {
                               </option>
                             ))}
                           </select>
-                          {/* 如果当前选中的是自定义模型，显示删除按钮 */}
                           {providerCustomModels[localProvider as AIProvider]?.some(m => m.value === localModel) && (
                             <button 
                               className="btn btn-secondary"
@@ -447,7 +426,6 @@ export const SettingsModal: React.FC = () => {
                           )}
                         </div>
                         
-                        {/* 添加自定义模型区域 */}
                         {isAddingModel ? (
                           <div style={{ 
                             background: '#f9fafb', 

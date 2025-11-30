@@ -1,6 +1,5 @@
 import { ModelProviders, CustomProviderConfig } from '@/types';
 
-// 创建自定义模型配置的辅助函数
 export const createCustomProvider = (
   name: string,
   baseUrl: string,
@@ -151,7 +150,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: 'API Key',
     keyHint: '请输入优云智算 API Key',
     baseUrlHint: 'API服务器地址',
-    icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png', // Fallback
+    icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png',
   },
   '302_ai': {
     name: '302.AI',
