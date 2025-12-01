@@ -11,6 +11,7 @@ import type {
   ViewMode,
   ProviderSettings,
   CustomProviderSettings,
+  ModelOption,
 } from '@/types';
 import { MODEL_PROVIDERS, createCustomProvider } from '@/config/providers';
 
