@@ -1501,13 +1501,19 @@ body {
     max-height: 90vh;
     overflow-y: auto;
     animation: slideInScale 0.3s ease-out;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.modal-content::-webkit-scrollbar {
+    display: none;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
+    padding: 1rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -1528,30 +1534,30 @@ body {
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: 1rem;
 }
 
 .setting-item {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.8rem;
 }
 
 .setting-item label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.2rem;
     color: var(--primary-color);
     font-weight: 500;
+    font-size: 0.9rem;
 }
 
 .setting-item input,
 .setting-item select {
     width: 100%;
-    padding: 0.75rem;
+    padding: 0.4rem;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
-    font-size: 1rem;
+    font-size: 0.9rem;
     transition: var(--transition);
     font-family: inherit;
-    /* 允许设置页面输入框进行文本选择 */
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
@@ -1616,7 +1622,7 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    padding: 1.5rem;
+    padding: 1rem;
     border-top: 1px solid var(--border-color);
 }
 
@@ -1626,7 +1632,7 @@ body {
 }
 
 .btn {
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: var(--transition);
@@ -1970,6 +1976,8 @@ option[value^="custom_"] {
     padding: 0.5rem;
     max-height: 60vh;
     overflow-y: auto;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
 
 .provider-card {
@@ -1993,9 +2001,13 @@ option[value^="custom_"] {
     border-color: var(--accent-color);
 }
 
+.provider-card.configured {
+    border-color: var(--accent-color);
+}
+
 .provider-card.active {
     border-color: var(--accent-color);
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(59, 130, 246, 0.1);
     box-shadow: 0 0 0 2px var(--accent-color);
 }
 
@@ -2041,6 +2053,23 @@ option[value^="custom_"] {
     border-radius: 4px;
 }
 
+.available-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    font-size: 0.7rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.input-error {
+    border-color: var(--error-color) !important;
+    background-color: #fef2f2;
+}
+
 .custom-badge {
     margin-top: 4px;
     font-size: 0.7rem;
@@ -2074,20 +2103,7 @@ option[value^="custom_"] {
 
 /* Scrollbar for grid */
 .provider-grid::-webkit-scrollbar {
-    width: 6px;
-}
-
-.provider-grid::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.provider-grid::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-}
-
-.provider-grid::-webkit-scrollbar-thumb:hover {
-    background: var(--secondary-color);
+    display: none;
 }
 
 

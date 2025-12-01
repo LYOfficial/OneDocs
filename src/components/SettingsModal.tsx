@@ -43,16 +43,19 @@ export const SettingsModal: React.FC = () => {
   const [newModelName, setNewModelName] = useState('');
   
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [errors, setErrors] = useState({ apiKey: false, baseUrl: false, model: false });
 
   useEffect(() => {
     if (isSettingsOpen) {
       setView('grid');
       setLocalProvider(currentProvider);
       setIsAddingModel(false);
+      setErrors({ apiKey: false, baseUrl: false, model: false });
     }
   }, [isSettingsOpen, currentProvider]);
 
   useEffect(() => {
+    setErrors({ apiKey: false, baseUrl: false, model: false });
     if (typeof localProvider === 'string' && localProvider.startsWith('custom_')) {
       const settings = customProviders[localProvider];
       if (settings) {
@@ -81,7 +84,7 @@ export const SettingsModal: React.FC = () => {
     setView('form');
   };
 
-  const handleSave = () => {
+  const saveSettings = () => {
     if (typeof localProvider === 'string' && localProvider.startsWith('custom_')) {
       updateCustomProvider(localProvider, {
         apiKey: localApiKey,
@@ -96,12 +99,36 @@ export const SettingsModal: React.FC = () => {
         model: localModel,
       });
     }
+  };
 
-    if (localProvider !== currentProvider) {
-      setCurrentProvider(localProvider);
+  const validateForm = () => {
+    const newErrors = {
+      apiKey: !localApiKey,
+      baseUrl: !localBaseUrl,
+      model: !localModel
+    };
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(Boolean);
+  };
+
+  const handleSave = () => {
+    if (!validateForm()) {
+      toast.show('请填写所有必填项');
+      return;
     }
-
+    saveSettings();
     toast.show('设置已保存');
+    setView('grid');
+  };
+
+  const handleUse = () => {
+    if (!validateForm()) {
+      toast.show('请填写所有必填项');
+      return;
+    }
+    saveSettings();
+    setCurrentProvider(localProvider);
+    toast.show('已切换至该模型');
     setSettingsOpen(false);
   };
 
@@ -239,34 +266,48 @@ export const SettingsModal: React.FC = () => {
         <div className="modal-body">
           {view === 'grid' ? (
             <div className="provider-grid">
-              {(Object.keys(MODEL_PROVIDERS) as AIProvider[]).map((key) => (
-                <div 
-                  key={key} 
-                  className={`provider-card ${currentProvider === key ? 'active' : ''}`}
-                  onClick={() => handleProviderSelect(key)}
-                >
-                  <div className="provider-icon">
-                    {getProviderIcon(key)}
+              {(Object.keys(MODEL_PROVIDERS) as AIProvider[]).map((key) => {
+                const isConfigured = !!providerSettings[key]?.apiKey;
+                return (
+                  <div 
+                    key={key} 
+                    className={`provider-card ${currentProvider === key ? 'active' : ''} ${isConfigured ? 'configured' : ''}`}
+                    onClick={() => handleProviderSelect(key)}
+                  >
+                    <div className="provider-icon">
+                      {getProviderIcon(key)}
+                    </div>
+                    <div className="provider-name">{MODEL_PROVIDERS[key].name}</div>
+                    {currentProvider === key ? (
+                      <div className="current-badge">当前使用</div>
+                    ) : isConfigured ? (
+                      <div className="available-badge">可用</div>
+                    ) : null}
                   </div>
-                  <div className="provider-name">{MODEL_PROVIDERS[key].name}</div>
-                  {currentProvider === key && <div className="current-badge">当前使用</div>}
-                </div>
-              ))}
+                );
+              })}
               
-              {Object.entries(customProviders).map(([id, provider]) => (
-                <div 
-                  key={id} 
-                  className={`provider-card custom ${currentProvider === id ? 'active' : ''}`}
-                  onClick={() => handleProviderSelect(id as AllProviders)}
-                >
-                  <div className="provider-icon custom">
-                    {getProviderIcon(provider.name)}
+              {Object.entries(customProviders).map(([id, provider]) => {
+                const isConfigured = !!provider.apiKey;
+                return (
+                  <div 
+                    key={id} 
+                    className={`provider-card custom ${currentProvider === id ? 'active' : ''} ${isConfigured ? 'configured' : ''}`}
+                    onClick={() => handleProviderSelect(id as AllProviders)}
+                  >
+                    <div className="provider-icon custom">
+                      {getProviderIcon(provider.name)}
+                    </div>
+                    <div className="provider-name">{provider.name}</div>
+                    <div className="custom-badge">自定义</div>
+                    {currentProvider === id ? (
+                      <div className="current-badge">当前使用</div>
+                    ) : isConfigured ? (
+                      <div className="available-badge">可用</div>
+                    ) : null}
                   </div>
-                  <div className="provider-name">{provider.name}</div>
-                  <div className="custom-badge">自定义</div>
-                  {currentProvider === id && <div className="current-badge">当前使用</div>}
-                </div>
-              ))}
+                );
+              })}
 
               <div 
                 className="provider-card add-new"
@@ -372,7 +413,11 @@ export const SettingsModal: React.FC = () => {
                       type="text"
                       id="baseUrl"
                       value={localBaseUrl}
-                      onChange={(e) => setLocalBaseUrl(e.target.value)}
+                      onChange={(e) => {
+                        setLocalBaseUrl(e.target.value);
+                        if (e.target.value) setErrors(prev => ({ ...prev, baseUrl: false }));
+                      }}
+                      className={errors.baseUrl ? 'input-error' : ''}
                       placeholder={isCustomProvider ? currentCustom?.baseUrl : config?.baseUrl}
                     />
                     <small>{isCustomProvider ? '自定义API服务器地址' : config?.baseUrlHint}</small>
@@ -384,7 +429,11 @@ export const SettingsModal: React.FC = () => {
                       type="password"
                       id="apiKey"
                       value={localApiKey}
-                      onChange={(e) => setLocalApiKey(e.target.value)}
+                      onChange={(e) => {
+                        setLocalApiKey(e.target.value);
+                        if (e.target.value) setErrors(prev => ({ ...prev, apiKey: false }));
+                      }}
+                      className={errors.apiKey ? 'input-error' : ''}
                       placeholder="输入 API Key"
                     />
                     <small>{isCustomProvider ? 'API 访问密钥' : config?.keyHint}</small>
@@ -396,7 +445,11 @@ export const SettingsModal: React.FC = () => {
                       <input
                         type="text"
                         value={localModel}
-                        onChange={(e) => setLocalModel(e.target.value)}
+                        onChange={(e) => {
+                          setLocalModel(e.target.value);
+                          if (e.target.value) setErrors(prev => ({ ...prev, model: false }));
+                        }}
+                        className={errors.model ? 'input-error' : ''}
                         placeholder="输入模型ID"
                       />
                     ) : (
@@ -405,7 +458,11 @@ export const SettingsModal: React.FC = () => {
                           <select
                             id="modelSelect"
                             value={localModel}
-                            onChange={(e) => setLocalModel(e.target.value)}
+                            onChange={(e) => {
+                              setLocalModel(e.target.value);
+                              if (e.target.value) setErrors(prev => ({ ...prev, model: false }));
+                            }}
+                            className={errors.model ? 'input-error' : ''}
                             style={{ flex: 1 }}
                           >
                             {providerModels.map((model) => (
@@ -518,12 +575,30 @@ export const SettingsModal: React.FC = () => {
               >
                 取消
               </button>
-              <button 
-                className="btn btn-primary" 
-                onClick={isCreatingCustom ? handleCreateCustomProvider : handleSave}
-              >
-                {isCreatingCustom ? '创建' : '保存'}
-              </button>
+              {!isCreatingCustom ? (
+                <>
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={handleSave}
+                    style={{ marginRight: '8px' }}
+                  >
+                    保存
+                  </button>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleUse}
+                  >
+                    启用
+                  </button>
+                </>
+              ) : (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleCreateCustomProvider}
+                >
+                  创建
+                </button>
+              )}
             </div>
           </div>
         )}
