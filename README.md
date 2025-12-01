@@ -13,13 +13,26 @@
 **文章千卷，一览而知。智慧之器，助君析文明理。**
 
 OneDocs者，一文亦闻也，乃集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。
-## 测试截图
 
-![介绍页](https://oss.1n.hk/image/up/02d537a812ec13ab1afe9c7934a81e5a.png)
+## 项目介绍
+当今数据时代，各行各业有各种文档需要我们阅读和分析，有每日新鲜的新闻报告、工作场景的数据表格、学习生活中的课件文档……各种文档中**有精华亦有糟粕**，人力阅读和筛选会**占用大量的时间**，有没有什么工具能**将那些无用内容筛去**，像学霸笔记那样**将精华内容整理分析**方便我们阅读和学习呢？
 
-![应用页](https://oss.1n.hk/image/up/8fa2905efe5922ce320d6744d734ec8d.png)
+于是我做了这个AI工具，**OneDocs**，给它起了个好听的中文名「**一文亦闻**」，结合文件分析、大模型应用和输出格式规范化，对用户上传的文件进行解构分析，去除无用内容，整理成知识手册。希望用户能通过大模型的力量，通过一个个简单的文档了解事情的本质，学习和进步。
 
-![源码页](https://oss.1n.hk/image/up/3c639cb78d434110f31b450f57de117d.png)
+目前软件支持**Word、PPT、TXT、PDF**这些主流文档格式，支持**40+模型**选择，支持**Windows/macOS/Linux跨平台**使用，基本满足各类用户使用需求。且软件为本地下载使用，无文件上传，不会造成文件和API Key泄露。
+
+软件功能主要有四种：
+
+- **要闻概览**——新闻要点梳理
+- **罗森析数**——数据内容分析
+- **理工速知**——理工课件整理
+- **文采丰呈**——文科课件整理
+
+分析后的结果可以预览、复制Markdown源码和导出下载，亦可以同时分析多文件进行合并下载。
+
+## 软件截图
+
+<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs001.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs002.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs003.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs004.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs005.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs007.png" alt="OneDocs" height="320"/>
 
 
 ## 使用方法
