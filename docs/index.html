@@ -166,6 +166,15 @@
                     <i class="fas fa-info-circle"></i>
                     <span>如果下载被浏览器拦截，请点击"保留"继续下载</span>
                 </div>
+
+                <!-- 下载源选择 -->
+                <div class="download-options">
+                    <label class="source-toggle">
+                        <input type="checkbox" id="useProxy" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">使用加速镜像下载 (推荐中国大陆用户开启)</span>
+                    </label>
+                </div>
                 
                 <div class="download-grid">
                     <div class="download-card">
@@ -174,13 +183,18 @@
                         </div>
                         <h3>Windows</h3>
                         <p>适用于 Windows 10 及以上版本</p>
-                        <button class="download-btn" onclick="downloadApp('windows')">
-                            <i class="fas fa-download"></i>
-                            下载 Windows 版
-                        </button>
+                        <div class="button-group">
+                            <button class="download-btn" onclick="downloadApp('windows', 'exe')">
+                                <i class="fas fa-download"></i>
+                                下载 .exe
+                            </button>
+                            <button class="download-btn secondary" onclick="downloadApp('windows', 'msi')">
+                                下载 .msi
+                            </button>
+                        </div>
                         <div class="download-info">
-                            <span>版本: 1.2.0</span>
-                            <span>大小: 12.2 MB</span>
+                            <span>版本: 1.3.0</span>
+                            <span>大小: ~4 MB</span>
                         </div>
                     </div>
                     
@@ -190,13 +204,13 @@
                         </div>
                         <h3>macOS</h3>
                         <p>适用于 macOS 10.15 及以上版本</p>
-                        <button class="download-btn" onclick="downloadApp('macos')">
+                        <button class="download-btn" onclick="downloadApp('macos', 'dmg')">
                             <i class="fas fa-download"></i>
                             下载 macOS 版
                         </button>
                         <div class="download-info">
-                            <span>版本: 1.2.0</span>
-                            <span>大小: 5.59 MB</span>
+                            <span>版本: 1.3.0</span>
+                            <span>大小: ~6 MB</span>
                         </div>
                     </div>
                     
@@ -206,13 +220,18 @@
                         </div>
                         <h3>Linux</h3>
                         <p>适用于主流 Linux 发行版</p>
-                        <button class="download-btn disabled" disabled>
-                            <i class="fas fa-clock"></i>
-                            敬请期待
-                        </button>
+                        <div class="button-group">
+                            <button class="download-btn" onclick="downloadApp('linux', 'appimage')">
+                                <i class="fas fa-download"></i>
+                                下载 .AppImage
+                            </button>
+                            <button class="download-btn secondary" onclick="downloadApp('linux', 'deb')">
+                                下载 .deb
+                            </button>
+                        </div>
                         <div class="download-info">
-                            <span>版本: 1.0.0</span>
-                            <span>即将发布</span>
+                            <span>版本: 1.3.0</span>
+                            <span>大小: ~80 MB</span>
                         </div>
                     </div>
                 </div>
@@ -275,7 +294,7 @@
                             <div class="stat-label">种分析模式</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number" data-target="10">0</div>
+                            <div class="stat-number" data-target="40">0</div>
                             <div class="stat-label">+ AI 模型</div>
                         </div>
                     </div>

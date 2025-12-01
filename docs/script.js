@@ -174,26 +174,47 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 下载功能
-function downloadApp(platform) {
-    let downloadUrl = '';
+function downloadApp(platform, type) {
+    const useProxy = document.getElementById('useProxy').checked;
+    const baseUrl = 'https://github.com/LYOfficial/OneDocs/releases/download/v1.3.0/';
+    const proxyUrl = 'https://gh-proxy.com/';
+    
+    let filename = '';
     let platformName = '';
     
     switch(platform) {
         case 'windows':
-            downloadUrl = 'https://gh-proxy.com/https://github.com/LYOfficial/OneDocs/releases/download/v1.2.0/OneDocs-1.2.0.exe';
             platformName = 'Windows';
+            if (type === 'msi') {
+                filename = 'onedocs_1.3.0_x64_en-US.msi';
+            } else {
+                filename = 'onedocs_1.3.0_x64-setup.exe';
+            }
             break;
         case 'macos':
-            downloadUrl = 'https://gh-proxy.com/https://github.com/LYOfficial/OneDocs/releases/download/v1.2.0/OneDocs-macos-1.2.0.zip';
             platformName = 'macOS';
+            filename = 'onedocs_1.3.0_aarch64.dmg';
+            break;
+        case 'linux':
+            platformName = 'Linux';
+            if (type === 'deb') {
+                filename = 'onedocs_1.3.0_amd64.deb';
+            } else {
+                filename = 'onedocs_1.3.0_amd64.AppImage';
+            }
             break;
         default:
             showToast('该平台版本暂未发布', 'warning');
             return;
     }
     
+    let downloadUrl = baseUrl + filename;
+    if (useProxy) {
+        downloadUrl = proxyUrl + downloadUrl;
+    }
+    
     // 显示下载提示
-    showToast(`正在下载 ${platformName} 版本...如果被浏览器拦截，请点击"保留"`, 'info', 4000);
+    showToast(`正在下载 ${platformName} ${type ? type : ''} 版本...如果被浏览器拦截，请点击"保留"`, 'info', 4000);
     
     // 创建隐藏的下载链接
     const link = document.createElement('a');
