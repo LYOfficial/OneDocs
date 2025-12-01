@@ -1,6 +1,6 @@
 [package]
 name = "onedocs"
-version = "1.2.0"
+version = "1.3.0"
 description = "A Single Text, All is Known."
 authors = ["you"]
 edition = "2021"
