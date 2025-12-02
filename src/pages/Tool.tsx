@@ -4,13 +4,7 @@ import { useAnalysis } from "@/hooks/useAnalysis";
 import { FunctionSelector } from "@/components/FunctionSelector";
 import { FileUpload } from "@/components/FileUpload";
 import { ProgressBar } from "@/components/ProgressBar";
-import { ResultDisplay } from "@/components/ResultDisplay";
-
-interface ToolProps {
-  onBack: () => void;
-}
-
-export const Tool: React.FC<ToolProps> = () => {
+export const Tool: React.FC = () => {
   const {
     files,
     currentFile,
@@ -46,35 +40,37 @@ export const Tool: React.FC<ToolProps> = () => {
 
         <div className="main-content">
           <div className="chat-container">
-            {!hasAnalysisResults && (
-              <>
-                {showFormatNotice && (
-                  <div className="format-notice">
-                    <p>
-                      <strong>📋 格式说明：</strong>支持 <code>.pdf</code>、
-                      <code>.docx</code>、<code>.doc</code>、<code>.pptx</code>、
-                      <code>.ppt</code>、<code>.txt</code> 格式文件
-                    </p>
-                    <button
-                      className="notice-close"
-                      onClick={() => setShowFormatNotice(false)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
-
-                <FileUpload 
-                  onAnalyze={handleMainButtonClick}
-                  canAnalyze={!!canAnalyze}
-                  isAnalyzing={isAnalyzing}
-                  hasAnalysisResults={hasAnalysisResults}
-                />
-              </>
+            {showFormatNotice && (
+              <div className="format-notice">
+                <p>
+                  <strong>📋 格式说明：</strong>支持 <code>.pdf</code>、
+                  <code>.docx</code>、<code>.doc</code>、<code>.pptx</code>、
+                  <code>.ppt</code>、<code>.txt</code> 格式文件
+                </p>
+                <button
+                  className="notice-close"
+                  onClick={() => setShowFormatNotice(false)}
+                >
+                  ×
+                </button>
+              </div>
             )}
 
+            <FileUpload 
+              onAnalyze={handleMainButtonClick}
+              canAnalyze={!!canAnalyze}
+              isAnalyzing={isAnalyzing}
+              hasAnalysisResults={hasAnalysisResults}
+            />
+
             <ProgressBar />
-            <ResultDisplay />
+
+            {hasAnalysisResults && (
+              <div className="result-hint-card">
+                <h3>分析结果已生成</h3>
+                <p>请通过顶部菜单切换到「分析结果」页面查看、复制或导出内容。</p>
+              </div>
+            )}
           </div>
         </div>
       </main>
