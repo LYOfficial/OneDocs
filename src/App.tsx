@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Landing } from "@/pages/Landing";
 import { Tool } from "@/pages/Tool";
 import { AnalysisResult } from "@/pages/AnalysisResult";
+import { Tools } from "@/pages/Tools";
 import { Toast } from "@/components/Toast";
 import { TitleBar } from "@/components/TitleBar";
-import { SettingsModal } from "@/components/SettingsModal";
 import { useAppStore } from "@/store/useAppStore";
 
-type Page = "landing" | "tool" | "analysisResult";
+type Page = "landing" | "tool" | "analysisResult" | "tools";
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>("landing");
@@ -30,9 +30,9 @@ const App: React.FC = () => {
         )}
         {currentPage === "tool" && <Tool />}
         {currentPage === "analysisResult" && <AnalysisResult />}
+        {currentPage === "tools" && <Tools />}
       </div>
       <Toast />
-      <SettingsModal />
     </div>
   );
 };

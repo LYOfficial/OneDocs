@@ -58,6 +58,21 @@ body {
     width: 100%;
     height: 100%;
     margin: 0;
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0;
+}
+
+.btn-text:hover {
+    text-decoration: underline;
+}
     padding: 0;
     overflow: hidden;
     display: flex;
@@ -454,6 +469,291 @@ body {
     display: flex;
     overflow: hidden;
     background: linear-gradient(135deg, var(--panel-gradient-start) 0%, var(--panel-gradient-end) 100%);
+}
+
+.tools-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(135deg, var(--panel-gradient-start) 0%, var(--panel-gradient-end) 100%);
+}
+
+.tools-sidebar {
+    width: 240px;
+    background: var(--background-color);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+}
+
+.tools-sidebar-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--primary-color);
+}
+
+.tools-sidebar-header p {
+    margin: 0.2rem 0 0;
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+}
+
+.tools-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tools-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: left;
+}
+
+.tools-nav-item.active {
+    border-color: var(--accent-color);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+}
+
+.tools-nav-item:hover {
+    border-color: var(--hover-color);
+    background: var(--hover-color);
+}
+
+.tools-nav-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--surface-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-color);
+}
+
+.tools-nav-meta span {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--primary-color);
+}
+
+.tools-nav-meta small {
+    color: var(--secondary-color);
+    font-size: 0.75rem;
+}
+
+.tools-content {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.tool-panel {
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-medium);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.tool-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.tool-panel-subtitle {
+    margin: 0;
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+}
+
+.tool-panel-header h2 {
+    margin: 0.2rem 0;
+    font-size: 1.4rem;
+    color: var(--primary-color);
+}
+
+.tool-panel-desc {
+    margin: 0;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+}
+
+.provider-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.form-top-bar h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.form-subtitle {
+    margin: 0.2rem 0 0;
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+}
+
+.custom-summary {
+    background: var(--surface-color);
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.model-select-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.model-select-row select {
+    flex: 1;
+}
+
+.custom-model-form {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.custom-model-title {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.custom-model-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.tool-panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+}
+
+.tool-panel-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+
+.tool-panel-dialog-content {
+    background: var(--background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    width: 420px;
+    max-width: 90%;
+    box-shadow: var(--shadow-large);
+}
+
+.tool-panel-dialog-content h3 {
+    margin-top: 0;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tool-panel-dialog-content ul {
+    padding-left: 1.2rem;
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.tool-panel-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.tool-panel-dialog .danger {
+    background: #ef4444;
+    border-color: #ef4444;
+}
+
+.data-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.data-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.data-card-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.data-card-header p {
+    margin: 0.15rem 0 0;
+    color: var(--secondary-color);
+    font-size: 0.85rem;
+}
+
+.data-path-display {
+    background: var(--surface-color);
+    border: 1px dashed var(--border-color);
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.data-card-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 

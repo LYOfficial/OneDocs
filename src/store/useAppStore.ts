@@ -60,11 +60,12 @@ interface AppState {
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   isSidebarCollapsed: boolean;
-  isSettingsOpen: boolean;
   showFormatNotice: boolean;
   toggleSidebar: () => void;
-  setSettingsOpen: (open: boolean) => void;
   setShowFormatNotice: (show: boolean) => void;
+
+  dataDirectory: string;
+  setDataDirectory: (dir: string) => void;
 
   resetAnalysis: () => void;
   resetAll: () => void;
@@ -287,11 +288,12 @@ export const useAppStore = create<AppState>()(
       theme: 'system',
       setTheme: (theme) => set({ theme }),
       isSidebarCollapsed: false,
-      isSettingsOpen: false,
       showFormatNotice: true,
       toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
-      setSettingsOpen: (open) => set({ isSettingsOpen: open }),
       setShowFormatNotice: (show) => set({ showFormatNotice: show }),
+
+      dataDirectory: '',
+      setDataDirectory: (dir) => set({ dataDirectory: dir }),
 
       resetAnalysis: () =>
         set({
@@ -360,6 +362,7 @@ export const useAppStore = create<AppState>()(
         customProviders: state.customProviders,
         isSidebarCollapsed: state.isSidebarCollapsed,
         showFormatNotice: state.showFormatNotice,
+        dataDirectory: state.dataDirectory,
       }),
     }
   )

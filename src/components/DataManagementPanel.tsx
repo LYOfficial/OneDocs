@@ -1,0 +1,113 @@
+import React, { useEffect, useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { executableDir, resourceDir } from "@tauri-apps/api/path";
+import { useAppStore } from "@/store/useAppStore";
+import { useToast } from "./Toast";
+
+const FALLBACK_INSTALL_DIR = "C:\\Program Files\\onedocs";
+
+export const DataManagementPanel: React.FC = () => {
+  const { dataDirectory, setDataDirectory } = useAppStore();
+  const toast = useToast();
+  const [defaultDir, setDefaultDir] = useState("");
+  const [isLoadingDefault, setIsLoadingDefault] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const sanitizePath = (value?: string | null) =>
+      (value || "").replace(/[\\/]+$/, "");
+
+    const detectInstallDir = async () => {
+      setIsLoadingDefault(true);
+      let resolvedDir = "";
+
+      try {
+        resolvedDir = sanitizePath(await executableDir());
+      } catch (exeError) {
+        console.warn("获取安装目录失败，将尝试资源目录", exeError);
+        try {
+          resolvedDir = sanitizePath(await resourceDir());
+        } catch (resError) {
+          console.error("资源目录获取失败", resError);
+        }
+      }
+
+      const normalized = resolvedDir || FALLBACK_INSTALL_DIR;
+
+      if (isMounted) {
+        setDefaultDir(normalized);
+        if (!dataDirectory) {
+          setDataDirectory(normalized);
+        }
+        setIsLoadingDefault(false);
+      }
+    };
+
+    detectInstallDir();
+    return () => {
+      isMounted = false;
+    };
+  }, [dataDirectory, setDataDirectory]);
+
+  const handleChooseDirectory = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "选择应用数据目录",
+        defaultPath: dataDirectory || defaultDir || undefined,
+      });
+
+      if (typeof selected === "string" && selected) {
+        setDataDirectory(selected);
+        toast.show(`数据目录已更新：${selected}`);
+      }
+    } catch (error: any) {
+      console.error("目录选择失败", error);
+      toast.show(error?.message || "目录选择失败，请确认已授予文件权限");
+    }
+  };
+
+  const handleResetDirectory = () => {
+    if (!defaultDir) return;
+    setDataDirectory(defaultDir);
+    toast.show("已恢复默认目录");
+  };
+
+  const currentDir = dataDirectory || defaultDir;
+
+  return (
+    <div className="tool-panel">
+      <div className="tool-panel-header">
+        <div>
+          <p className="tool-panel-subtitle">数据保存</p>
+          <h2>数据管理</h2>
+          <p className="tool-panel-desc">
+            指定 OneDocs 的应用数据、日志与缓存文件保存位置，方便统一备份与迁移。
+          </p>
+        </div>
+      </div>
+
+      <div className="data-card">
+        <div className="data-card-header">
+          <div>
+            <h3>应用数据目录</h3>
+            <p>{isLoadingDefault ? "正在获取默认目录..." : "修改后会立即生效"}</p>
+          </div>
+          <button className="btn btn-primary" onClick={handleChooseDirectory}>
+            修改目录
+          </button>
+        </div>
+        <div className="data-path-display">
+          <code>{currentDir || "尚未获取目录"}</code>
+        </div>
+        <div className="data-card-actions">
+          <button className="btn btn-secondary" onClick={handleResetDirectory} disabled={!defaultDir}>
+            恢复默认
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

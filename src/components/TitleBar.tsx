@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppStore } from '@/store/useAppStore';
 
-type TabKey = 'landing' | 'tool' | 'analysisResult';
+type TabKey = 'landing' | 'tool' | 'analysisResult' | 'tools';
 
 interface TitleBarProps {
   activeTab: TabKey;
@@ -10,7 +10,7 @@ interface TitleBarProps {
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({ activeTab, onTabChange }) => {
-  const { theme, setTheme, setSettingsOpen } = useAppStore();
+  const { theme, setTheme } = useAppStore();
   const appWindowRef = useRef(getCurrentWindow());
 
   useEffect(() => {
@@ -92,7 +92,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ activeTab, onTabChange }) =>
 
       <div className="titlebar-right">
         <div className="control-group">
-            <div className="theme-toggle">
+          <div className="theme-toggle">
             <button 
                 className={`icon-btn ${theme === 'light' ? 'active' : ''}`}
                 onClick={() => setTheme('light')}
@@ -117,11 +117,16 @@ export const TitleBar: React.FC<TitleBarProps> = ({ activeTab, onTabChange }) =>
             >
                 <i className="fas fa-desktop"></i>
             </button>
-            </div>
+          </div>
 
-            <button className="icon-btn settings-btn" onClick={() => setSettingsOpen(true)} title="设置" data-tauri-drag-region="false">
+          <button
+            className={`icon-btn settings-btn ${activeTab === 'tools' ? 'active' : ''}`}
+            onClick={() => onTabChange('tools')}
+            title="工具"
+            data-tauri-drag-region="false"
+          >
             <i className="fas fa-cog"></i>
-            </button>
+          </button>
         </div>
 
         <div className="window-controls">

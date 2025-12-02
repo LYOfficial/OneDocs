@@ -73,6 +73,9 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![analyze_content_rust])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
