@@ -79,16 +79,6 @@ export const DataManagementPanel: React.FC = () => {
 
   return (
     <div className="tool-panel">
-      <div className="tool-panel-header">
-        <div>
-          <p className="tool-panel-subtitle">数据保存</p>
-          <h2>数据管理</h2>
-          <p className="tool-panel-desc">
-            指定 OneDocs 的应用数据、日志与缓存文件保存位置，方便统一备份与迁移。
-          </p>
-        </div>
-      </div>
-
       <div className="data-card">
         <div className="data-card-header">
           <div>

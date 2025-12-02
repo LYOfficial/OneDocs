@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppStore } from '@/store/useAppStore';
 
-type TabKey = 'landing' | 'tool' | 'analysisResult' | 'tools';
+type TabKey = 'landing' | 'analysis' | 'analysisResult' | 'settings';
 
 interface TitleBarProps {
   activeTab: TabKey;
@@ -72,8 +72,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({ activeTab, onTabChange }) =>
             首页
           </button>
           <button 
-            className={`tab-button ${activeTab === 'tool' ? 'active' : ''}`}
-            onClick={() => onTabChange('tool')}
+            className={`tab-button ${activeTab === 'analysis' ? 'active' : ''}`}
+            onClick={() => onTabChange('analysis')}
             data-tauri-drag-region="false"
           >
             分析
@@ -120,9 +120,9 @@ export const TitleBar: React.FC<TitleBarProps> = ({ activeTab, onTabChange }) =>
           </div>
 
           <button
-            className={`icon-btn settings-btn ${activeTab === 'tools' ? 'active' : ''}`}
-            onClick={() => onTabChange('tools')}
-            title="工具"
+            className={`icon-btn settings-btn ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => onTabChange('settings')}
+            title="设置"
             data-tauri-drag-region="false"
           >
             <i className="fas fa-cog"></i>

@@ -555,6 +555,9 @@ body {
     flex: 1;
     padding: 1.5rem;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
 .tool-panel {
@@ -565,32 +568,16 @@ body {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-}
-
-.tool-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
     gap: 1rem;
+    flex: 1;
+    min-height: 0;
 }
 
-.tool-panel-subtitle {
-    margin: 0;
-    color: var(--secondary-color);
-    font-size: 0.85rem;
-}
-
-.tool-panel-header h2 {
-    margin: 0.2rem 0;
-    font-size: 1.4rem;
-    color: var(--primary-color);
-}
-
-.tool-panel-desc {
-    margin: 0;
-    color: var(--secondary-color);
-    font-size: 0.9rem;
+.tool-panel-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .provider-form {
@@ -2330,10 +2317,11 @@ option[value^="custom_"] {
 
 .provider-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem;
-    padding: 0.5rem;
-    max-height: 60vh;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    padding: 0.25rem;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     -ms-overflow-style: none;  
     scrollbar-width: none;  
@@ -2344,14 +2332,15 @@ option[value^="custom_"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem 1rem;
+    padding: 0.85rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    min-height: 140px;
+    min-height: 110px;
+    width: 100%;
 }
 
 .provider-card:hover {
@@ -2371,17 +2360,17 @@ option[value^="custom_"] {
 }
 
 .provider-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     background: var(--background-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     font-weight: bold;
     color: var(--accent-color);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     box-shadow: var(--shadow-light);
 }
 
@@ -2395,7 +2384,7 @@ option[value^="custom_"] {
 }
 
 .provider-name {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
     text-align: center;
     color: var(--primary-color);

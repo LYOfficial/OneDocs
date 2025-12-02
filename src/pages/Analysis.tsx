@@ -4,7 +4,8 @@ import { useAnalysis } from "@/hooks/useAnalysis";
 import { FunctionSelector } from "@/components/FunctionSelector";
 import { FileUpload } from "@/components/FileUpload";
 import { ProgressBar } from "@/components/ProgressBar";
-export const Tool: React.FC = () => {
+
+export const Analysis: React.FC = () => {
   const {
     files,
     currentFile,
@@ -22,9 +23,9 @@ export const Tool: React.FC = () => {
 
   const hasFiles = files.length > 0 || currentFile !== null;
   const canAnalyze = hasFiles && settings.apiKey && !isAnalyzing;
-  
+
   const hasAnalysisResults = analysisResult !== null || Object.keys(multiFileAnalysisResults).length > 0;
-  
+
   const handleMainButtonClick = () => {
     if (hasAnalysisResults) {
       resetAll();
@@ -56,7 +57,7 @@ export const Tool: React.FC = () => {
               </div>
             )}
 
-            <FileUpload 
+            <FileUpload
               onAnalyze={handleMainButtonClick}
               canAnalyze={!!canAnalyze}
               isAnalyzing={isAnalyzing}

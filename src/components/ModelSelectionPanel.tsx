@@ -234,18 +234,13 @@ export const ModelSelectionPanel: React.FC = () => {
 
   return (
     <div className="tool-panel">
-      <div className="tool-panel-header">
-        <div>
-          <p className="tool-panel-subtitle">模型服务</p>
-          <h2>模型选择</h2>
-          <p className="tool-panel-desc">统一管理官方与自定义模型服务商，随时切换工作流使用的核心模型。</p>
-        </div>
-        {view === "form" && !isCreatingCustom && (
+      {view === "form" && !isCreatingCustom && (
+        <div className="tool-panel-toolbar">
           <button className="btn btn-test" onClick={handleTestConnection} disabled={isTesting}>
             {isTesting ? "测试中..." : "⚡ 测试连接"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {view === "grid" ? (
         <div className="provider-grid">
