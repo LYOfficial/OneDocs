@@ -128,20 +128,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 onAnalyze();
               }}
               disabled={!hasAnalysisResults && !canAnalyze}
-              style={{ 
-                opacity: (!hasAnalysisResults && !canAnalyze) ? 0.6 : 1,
-                width: '60px',
-                flexDirection: 'column',
-                gap: '8px',
-                height: 'auto',
-                margin: 0,
-                padding: '12px 0'
-              }}
             >
-              <i className="fas fa-play" style={{ fontSize: '20px' }}></i>
-              <span className="button-text" style={{ writingMode: 'vertical-lr', letterSpacing: '4px' }}>
+              <span className="button-text">
                 {hasAnalysisResults ? "新建析文" : "开始析文"}
               </span>
+              <i className="fas fa-play button-icon" aria-hidden="true"></i>
               {isAnalyzing && <div className="button-loader"></div>}
             </button>
           )}

@@ -105,10 +105,16 @@ body {
 .hero-content {
     max-width: 700px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    height: 100%;
 }
 
 .title-section {
-    margin-bottom: 2rem;
+    margin-bottom: 0;
 }
 
 .main-title {
@@ -126,7 +132,7 @@ body {
 }
 
 .description {
-    margin-bottom: 2.5rem;
+    margin-bottom: 0;
     font-size: 1rem;
     color: var(--secondary-color);
     line-height: 1.6;
@@ -140,7 +146,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 0.8rem;
-    margin-bottom: 2.5rem;
+    margin-bottom: 0;
     flex-wrap: nowrap;
 }
 
@@ -373,15 +379,31 @@ body {
     background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 1rem 0.75rem;
     border-radius: var(--border-radius);
-    font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition);
     position: relative;
     overflow: hidden;
     box-shadow: var(--shadow-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 80px;
+    min-height: 120px;
+}
+
+.analyze-button-mini .button-text {
+    font-size: 1.2rem;
+    letter-spacing: 0.2rem;
+    font-weight: 600;
+}
+
+.analyze-button-mini .button-icon {
+    font-size: 1.4rem;
 }
 
 .analyze-button-mini:hover:not(:disabled) {
