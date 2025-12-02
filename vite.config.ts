@@ -14,7 +14,6 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     fs: {
-      // 允许访问 node_modules 中的 worker 文件
       allow: [".."],
     },
   },

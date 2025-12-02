@@ -27,7 +27,6 @@ interface AppState {
   currentFile: FileInfo | null;
   setCurrentFile: (file: FileInfo | null) => void;
 
-  // Function selection
   selectedFunction: PromptType;
   setSelectedFunction: (func: PromptType) => void;
 
@@ -42,11 +41,9 @@ interface AppState {
   setMultiFileAnalysisResult: (fileId: string, result: AnalysisResult) => void;
   setMergedResult: (result: AnalysisResult | null) => void;
 
-  // View mode
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
 
-  // Settings
   currentProvider: AllProviders;
   providerSettings: Record<AIProvider, ProviderSettings>;
   providerCustomModels: Record<AIProvider, ModelOption[]>;
@@ -60,7 +57,8 @@ interface AppState {
   deleteCustomProvider: (id: string) => void;
   getCurrentSettings: () => ProviderSettings | CustomProviderSettings;
 
-  // UI state
+  theme: 'light' | 'dark' | 'system';
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
   isSidebarCollapsed: boolean;
   isSettingsOpen: boolean;
   showFormatNotice: boolean;
@@ -68,7 +66,6 @@ interface AppState {
   setSettingsOpen: (open: boolean) => void;
   setShowFormatNotice: (show: boolean) => void;
 
-  // Reset
   resetAnalysis: () => void;
   resetAll: () => void;
   clearAllCache: () => void;
@@ -106,7 +103,6 @@ export const useAppStore = create<AppState>()(
               ? (newFiles.length > 0 ? newFiles[0].id || null : null)
               : state.currentFileId;
           const newCurrentFile = newFiles.find((f) => f.id === newCurrentFileId) || null;
-          // 清理对应的分析结果
           const { [fileId]: removed, ...restResults } = state.multiFileAnalysisResults;
           return {
             files: newFiles,
@@ -135,7 +131,6 @@ export const useAppStore = create<AppState>()(
           };
         });
       },
-      // 向后兼容
       currentFile: null,
       setCurrentFile: (file) => {
         if (file) {
@@ -154,11 +149,9 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      // Function selection
       selectedFunction: 'science',
       setSelectedFunction: (func) => set({ selectedFunction: func }),
 
-      // Analysis state
       isAnalyzing: false,
       analysisProgress: null,
       analysisResult: null,
@@ -173,7 +166,6 @@ export const useAppStore = create<AppState>()(
             ...state.multiFileAnalysisResults,
             [fileId]: result,
           };
-          // 如果当前文件ID匹配，也更新analysisResult
           const newAnalysisResult = state.currentFileId === fileId ? result : state.analysisResult;
           return {
             multiFileAnalysisResults: newResults,
@@ -183,11 +175,9 @@ export const useAppStore = create<AppState>()(
       },
       setMergedResult: (result) => set({ mergedResult: result }),
 
-      // View mode
       viewMode: 'render',
       setViewMode: (mode) => set({ viewMode: mode }),
 
-      // Settings
       currentProvider: 'openai',
       providerSettings: {
         openai: getDefaultSettings('openai'),
@@ -288,15 +278,14 @@ export const useAppStore = create<AppState>()(
         }),
       getCurrentSettings: () => {
         const state = get();
-        // 如果是自定义提供商
         if (typeof state.currentProvider === 'string' && state.currentProvider.startsWith('custom_')) {
           return state.customProviders[state.currentProvider];
         }
-        // 如果是内置提供商
         return state.providerSettings[state.currentProvider as AIProvider];
       },
 
-      // UI state
+      theme: 'system',
+      setTheme: (theme) => set({ theme }),
       isSidebarCollapsed: false,
       isSettingsOpen: false,
       showFormatNotice: true,
@@ -304,7 +293,6 @@ export const useAppStore = create<AppState>()(
       setSettingsOpen: (open) => set({ isSettingsOpen: open }),
       setShowFormatNotice: (show) => set({ showFormatNotice: show }),
 
-      // Reset
       resetAnalysis: () =>
         set({
           analysisProgress: null,

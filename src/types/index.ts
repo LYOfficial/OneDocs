@@ -1,4 +1,3 @@
-// AI Provider Types
 export type AIProvider = 
   | 'openai' 
   | 'anthropic'
@@ -46,7 +45,6 @@ export interface CustomProviderConfig {
 
 export type ModelProviders = Record<AIProvider, ProviderConfig>;
 
-// Prompt Configuration Types
 export type PromptType = 'science' | 'liberal' | 'data' | 'news';
 
 export interface PromptConfig {
@@ -57,7 +55,6 @@ export interface PromptConfig {
 
 export type PromptConfigs = Record<PromptType, PromptConfig>;
 
-// File Types
 export type SupportedFileType =
   | 'application/pdf'
   | 'application/msword'
@@ -74,7 +71,6 @@ export interface FileInfo {
   id?: string;
 }
 
-// Analysis Types
 export interface AnalysisProgress {
   percentage: number;
   message: string;
@@ -90,7 +86,6 @@ export interface MultiFileAnalysisResult {
   [fileId: string]: AnalysisResult;
 }
 
-// Settings Types
 export interface ProviderSettings {
   apiKey: string;
   baseUrl: string;
@@ -113,16 +108,13 @@ export interface AppSettings {
   customProviders: CustomSettings;
 }
 
-// View Types
 export type ViewMode = 'render' | 'markdown';
 
-// Toast Types
 export interface ToastMessage {
   message: string;
   duration?: number;
 }
 
-// API Request/Response Types
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;

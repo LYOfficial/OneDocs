@@ -247,7 +247,7 @@ export const SUPPORTED_FILE_TYPES = [
   'text/plain',
 ] as const;
 
-export const FILE_SIZE_LIMIT = 50 * 1024 * 1024; // 50MB
+export const FILE_SIZE_LIMIT = 50 * 1024 * 1024;
 
 export const FUNCTION_INFO = {
   news: {

@@ -89,14 +89,8 @@ export class MarkdownRenderer {
     return text.trim();
   }
 
-  /**
-   * 将Markdown中的标题降级（一级降为二级，二级降为三级，以此类推）
-   * @param markdown 原始Markdown内容
-   * @returns 降级后的Markdown内容
-   */
   static downgradeHeadings(markdown: string): string {
     return markdown.replace(/^(#{1,6})\s+(.+)$/gm, (_, hashes, text) => {
-      // 在每个#前再加一个#，实现降级
       return `${hashes}# ${text}`;
     });
   }

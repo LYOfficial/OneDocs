@@ -16,7 +16,8 @@
         "title": "一文亦闻",
         "width": 800,
         "height": 700,
-        "resizable": false,
+        "resizable": true,
+        "decorations": false,
         "label": "main"
       }
     ],

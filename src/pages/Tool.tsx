@@ -5,20 +5,18 @@ import { FunctionSelector } from "@/components/FunctionSelector";
 import { FileUpload } from "@/components/FileUpload";
 import { ProgressBar } from "@/components/ProgressBar";
 import { ResultDisplay } from "@/components/ResultDisplay";
-import { SettingsModal } from "@/components/SettingsModal";
 
 interface ToolProps {
   onBack: () => void;
 }
 
-export const Tool: React.FC<ToolProps> = ({ onBack }) => {
+export const Tool: React.FC<ToolProps> = () => {
   const {
     files,
     currentFile,
     isAnalyzing,
     analysisResult,
     multiFileAnalysisResults,
-    setSettingsOpen,
     getCurrentSettings,
     showFormatNotice,
     setShowFormatNotice,
@@ -43,33 +41,6 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
 
   return (
     <div className="tool-container">
-      <header className="tool-header">
-        <div className="header-left">
-          <button className="tool-title-button" onClick={onBack}>
-            OneDocs
-          </button>
-        </div>
-        <div className="header-right">
-          <button
-            className="analyze-button-mini"
-            onClick={handleMainButtonClick}
-            disabled={!hasAnalysisResults && !canAnalyze}
-            style={{ opacity: (!hasAnalysisResults && !canAnalyze) ? 0.6 : 1 }}
-          >
-            <span className="button-text">
-              {hasAnalysisResults ? "新建析文" : "开始析文"}
-            </span>
-            {isAnalyzing && <div className="button-loader"></div>}
-          </button>
-          <button
-            className="settings-button"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <i className="fas fa-cog"></i>
-          </button>
-        </div>
-      </header>
-
       <main className="tool-main">
         <FunctionSelector />
 
@@ -93,7 +64,12 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
                   </div>
                 )}
 
-                <FileUpload />
+                <FileUpload 
+                  onAnalyze={handleMainButtonClick}
+                  canAnalyze={!!canAnalyze}
+                  isAnalyzing={isAnalyzing}
+                  hasAnalysisResults={hasAnalysisResults}
+                />
               </>
             )}
 
@@ -102,8 +78,6 @@ export const Tool: React.FC<ToolProps> = ({ onBack }) => {
           </div>
         </div>
       </main>
-
-      <SettingsModal />
     </div>
   );
 };

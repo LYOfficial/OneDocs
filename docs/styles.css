@@ -1,4 +1,4 @@
-/* 基础样式重置 */
+
 * {
     margin: 0;
     padding: 0;
@@ -39,7 +39,7 @@ body {
     overflow-x: hidden;
 }
 
-/* 导航栏样式 */
+
 .navbar {
     position: fixed;
     top: 0;
@@ -133,12 +133,12 @@ body {
     transition: var(--transition);
 }
 
-/* 主容器 */
+
 .main-container {
     margin-top: 70px;
 }
 
-/* 头部英雄区域 */
+
 .header {
     min-height: 90vh;
     display: flex;
@@ -281,7 +281,7 @@ body {
     transform: translateX(3px);
 }
 
-/* 功能区域 */
+
 .features-section {
     padding: 5rem 0;
     background: var(--background-color);
@@ -423,7 +423,7 @@ body {
     font-weight: bold;
 }
 
-/* 支持格式区域 */
+
 .formats-section {
     padding: 4rem 0;
     background: var(--surface-color);
@@ -479,7 +479,7 @@ body {
     color: var(--accent-color);
 }
 
-/* 下载区域 */
+
 .download-section {
     padding: 5rem 0;
     background: var(--background-color);
@@ -487,7 +487,7 @@ body {
 
 
 
-/* 下载提示 */
+
 .download-notice {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
     border: 1px solid rgba(59, 130, 246, 0.2);
@@ -608,7 +608,7 @@ body {
     color: var(--accent-color);
 }
 
-/* 关于区域 */
+
 .about-section {
     padding: 5rem 0;
     background: var(--surface-color);
@@ -687,7 +687,7 @@ body {
     letter-spacing: 0.05em;
 }
 
-/* 页脚 */
+
 .footer {
     background: var(--primary-color);
     color: white;
@@ -771,7 +771,7 @@ body {
     color: white;
 }
 
-/* 返回顶部按钮 */
+
 .back-to-top {
     position: fixed;
     bottom: 2rem;
@@ -799,7 +799,7 @@ body {
     box-shadow: var(--shadow-large);
 }
 
-/* 动画 */
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -842,7 +842,7 @@ body {
     }
 }
 
-/* 响应式设计 */
+
 @media (max-width: 768px) {
     .nav-menu {
         position: fixed;
@@ -992,7 +992,7 @@ body {
     }
 }
 
-/* 滚动条样式 */
+
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -1010,26 +1010,26 @@ body {
     background: var(--accent-hover);
 }
 
-/* 选择文本样式 */
+
 ::selection {
     background: rgba(59, 130, 246, 0.2);
     color: var(--primary-color);
 }
 
-/* 焦点样式 */
+
 button:focus,
 a:focus {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
 }
 
-/* 加载动画 */
+
 .loading {
     opacity: 0.6;
     pointer-events: none;
 }
 
-/* 工具提示 */
+
 .tooltip {
     position: relative;
 }
@@ -1056,7 +1056,7 @@ a:focus {
     opacity: 1;
     visibility: visible;
 }
-/* Download Options */
+
 .download-options {
     display: flex;
     justify-content: center;
@@ -1109,7 +1109,7 @@ a:focus {
     color: var(--primary-color);
 }
 
-/* Button Group */
+
 .button-group {
     display: flex;
     flex-direction: column;

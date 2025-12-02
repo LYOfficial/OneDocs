@@ -34,7 +34,6 @@ async fn analyze_content_rust(
     text_content: String,
     model: String,
 ) -> Result<String, String> {
-    // 构造请求消息
     let messages = vec![
         ChatMessage {
             role: "system".to_string(),
@@ -53,7 +52,6 @@ async fn analyze_content_rust(
         temperature: Some(0.7),
     };
 
-    // 发送 HTTP 请求
     let client = reqwest::Client::new();
     let url = format!("{}/chat/completions", api_base_url.trim_end_matches('/'));
 
@@ -84,7 +82,6 @@ async fn analyze_content_rust(
     Ok(chat_response.choices[0].message.content.clone())
 }
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)

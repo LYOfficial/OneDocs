@@ -5,7 +5,19 @@ import { FILE_SIZE_LIMIT } from "@/config/providers";
 import { useToast } from "./Toast";
 import type { FileInfo, SupportedFileType } from "@/types";
 
-export const FileUpload: React.FC = () => {
+interface FileUploadProps {
+  onAnalyze?: () => void;
+  canAnalyze?: boolean;
+  isAnalyzing?: boolean;
+  hasAnalysisResults?: boolean;
+}
+
+export const FileUpload: React.FC<FileUploadProps> = ({ 
+  onAnalyze, 
+  canAnalyze = false, 
+  isAnalyzing = false, 
+  hasAnalysisResults = false 
+}) => {
   const { files, addFile, removeFile, setFiles, setCurrentFileId, currentFileId } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -86,24 +98,53 @@ export const FileUpload: React.FC = () => {
   return (
     <>
       <div className="upload-section">
-        <div
-          className="upload-area"
-          id="uploadArea"
-          onClick={handleUploadAreaClick}
-        >
-          <div className="upload-content">
-            <div className="upload-icon">📁</div>
-            <p className="upload-text">点击选择文档（支持多选）</p>
-            <p className="upload-hint">支持 PDF、Word、PowerPoint、TXT 格式，单个文件不超过50MB</p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
-              multiple
-              style={{ display: "none" }}
-              onChange={handleFileSelect}
-            />
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
+          <div
+            className="upload-area"
+            id="uploadArea"
+            onClick={handleUploadAreaClick}
+            style={{ flex: 1 }}
+          >
+            <div className="upload-content">
+              <div className="upload-icon">📁</div>
+              <p className="upload-text">点击选择文档（支持多选）</p>
+              <p className="upload-hint">支持 PDF、Word、PowerPoint、TXT 格式，单个文件不超过50MB</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+                multiple
+                style={{ display: "none" }}
+                onChange={handleFileSelect}
+              />
+            </div>
           </div>
+          
+          {onAnalyze && (
+            <button
+              className="analyze-button-mini"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAnalyze();
+              }}
+              disabled={!hasAnalysisResults && !canAnalyze}
+              style={{ 
+                opacity: (!hasAnalysisResults && !canAnalyze) ? 0.6 : 1,
+                width: '60px',
+                flexDirection: 'column',
+                gap: '8px',
+                height: 'auto',
+                margin: 0,
+                padding: '12px 0'
+              }}
+            >
+              <i className="fas fa-play" style={{ fontSize: '20px' }}></i>
+              <span className="button-text" style={{ writingMode: 'vertical-lr', letterSpacing: '4px' }}>
+                {hasAnalysisResults ? "新建析文" : "开始析文"}
+              </span>
+              {isAnalyzing && <div className="button-loader"></div>}
+            </button>
+          )}
         </div>
       </div>
 

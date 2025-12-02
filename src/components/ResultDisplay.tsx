@@ -22,7 +22,6 @@ export const ResultDisplay: React.FC = () => {
   const [isCopying, setIsCopying] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
 
-  // 确定要显示的结果
   const displayResult = mergedResult || analysisResult;
   if (!displayResult && Object.keys(multiFileAnalysisResults).length === 0) return null;
 
@@ -44,7 +43,6 @@ export const ResultDisplay: React.FC = () => {
   const handleExport = async () => {
     if (!displayResult) return;
     try {
-      // 尝试使用 Tauri 对话框
       const filePath = await save({
         defaultPath: `OneDocs_分析结果_${new Date().getTime()}.md`,
         filters: [
@@ -103,14 +101,12 @@ export const ResultDisplay: React.FC = () => {
 
     setIsMerging(true);
     try {
-      // 合并所有结果，每个文件的标题降级
       const mergedContent = results
         .map(({ file, result }) => {
           const downgradedContent = MarkdownRenderer.downgradeHeadings(result.content);
-          // 添加文件名的注释（可选）
           return `<!-- 文件: ${file.name} -->\n\n${downgradedContent}`;
         })
-        .join("\n\n---\n\n"); // 用分隔线分隔不同文件
+        .join("\n\n---\n\n");
 
       const merged: typeof mergedResult = {
         content: mergedContent,

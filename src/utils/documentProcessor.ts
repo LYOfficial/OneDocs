@@ -89,7 +89,6 @@ export class DocumentProcessor {
         throw new Error("Word文档中未检测到文本内容");
       }
 
-      // 记录警告信息
       if (result.messages && result.messages.length > 0) {
         console.warn("Word文档解析警告:", result.messages);
       }
@@ -101,33 +100,26 @@ export class DocumentProcessor {
     }
   }
 
-  /**
-   * 提取 PowerPoint 文本
-   */
   private static async extractPowerPointText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const zip = await JSZip.loadAsync(arrayBuffer);
       let fullText = "";
 
-      // PPTX 文件中的幻灯片存储在 ppt/slides/ 目录下
       const slideFiles = Object.keys(zip.files).filter(
         (filename) =>
           filename.startsWith("ppt/slides/slide") && filename.endsWith(".xml"),
       );
 
-      // 按幻灯片编号排序
       slideFiles.sort((a, b) => {
         const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || "0");
         const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || "0");
         return numA - numB;
       });
 
-      // 提取每个幻灯片的文本
       for (const filename of slideFiles) {
         const content = await zip.files[filename].async("string");
 
-        // 从 XML 中提取文本内容（a:t 标签内的文本）
         const textMatches = content.match(/<a:t[^>]*>([^<]+)<\/a:t>/g);
 
         if (textMatches) {
@@ -158,9 +150,6 @@ export class DocumentProcessor {
     }
   }
 
-  /**
-   * 验证文件类型
-   */
   static isValidFileType(type: string): type is SupportedFileType {
     const supportedTypes: SupportedFileType[] = [
       "application/pdf",
@@ -173,9 +162,6 @@ export class DocumentProcessor {
     return supportedTypes.includes(type as SupportedFileType);
   }
 
-  /**
-   * 获取文件类型友好提示
-   */
   static getFileTypeHint(type: SupportedFileType): string {
     const hints: Record<SupportedFileType, string> = {
       "application/pdf": "已选择PDF文件，正在准备解析...",
