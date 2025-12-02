@@ -22,6 +22,11 @@
     --surface-color: #f9fafb;
     --border-color: #e5e7eb;
     --hover-color: #f3f4f6;
+    --panel-gradient-start: #f9fafb;
+    --panel-gradient-end: #f3f4f6;
+    --control-gradient-start: #ffffff;
+    --control-gradient-end: #f8f9fa;
+    --hover-accent-gradient: #f0f9ff;
     --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -264,7 +269,7 @@ body {
 }
 
 .back-button {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--control-gradient-start) 0%, var(--control-gradient-end) 100%);
     border: 1px solid var(--border-color);
     padding: 0.6rem 1rem;
     border-radius: var(--border-radius);
@@ -345,7 +350,7 @@ body {
 }
 
 .settings-button {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--control-gradient-start) 0%, var(--control-gradient-end) 100%);
     border: 1px solid var(--border-color);
     padding: 0.6rem;
     border-radius: var(--border-radius);
@@ -441,7 +446,7 @@ body {
     flex: 1;
     display: flex;
     overflow: hidden;
-    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    background: linear-gradient(135deg, var(--panel-gradient-start) 0%, var(--panel-gradient-end) 100%);
 }
 
 
@@ -508,7 +513,7 @@ body {
 }
 
 .collapse-btn {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--control-gradient-start) 0%, var(--control-gradient-end) 100%);
     border: 1px solid var(--border-color);
     padding: 0.5rem;
     border-radius: var(--border-radius);
@@ -648,7 +653,7 @@ body {
 
 .upload-area:hover {
     border-color: var(--accent-color);
-    background: linear-gradient(135deg, var(--hover-color) 0%, #f0f9ff 100%);
+    background: linear-gradient(135deg, var(--hover-color) 0%, var(--hover-accent-gradient) 100%);
     transform: translateY(-1px);
     box-shadow: var(--shadow-light);
 }
@@ -1613,7 +1618,7 @@ body {
 }
 
 .setting-item select::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--hover-color);
     border-radius: 4px;
 }
 
@@ -1709,8 +1714,8 @@ body {
 
 
 .custom-provider-info {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     padding: 1rem;
     margin: 0.5rem 0;
@@ -2145,6 +2150,11 @@ option[value^="custom_"] {
     --surface-color: #1f2937;
     --border-color: #374151;
     --hover-color: #374151;
+    --panel-gradient-start: #0f172a;
+    --panel-gradient-end: #111827;
+    --control-gradient-start: #1f2937;
+    --control-gradient-end: #0f172a;
+    --hover-accent-gradient: #1f2937;
     --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
     --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
     --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
