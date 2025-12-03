@@ -22,6 +22,7 @@ export type AllProviders = AIProvider | CustomProviderKey;
 export interface ModelOption {
   value: string;
   name: string;
+  tag?: string;
 }
 
 export interface ProviderConfig {

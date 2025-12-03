@@ -52,6 +52,10 @@ export const ModelSelectionPanel: React.FC = () => {
     ? [...config.models, ...(providerCustomModels[localProvider as AIProvider] || [])]
     : [];
 
+  const isCustomModelSelected = !isCustomProvider
+    ? providerCustomModels[localProvider as AIProvider]?.some((m) => m.value === localModel)
+    : false;
+
   const requiresApiKey = isCustomProvider ? true : config?.requiresApiKey !== false;
   const requiresBaseUrl = isCustomProvider ? true : config?.requiresBaseUrl !== false;
   const showApiKeyField = isCustomProvider ? true : config?.showApiKeyField !== false;
@@ -512,38 +516,71 @@ export const ModelSelectionPanel: React.FC = () => {
                   />
                 ) : (
                   <>
-                    <div className="model-select-row">
-                      <select
-                        id="modelSelect"
-                        value={localModel}
-                        onChange={(e) => {
-                          setLocalModel(e.target.value);
-                          if (e.target.value) setErrors((prev) => ({ ...prev, model: false }));
-                        }}
-                        className={errors.model ? "input-error" : ""}
+                    <select
+                      id="modelSelect"
+                      value={localModel}
+                      onChange={(e) => {
+                        setLocalModel(e.target.value);
+                        if (e.target.value) setErrors((prev) => ({ ...prev, model: false }));
+                      }}
+                      className="sr-only"
+                      aria-hidden="true"
+                      tabIndex={-1}
+                    >
+                      {providerModels.map((model) => (
+                        <option key={model.value} value={model.value}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className={`model-options ${errors.model ? "input-error" : ""}`}>
+                      <div
+                        className="model-options-list"
+                        role="listbox"
+                        aria-label="模型列表"
                       >
                         {providerModels.map((model) => (
-                          <option key={model.value} value={model.value}>
-                            {model.name}
-                          </option>
+                          <button
+                            key={model.value}
+                            type="button"
+                            className={`model-option ${localModel === model.value ? "active" : ""}`}
+                            onClick={() => {
+                              setLocalModel(model.value);
+                              if (model.value) setErrors((prev) => ({ ...prev, model: false }));
+                            }}
+                            role="option"
+                            aria-selected={localModel === model.value}
+                          >
+                            <span className="model-option-name">{model.name}</span>
+                            {model.tag && <span className="model-tag">{model.tag}</span>}
+                          </button>
                         ))}
-                      </select>
-                      {allowModelCustomization && providerCustomModels[localProvider as AIProvider]?.some(
-                        (m) => m.value === localModel
-                      ) && (
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => handleDeleteModel(localModel)}
-                          title="删除此自定义模型"
-                        >
-                          🗑️
-                        </button>
+                      </div>
+
+                      {!isAddingModel && allowModelCustomization && (
+                        <div className="model-options-actions">
+                          {isCustomModelSelected && (
+                            <button
+                              className="btn-text btn-text-danger"
+                              onClick={() => handleDeleteModel(localModel)}
+                              title="删除此自定义模型"
+                            >
+                              <span>-</span> 删除当前自定义模型
+                            </button>
+                          )}
+                          <button
+                            className="btn-text btn-text-primary"
+                            onClick={() => setIsAddingModel(true)}
+                          >
+                            <span>+</span> 添加自定义模型
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    {allowModelCustomization && (
-                      isAddingModel ? (
-                        <div className="custom-model-form">
+                    {allowModelCustomization && isAddingModel && (
+                      <div className="custom-model-form">
                           <div className="custom-model-title">添加新模型</div>
                           <input
                             type="text"
@@ -566,11 +603,6 @@ export const ModelSelectionPanel: React.FC = () => {
                             </button>
                           </div>
                         </div>
-                      ) : (
-                        <button className="btn-text" onClick={() => setIsAddingModel(true)}>
-                          <span>+</span> 添加自定义模型
-                        </button>
-                      )
                     )}
                   </>
                 )}
