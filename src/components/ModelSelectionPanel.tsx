@@ -42,6 +42,7 @@ export const ModelSelectionPanel: React.FC = () => {
 
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [errors, setErrors] = useState({ apiKey: false, baseUrl: false, model: false });
+  const [infoDismissed, setInfoDismissed] = useState(false);
 
   const isCustomProvider = typeof localProvider === "string" && localProvider.startsWith("custom_");
   const config = isCustomProvider ? null : MODEL_PROVIDERS[localProvider as AIProvider];
@@ -65,10 +66,12 @@ export const ModelSelectionPanel: React.FC = () => {
     setIsCreatingCustom(false);
     setIsAddingModel(false);
     setErrors({ apiKey: false, baseUrl: false, model: false });
+    setInfoDismissed(false);
   }, [currentProvider]);
 
   useEffect(() => {
     setErrors({ apiKey: false, baseUrl: false, model: false });
+    setInfoDismissed(false);
     if (typeof localProvider === "string" && localProvider.startsWith("custom_")) {
       const settings = customProviders[localProvider];
       if (settings) {
@@ -251,14 +254,6 @@ export const ModelSelectionPanel: React.FC = () => {
 
   return (
     <div className="tool-panel">
-      {view === "form" && !isCreatingCustom && (
-        <div className="tool-panel-toolbar">
-          <button className="btn btn-test" onClick={handleTestConnection} disabled={isTesting}>
-            {isTesting ? "测试中..." : "⚡ 测试连接"}
-          </button>
-        </div>
-      )}
-
       {view === "grid" ? (
         <div className="provider-grid">
           {(Object.keys(MODEL_PROVIDERS) as AIProvider[]).map((key) => {
@@ -417,8 +412,16 @@ export const ModelSelectionPanel: React.FC = () => {
             </>
           ) : (
             <>
-              {!isCustomProvider && config?.description && (
+              {!isCustomProvider && config?.description && !infoDismissed && (
                 <div className="provider-info-banner">
+                  <button
+                    type="button"
+                    className="provider-info-close"
+                    aria-label="关闭提示"
+                    onClick={() => setInfoDismissed(true)}
+                  >
+                    ×
+                  </button>
                   <p>{config.description}</p>
                   {hasManagedCredentials && <small>无需配置 URL 与 API Key</small>}
                 </div>
@@ -582,8 +585,8 @@ export const ModelSelectionPanel: React.FC = () => {
         <div className="tool-panel-footer">
           <div className="footer-left">
             {!isCreatingCustom && (
-              <button className="btn btn-secondary" onClick={() => handleTestConnection()} disabled={isTesting}>
-                {isTesting ? "测试中..." : "重新测试"}
+              <button className="btn btn-test" onClick={() => handleTestConnection()} disabled={isTesting}>
+                {isTesting ? "测试中..." : "⚡ 测试连接"}
               </button>
             )}
           </div>

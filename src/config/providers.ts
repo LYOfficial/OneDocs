@@ -45,7 +45,8 @@ export const MODEL_PROVIDERS: ModelProviders = {
     credentialsReadOnly: true,
     allowModelCustomization: false,
     defaultApiKey: ONEDOCS_API_KEY,
-    description: 'OneDocs 内置精选模型，无需配置 URL 与 Key，可直接使用。',
+    description:
+      'OneDocs为用户提供免费模型，开箱即用，额度原因有概率无法使用，若无法使用请替换其他模型，感谢配合！',
   },
   openai: {
     name: 'OpenAI',

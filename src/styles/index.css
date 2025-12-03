@@ -2502,12 +2502,29 @@ option[value^="custom_"] {
     padding: 0.75rem;
     margin-bottom: 1rem;
     color: var(--primary-color);
+    position: relative;
 }
 
 .provider-info-banner small {
     display: block;
     margin-top: 0.25rem;
     color: var(--secondary-color);
+}
+
+.provider-info-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    border: none;
+    background: transparent;
+    color: var(--secondary-color);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.provider-info-close:hover {
+    color: var(--primary-color);
 }
 
 .provider-alert {
