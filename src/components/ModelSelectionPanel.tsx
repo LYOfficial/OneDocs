@@ -82,16 +82,18 @@ export const ModelSelectionPanel: React.FC = () => {
         setLocalApiKey(settings.apiKey);
         setLocalBaseUrl(settings.baseUrl);
         setLocalModel(settings.model);
+      } else {
+        setLocalApiKey("");
+        setLocalBaseUrl("");
+        setLocalModel("");
       }
     } else {
       const settings = providerSettings[localProvider as AIProvider];
-      if (settings) {
-        setLocalApiKey(settings.apiKey);
-        setLocalBaseUrl(settings.baseUrl);
-        setLocalModel(settings.model);
-      }
+      setLocalApiKey(settings?.apiKey || config?.defaultApiKey || "");
+      setLocalBaseUrl(settings?.baseUrl || config?.baseUrl || "");
+      setLocalModel(settings?.model || config?.defaultModel || "");
     }
-  }, [localProvider, providerSettings, customProviders]);
+  }, [localProvider, providerSettings, customProviders, config]);
 
   useEffect(() => {
     if (!isCustomProvider && config?.credentialsReadOnly) {

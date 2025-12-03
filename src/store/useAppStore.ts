@@ -81,6 +81,18 @@ const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
   };
 };
 
+const withProviderDefaults = (
+  provider: AIProvider,
+  settings?: Partial<ProviderSettings>
+): ProviderSettings => {
+  const defaults = getDefaultSettings(provider);
+  return {
+    apiKey: settings?.apiKey || defaults.apiKey,
+    baseUrl: settings?.baseUrl || defaults.baseUrl,
+    model: settings?.model || defaults.model,
+  };
+};
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -222,10 +234,10 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           providerSettings: {
             ...state.providerSettings,
-            [provider]: {
+            [provider]: withProviderDefaults(provider, {
               ...state.providerSettings[provider],
               ...settings,
-            },
+            }),
           },
         })),
       addProviderCustomModel: (provider, model) =>
@@ -282,9 +294,18 @@ export const useAppStore = create<AppState>()(
       getCurrentSettings: () => {
         const state = get();
         if (typeof state.currentProvider === 'string' && state.currentProvider.startsWith('custom_')) {
-          return state.customProviders[state.currentProvider];
+          return (
+            state.customProviders[state.currentProvider] || {
+              apiKey: '',
+              baseUrl: '',
+              model: '',
+              name: 'custom-provider',
+            }
+          );
         }
-        return state.providerSettings[state.currentProvider as AIProvider];
+
+        const provider = state.currentProvider as AIProvider;
+        return withProviderDefaults(provider, state.providerSettings[provider]);
       },
 
       theme: 'system',

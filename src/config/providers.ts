@@ -1,8 +1,12 @@
 import { ModelProviders, CustomProviderConfig } from '@/types';
 import OneDocsIcon from '../../app-icon.png';
 
-const ONEDOCS_BASE_URL = import.meta.env.VITE_ONEDOCS_API_URL || '';
-const ONEDOCS_API_KEY = import.meta.env.VITE_ONEDOCS_API_KEY || '';
+const sanitizeEnvValue = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const ONEDOCS_BASE_URL = sanitizeEnvValue(import.meta.env.VITE_ONEDOCS_API_URL);
+const ONEDOCS_API_KEY = sanitizeEnvValue(import.meta.env.VITE_ONEDOCS_API_KEY);
+const HAS_MANAGED_ONEDOCS_CREDENTIALS = Boolean(ONEDOCS_BASE_URL && ONEDOCS_API_KEY);
 
 export const createCustomProvider = (
   name: string,
@@ -33,18 +37,22 @@ export const MODEL_PROVIDERS: ModelProviders = {
     ],
     defaultModel: 'glm-4-flash',
     keyLabel: 'OneDocs API Key',
-    keyHint: 'OneDocs 内置凭证，无需额外填写',
-    baseUrlHint: 'OneDocs 内置服务地址',
+    keyHint: HAS_MANAGED_ONEDOCS_CREDENTIALS
+      ? 'OneDocs 内置凭证，无需额外填写'
+      : '请输入 OneDocs API Key',
+    baseUrlHint: HAS_MANAGED_ONEDOCS_CREDENTIALS
+      ? 'OneDocs 内置服务地址'
+      : '请输入 OneDocs 服务地址',
     icon: OneDocsIcon,
     badgeText: '免费模型',
     badgeVariant: 'success',
-    requiresApiKey: false,
-    requiresBaseUrl: false,
-    showApiKeyField: false,
-    showBaseUrlField: false,
-    credentialsReadOnly: true,
+    requiresApiKey: !HAS_MANAGED_ONEDOCS_CREDENTIALS,
+    requiresBaseUrl: !HAS_MANAGED_ONEDOCS_CREDENTIALS,
+    showApiKeyField: !HAS_MANAGED_ONEDOCS_CREDENTIALS,
+    showBaseUrlField: !HAS_MANAGED_ONEDOCS_CREDENTIALS,
+    credentialsReadOnly: HAS_MANAGED_ONEDOCS_CREDENTIALS,
     allowModelCustomization: false,
-    defaultApiKey: ONEDOCS_API_KEY,
+    defaultApiKey: HAS_MANAGED_ONEDOCS_CREDENTIALS ? ONEDOCS_API_KEY : undefined,
     description:
       'OneDocs为用户提供免费模型，开箱即用，额度原因有概率无法使用，若无法使用请替换其他模型，感谢配合！',
   },
