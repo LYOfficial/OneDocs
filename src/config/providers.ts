@@ -1,4 +1,8 @@
 import { ModelProviders, CustomProviderConfig } from '@/types';
+import OneDocsIcon from '../../app-icon.png';
+
+const ONEDOCS_BASE_URL = import.meta.env.VITE_ONEDOCS_API_URL || '';
+const ONEDOCS_API_KEY = import.meta.env.VITE_ONEDOCS_API_KEY || '';
 
 export const createCustomProvider = (
   name: string,
@@ -13,6 +17,36 @@ export const createCustomProvider = (
 });
 
 export const MODEL_PROVIDERS: ModelProviders = {
+  onedocs: {
+    name: 'OneDocs',
+    baseUrl: ONEDOCS_BASE_URL,
+    endpoint: '/chat/completions',
+    models: [
+      { value: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5-7B Instruct' },
+      { value: 'Qwen/Qwen3-8B', name: 'Qwen3-8B' },
+      { value: 'THUDM/glm-4-9b-chat', name: 'GLM-4-9B Chat' },
+      { value: 'THUDM/GLM-Z1-9B-0414', name: 'GLM-Z1-9B 0414' },
+      { value: 'THUDM/GLM-4.1V-9B-Thinking', name: 'GLM-4.1V-9B Thinking' },
+      { value: 'THUDM/GLM-4-9B-0414', name: 'GLM-4-9B 0414' },
+      { value: 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B', name: 'DeepSeek-R1 Qwen3-8B' },
+      { value: 'glm-4-flash', name: 'GLM-4-Flash' },
+    ],
+    defaultModel: 'glm-4-flash',
+    keyLabel: 'OneDocs API Key',
+    keyHint: 'OneDocs 内置凭证，无需额外填写',
+    baseUrlHint: 'OneDocs 内置服务地址',
+    icon: OneDocsIcon,
+    badgeText: '免费模型',
+    badgeVariant: 'success',
+    requiresApiKey: false,
+    requiresBaseUrl: false,
+    showApiKeyField: false,
+    showBaseUrlField: false,
+    credentialsReadOnly: true,
+    allowModelCustomization: false,
+    defaultApiKey: ONEDOCS_API_KEY,
+    description: 'OneDocs 内置精选模型，无需配置 URL 与 Key，可直接使用。',
+  },
   openai: {
     name: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',

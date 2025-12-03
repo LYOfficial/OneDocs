@@ -75,7 +75,7 @@ interface AppState {
 const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
   const config = MODEL_PROVIDERS[provider];
   return {
-    apiKey: '',
+    apiKey: config.defaultApiKey ?? '',
     baseUrl: config.baseUrl,
     model: config.defaultModel,
   };
@@ -181,6 +181,7 @@ export const useAppStore = create<AppState>()(
 
       currentProvider: 'openai',
       providerSettings: {
+        onedocs: getDefaultSettings('onedocs'),
         openai: getDefaultSettings('openai'),
         anthropic: getDefaultSettings('anthropic'),
         gemini: getDefaultSettings('gemini'),
@@ -198,6 +199,7 @@ export const useAppStore = create<AppState>()(
         oneapi: getDefaultSettings('oneapi'),
       },
       providerCustomModels: {
+        onedocs: [],
         openai: [],
         anthropic: [],
         gemini: [],
@@ -317,6 +319,7 @@ export const useAppStore = create<AppState>()(
       clearAllCache: () =>
         set({
           providerSettings: {
+            onedocs: getDefaultSettings('onedocs'),
             openai: getDefaultSettings('openai'),
             anthropic: getDefaultSettings('anthropic'),
             gemini: getDefaultSettings('gemini'),
@@ -334,6 +337,7 @@ export const useAppStore = create<AppState>()(
             oneapi: getDefaultSettings('oneapi'),
           },
           providerCustomModels: {
+            onedocs: [],
             openai: [],
             anthropic: [],
             gemini: [],

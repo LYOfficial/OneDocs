@@ -2,7 +2,9 @@ import { useAppStore } from "@/store/useAppStore";
 import { APIService } from "@/services/api";
 import { DocumentProcessor } from "@/utils/documentProcessor";
 import { PROMPT_CONFIGS } from "@/config/prompts";
+import { MODEL_PROVIDERS } from "@/config/providers";
 import { useToast } from "@/components/Toast";
+import type { AIProvider } from "@/types";
 
 export const useAnalysis = () => {
   const {
@@ -28,7 +30,15 @@ export const useAnalysis = () => {
     }
 
     const settings = getCurrentSettings();
-    if (!settings.apiKey) {
+    const providerKey =
+      typeof currentProvider === "string" && currentProvider.startsWith("custom_")
+        ? null
+        : (currentProvider as AIProvider);
+    const requiresApiKey = providerKey
+      ? MODEL_PROVIDERS[providerKey]?.requiresApiKey !== false
+      : true;
+
+    if (requiresApiKey && !settings.apiKey) {
       toast.show("请先在设置中配置 API Key");
       return;
     }

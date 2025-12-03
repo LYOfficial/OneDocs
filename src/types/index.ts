@@ -1,4 +1,5 @@
 export type AIProvider = 
+  | 'onedocs'
   | 'openai' 
   | 'anthropic'
   | 'gemini'
@@ -33,6 +34,16 @@ export interface ProviderConfig {
   keyHint: string;
   baseUrlHint: string;
   icon?: string;
+  badgeText?: string;
+  badgeVariant?: 'info' | 'success' | 'warning';
+  requiresApiKey?: boolean;
+  requiresBaseUrl?: boolean;
+  showApiKeyField?: boolean;
+  showBaseUrlField?: boolean;
+  credentialsReadOnly?: boolean;
+  allowModelCustomization?: boolean;
+  defaultApiKey?: string;
+  description?: string;
 }
 
 export interface CustomProviderConfig {

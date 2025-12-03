@@ -2343,6 +2343,46 @@ option[value^="custom_"] {
     width: 100%;
 }
 
+.provider-badges {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+}
+
+.provider-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-color);
+}
+
+.provider-tag-left {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+}
+
+.provider-tag-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-color);
+}
+
+.provider-tag-success {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.provider-tag-warning {
+    background: #fef9c3;
+    color: #b45309;
+}
+
 .provider-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-medium);
@@ -2391,9 +2431,6 @@ option[value^="custom_"] {
 }
 
 .current-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     background: var(--accent-color);
     color: white;
     font-size: 0.7rem;
@@ -2402,9 +2439,6 @@ option[value^="custom_"] {
 }
 
 .available-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     background: rgba(59, 130, 246, 0.1);
     color: var(--accent-color);
     border: 1px solid var(--accent-color);
@@ -2459,6 +2493,34 @@ option[value^="custom_"] {
     width: 32px;
     height: 32px;
     object-fit: contain;
+}
+
+.provider-info-banner {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.provider-info-banner small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--secondary-color);
+}
+
+.provider-alert {
+    padding: 0.65rem 0.8rem;
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.provider-alert.warning {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
 }
 
 

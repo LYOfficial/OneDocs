@@ -43,6 +43,22 @@ export const ModelSelectionPanel: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [errors, setErrors] = useState({ apiKey: false, baseUrl: false, model: false });
 
+  const isCustomProvider = typeof localProvider === "string" && localProvider.startsWith("custom_");
+  const config = isCustomProvider ? null : MODEL_PROVIDERS[localProvider as AIProvider];
+  const currentCustom = isCustomProvider ? customProviders[localProvider] : null;
+
+  const providerModels = !isCustomProvider && config
+    ? [...config.models, ...(providerCustomModels[localProvider as AIProvider] || [])]
+    : [];
+
+  const requiresApiKey = isCustomProvider ? true : config?.requiresApiKey !== false;
+  const requiresBaseUrl = isCustomProvider ? true : config?.requiresBaseUrl !== false;
+  const showApiKeyField = isCustomProvider ? true : config?.showApiKeyField !== false;
+  const showBaseUrlField = isCustomProvider ? true : config?.showBaseUrlField !== false;
+  const allowModelCustomization = isCustomProvider ? true : config?.allowModelCustomization !== false;
+  const hasManagedCredentials = !isCustomProvider && !!config?.credentialsReadOnly;
+  const missingManagedCredentials = hasManagedCredentials && (!localApiKey || !localBaseUrl);
+
   useEffect(() => {
     setLocalProvider(currentProvider);
     setView("grid");
@@ -69,6 +85,17 @@ export const ModelSelectionPanel: React.FC = () => {
       }
     }
   }, [localProvider, providerSettings, customProviders]);
+
+  useEffect(() => {
+    if (!isCustomProvider && config?.credentialsReadOnly) {
+      if (config.baseUrl && config.baseUrl !== localBaseUrl) {
+        setLocalBaseUrl(config.baseUrl);
+      }
+      if (config.defaultApiKey && config.defaultApiKey !== localApiKey) {
+        setLocalApiKey(config.defaultApiKey);
+      }
+    }
+  }, [isCustomProvider, config, localBaseUrl, localApiKey]);
 
   const handleProviderSelect = (provider: AllProviders | "create_custom") => {
     if (provider === "create_custom") {
@@ -100,8 +127,8 @@ export const ModelSelectionPanel: React.FC = () => {
 
   const validateForm = () => {
     const newErrors = {
-      apiKey: !localApiKey,
-      baseUrl: !localBaseUrl,
+      apiKey: requiresApiKey && !localApiKey,
+      baseUrl: requiresBaseUrl && !localBaseUrl,
       model: !localModel,
     };
     setErrors(newErrors);
@@ -173,11 +200,9 @@ export const ModelSelectionPanel: React.FC = () => {
   };
 
   const handleTestConnection = async () => {
-    if (
-      !localApiKey &&
-      !localProvider.toString().includes("ollama") &&
-      !localProvider.toString().includes("lmstudio")
-    ) {
+    const providerId = localProvider.toString();
+    const isLocalProvider = providerId.includes("ollama") || providerId.includes("lmstudio");
+    if (!localApiKey && requiresApiKey && !isLocalProvider) {
       toast.show("请先输入 API Key");
       return;
     }
@@ -216,14 +241,6 @@ export const ModelSelectionPanel: React.FC = () => {
 
   const closeClearConfirm = () => setShowClearConfirm(false);
 
-  const isCustomProvider = typeof localProvider === "string" && localProvider.startsWith("custom_");
-  const config = isCustomProvider ? null : MODEL_PROVIDERS[localProvider as AIProvider];
-  const currentCustom = isCustomProvider ? customProviders[localProvider] : null;
-
-  const providerModels = !isCustomProvider && config
-    ? [...config.models, ...(providerCustomModels[localProvider as AIProvider] || [])]
-    : [];
-
   const getProviderIcon = (key: string) => {
     const provider = MODEL_PROVIDERS[key as AIProvider];
     if (provider?.icon) {
@@ -245,7 +262,12 @@ export const ModelSelectionPanel: React.FC = () => {
       {view === "grid" ? (
         <div className="provider-grid">
           {(Object.keys(MODEL_PROVIDERS) as AIProvider[]).map((key) => {
-            const isConfigured = !!providerSettings[key]?.apiKey;
+            const providerConfig = MODEL_PROVIDERS[key];
+            const isConfigured =
+              providerConfig.requiresApiKey === false
+                ? true
+                : !!providerSettings[key]?.apiKey;
+            const showPrimaryBadge = key === "onedocs" && providerConfig.badgeText;
             return (
               <div
                 key={key}
@@ -254,13 +276,24 @@ export const ModelSelectionPanel: React.FC = () => {
                 }`}
                 onClick={() => handleProviderSelect(key)}
               >
+                {showPrimaryBadge && (
+                  <span
+                    className={`provider-tag provider-tag-${
+                      providerConfig.badgeVariant || "info"
+                    } provider-tag-left`}
+                  >
+                    {providerConfig.badgeText}
+                  </span>
+                )}
+                <div className="provider-badges">
+                  {currentProvider === key ? (
+                    <span className="current-badge">当前使用</span>
+                  ) : isConfigured ? (
+                    <span className="available-badge">可用</span>
+                  ) : null}
+                </div>
                 <div className="provider-icon">{getProviderIcon(key)}</div>
                 <div className="provider-name">{MODEL_PROVIDERS[key].name}</div>
-                {currentProvider === key ? (
-                  <div className="current-badge">当前使用</div>
-                ) : isConfigured ? (
-                  <div className="available-badge">可用</div>
-                ) : null}
               </div>
             );
           })}
@@ -275,14 +308,16 @@ export const ModelSelectionPanel: React.FC = () => {
                 }`}
                 onClick={() => handleProviderSelect(id as AllProviders)}
               >
+                <div className="provider-badges">
+                  {currentProvider === id ? (
+                    <span className="current-badge">当前使用</span>
+                  ) : isConfigured ? (
+                    <span className="available-badge">可用</span>
+                  ) : null}
+                </div>
                 <div className="provider-icon custom">{getProviderIcon(provider.name)}</div>
                 <div className="provider-name">{provider.name}</div>
                 <div className="custom-badge">自定义</div>
-                {currentProvider === id ? (
-                  <div className="current-badge">当前使用</div>
-                ) : isConfigured ? (
-                  <div className="available-badge">可用</div>
-                ) : null}
               </div>
             );
           })}
@@ -382,6 +417,19 @@ export const ModelSelectionPanel: React.FC = () => {
             </>
           ) : (
             <>
+              {!isCustomProvider && config?.description && (
+                <div className="provider-info-banner">
+                  <p>{config.description}</p>
+                  {hasManagedCredentials && <small>无需配置 URL 与 API Key</small>}
+                </div>
+              )}
+
+              {missingManagedCredentials && (
+                <div className="provider-alert warning">
+                  ⚠️ 未检测到 {config?.name} 内置凭证，请在部署流程中注入 VITE_ONEDOCS_API_URL 与 VITE_ONEDOCS_API_KEY。
+                </div>
+              )}
+
               {isCustomProvider && currentCustom && (
                 <div className="setting-item">
                   <label>自定义模型信息</label>
@@ -408,37 +456,43 @@ export const ModelSelectionPanel: React.FC = () => {
                 </div>
               )}
 
-              <div className="setting-item">
-                <label htmlFor="baseUrl">API Base URL</label>
-                <input
-                  type="text"
-                  id="baseUrl"
-                  value={localBaseUrl}
-                  onChange={(e) => {
-                    setLocalBaseUrl(e.target.value);
-                    if (e.target.value) setErrors((prev) => ({ ...prev, baseUrl: false }));
-                  }}
-                  className={errors.baseUrl ? "input-error" : ""}
-                  placeholder={isCustomProvider ? currentCustom?.baseUrl : config?.baseUrl}
-                />
-                <small>{isCustomProvider ? "自定义API服务器地址" : config?.baseUrlHint}</small>
-              </div>
+              {showBaseUrlField && (
+                <div className="setting-item">
+                  <label htmlFor="baseUrl">API Base URL</label>
+                  <input
+                    type="text"
+                    id="baseUrl"
+                    value={localBaseUrl}
+                    onChange={(e) => {
+                      setLocalBaseUrl(e.target.value);
+                      if (e.target.value) setErrors((prev) => ({ ...prev, baseUrl: false }));
+                    }}
+                    className={errors.baseUrl ? "input-error" : ""}
+                    placeholder={isCustomProvider ? currentCustom?.baseUrl : config?.baseUrl}
+                    disabled={hasManagedCredentials}
+                  />
+                  <small>{isCustomProvider ? "自定义API服务器地址" : config?.baseUrlHint}</small>
+                </div>
+              )}
 
-              <div className="setting-item">
-                <label htmlFor="apiKey">{isCustomProvider ? "API Key" : config?.keyLabel}</label>
-                <input
-                  type="password"
-                  id="apiKey"
-                  value={localApiKey}
-                  onChange={(e) => {
-                    setLocalApiKey(e.target.value);
-                    if (e.target.value) setErrors((prev) => ({ ...prev, apiKey: false }));
-                  }}
-                  className={errors.apiKey ? "input-error" : ""}
-                  placeholder="输入 API Key"
-                />
-                <small>{isCustomProvider ? "API 访问密钥" : config?.keyHint}</small>
-              </div>
+              {showApiKeyField && (
+                <div className="setting-item">
+                  <label htmlFor="apiKey">{isCustomProvider ? "API Key" : config?.keyLabel}</label>
+                  <input
+                    type="password"
+                    id="apiKey"
+                    value={localApiKey}
+                    onChange={(e) => {
+                      setLocalApiKey(e.target.value);
+                      if (e.target.value) setErrors((prev) => ({ ...prev, apiKey: false }));
+                    }}
+                    className={errors.apiKey ? "input-error" : ""}
+                    placeholder="输入 API Key"
+                    disabled={hasManagedCredentials}
+                  />
+                  <small>{isCustomProvider ? "API 访问密钥" : config?.keyHint}</small>
+                </div>
+              )}
 
               <div className="setting-item">
                 <label htmlFor="modelSelect">选择模型</label>
@@ -471,7 +525,7 @@ export const ModelSelectionPanel: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                      {providerCustomModels[localProvider as AIProvider]?.some(
+                      {allowModelCustomization && providerCustomModels[localProvider as AIProvider]?.some(
                         (m) => m.value === localModel
                       ) && (
                         <button
@@ -484,34 +538,36 @@ export const ModelSelectionPanel: React.FC = () => {
                       )}
                     </div>
 
-                    {isAddingModel ? (
-                      <div className="custom-model-form">
-                        <div className="custom-model-title">添加新模型</div>
-                        <input
-                          type="text"
-                          placeholder="模型 ID (如 gpt-4-32k)"
-                          value={newModelId}
-                          onChange={(e) => setNewModelId(e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          placeholder="显示名称 (如 GPT-4 32K)"
-                          value={newModelName}
-                          onChange={(e) => setNewModelName(e.target.value)}
-                        />
-                        <div className="custom-model-actions">
-                          <button className="btn btn-secondary" onClick={() => setIsAddingModel(false)}>
-                            取消
-                          </button>
-                          <button className="btn btn-primary" onClick={handleAddModel}>
-                            确认添加
-                          </button>
+                    {allowModelCustomization && (
+                      isAddingModel ? (
+                        <div className="custom-model-form">
+                          <div className="custom-model-title">添加新模型</div>
+                          <input
+                            type="text"
+                            placeholder="模型 ID (如 gpt-4-32k)"
+                            value={newModelId}
+                            onChange={(e) => setNewModelId(e.target.value)}
+                          />
+                          <input
+                            type="text"
+                            placeholder="显示名称 (如 GPT-4 32K)"
+                            value={newModelName}
+                            onChange={(e) => setNewModelName(e.target.value)}
+                          />
+                          <div className="custom-model-actions">
+                            <button className="btn btn-secondary" onClick={() => setIsAddingModel(false)}>
+                              取消
+                            </button>
+                            <button className="btn btn-primary" onClick={handleAddModel}>
+                              确认添加
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <button className="btn-text" onClick={() => setIsAddingModel(true)}>
-                        <span>+</span> 添加自定义模型
-                      </button>
+                      ) : (
+                        <button className="btn-text" onClick={() => setIsAddingModel(true)}>
+                          <span>+</span> 添加自定义模型
+                        </button>
+                      )
                     )}
                   </>
                 )}

@@ -11,6 +11,10 @@ jobs:
       matrix:
         platform: [macos-latest, ubuntu-22.04, windows-latest]
     runs-on: ${{ matrix.platform }}
+    environment: Build Release
+    env:
+      VITE_ONEDOCS_API_URL: ${{ secrets.ONEDOCS_API_URL }}
+      VITE_ONEDOCS_API_KEY: ${{ secrets.ONEDOCS_API_KEY }}
 
     steps:
       - name: Checkout repository
