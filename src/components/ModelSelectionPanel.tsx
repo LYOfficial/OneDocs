@@ -43,6 +43,7 @@ export const ModelSelectionPanel: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [errors, setErrors] = useState({ apiKey: false, baseUrl: false, model: false });
   const [infoDismissed, setInfoDismissed] = useState(false);
+  const [freeInfoDismissed, setFreeInfoDismissed] = useState(false);
 
   const isCustomProvider = typeof localProvider === "string" && localProvider.startsWith("custom_");
   const config = isCustomProvider ? null : MODEL_PROVIDERS[localProvider as AIProvider];
@@ -63,6 +64,7 @@ export const ModelSelectionPanel: React.FC = () => {
   const allowModelCustomization = isCustomProvider ? true : config?.allowModelCustomization !== false;
   const hasManagedCredentials = !isCustomProvider && !!config?.credentialsReadOnly;
   const missingManagedCredentials = hasManagedCredentials && (!localApiKey || !localBaseUrl);
+  const isFreeProvider = !isCustomProvider && localProvider === "onedocs";
 
   useEffect(() => {
     setLocalProvider(currentProvider);
@@ -71,11 +73,13 @@ export const ModelSelectionPanel: React.FC = () => {
     setIsAddingModel(false);
     setErrors({ apiKey: false, baseUrl: false, model: false });
     setInfoDismissed(false);
+    setFreeInfoDismissed(false);
   }, [currentProvider]);
 
   useEffect(() => {
     setErrors({ apiKey: false, baseUrl: false, model: false });
     setInfoDismissed(false);
+    setFreeInfoDismissed(false);
     if (typeof localProvider === "string" && localProvider.startsWith("custom_")) {
       const settings = customProviders[localProvider];
       if (settings) {
@@ -430,6 +434,22 @@ export const ModelSelectionPanel: React.FC = () => {
                   </button>
                   <p>{config.description}</p>
                   {hasManagedCredentials && <small>无需配置 URL 与 API Key</small>}
+                </div>
+              )}
+
+              {isFreeProvider && !freeInfoDismissed && (
+                <div className="provider-info-banner">
+                  <button
+                    type="button"
+                    className="provider-info-close"
+                    aria-label="关闭提示"
+                    onClick={() => setFreeInfoDismissed(true)}
+                  >
+                    ×
+                  </button>
+                  <p>
+                    免费模型输入输出以及分析能力有限，有概率出现格式错乱的问题，若遇到问题请输出后请自行导出修改源码，感谢理解！
+                  </p>
                 </div>
               )}
 

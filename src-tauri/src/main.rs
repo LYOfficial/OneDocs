@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 struct RequestBody {
     model: String,
     messages: Vec<Message>,
+    stream: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -33,10 +34,11 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
             Message { role: "system".to_string(), content: system_prompt },
             Message { role: "user".to_string(), content: format!("这是我上传的文档内容，请开始分析：\n\n{}", text_content) },
         ],
+        stream: Some(false),
     };
 
     let mut request_builder = client
-        .post(format!("{}/chat/completions", api_base_url))
+        .post(format!("{}/chat/completions", api_base_url.trim_end_matches('/')))
         .json(&request_body);
 
     if api_base_url.contains("bigmodel.cn") {
@@ -51,7 +53,8 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
         Ok(res) => {
             let status_code = res.status();
             if status_code.is_success() {
-                match res.json::<ApiResponse>().await {
+                let response_text = res.text().await.map_err(|e| format!("Failed to read response text: {}", e))?;
+                match serde_json::from_str::<ApiResponse>(&response_text) {
                     Ok(api_response) => {
                         if let Some(choice) = api_response.choices.get(0) {
                             Ok(choice.message.content.clone())
@@ -59,7 +62,7 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
                             Err("API did not return any choices.".to_string())
                         }
                     }
-                    Err(e) => Err(format!("Failed to parse API response: {}", e)),
+                    Err(e) => Err(format!("Failed to parse API response: {}. Response body: {}", e, response_text)),
                 }
             } else {
                 let error_text = res.text().await.unwrap_or_else(|_| "Unknown error".to_string());

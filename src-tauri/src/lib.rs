@@ -14,6 +14,7 @@ struct ChatRequest {
     messages: Vec<ChatMessage>,
     max_tokens: Option<u32>,
     temperature: Option<f32>,
+    stream: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,6 +51,7 @@ async fn analyze_content_rust(
         messages,
         max_tokens: Some(4000),
         temperature: Some(0.7),
+        stream: Some(false),
     };
 
     let client = reqwest::Client::new();
@@ -74,10 +76,13 @@ async fn analyze_content_rust(
         return Err(format!("API 请求失败 {}: {}", status, error_text));
     }
 
-    let chat_response: ChatResponse = response
-        .json()
+    let response_text = response
+        .text()
         .await
-        .map_err(|e| format!("解析响应失败: {}", e))?;
+        .map_err(|e| format!("读取响应失败: {}", e))?;
+
+    let chat_response: ChatResponse = serde_json::from_str(&response_text)
+        .map_err(|e| format!("解析响应失败: {}。响应内容: {}", e, response_text))?;
 
     if chat_response.choices.is_empty() {
         return Err("API 返回空响应".to_string());

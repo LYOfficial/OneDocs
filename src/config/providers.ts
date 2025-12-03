@@ -4,7 +4,11 @@ import OneDocsIcon from '../../app-icon.png';
 const sanitizeEnvValue = (value: unknown) =>
   typeof value === 'string' ? value.trim() : '';
 
-const ONEDOCS_BASE_URL = sanitizeEnvValue(import.meta.env.VITE_ONEDOCS_API_URL);
+let ONEDOCS_BASE_URL = sanitizeEnvValue(import.meta.env.VITE_ONEDOCS_API_URL);
+if (ONEDOCS_BASE_URL && !ONEDOCS_BASE_URL.endsWith('/v1')) {
+  ONEDOCS_BASE_URL = `${ONEDOCS_BASE_URL.replace(/\/$/, '')}/v1`;
+}
+
 const ONEDOCS_API_KEY = sanitizeEnvValue(import.meta.env.VITE_ONEDOCS_API_KEY);
 const HAS_MANAGED_ONEDOCS_CREDENTIALS = Boolean(ONEDOCS_BASE_URL && ONEDOCS_API_KEY);
 

@@ -61,16 +61,26 @@ export class APIService {
 
     const finalModel = model || config.defaultModel;
     const finalBaseUrl = baseUrl || config.baseUrl;
+    const finalApiKey = apiKey || config.defaultApiKey || "";
+
+    if (config.requiresApiKey !== false && !finalApiKey) {
+      throw new Error("请先配置 API Key");
+    }
+
+    if (!finalBaseUrl) {
+      throw new Error("未检测到有效的 Base URL 配置");
+    }
 
     console.log(`调用 ${config.name} API`, {
       provider,
       model: finalModel,
       baseUrl: finalBaseUrl,
+      hasManagedKey: Boolean(config.defaultApiKey),
     });
 
     try {
       const result = await invoke<string>("analyze_content_rust", {
-        apiKey,
+        apiKey: finalApiKey,
         apiBaseUrl: finalBaseUrl,
         systemPrompt,
         textContent: `请分析以下文档内容：\n\n${content}`,
