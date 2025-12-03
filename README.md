@@ -1,5 +1,9 @@
 ![OneDocs](https://socialify.git.ci/LYOfficial/OneDocs/image?description=1&font=KoHo&forks=1&issues=1&language=1&logo=https%3A%2F%2Foss.1n.hk%2Flyofficial%2Fimages%2Ficon.png&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Auto)
 
+<p align="center">
+    <a href="./README.md">中文简体</a> | <a href="./README_EN.md">English</a>
+</p>
+
 # OneDocs
 
 > A Single Text, All is Known.
