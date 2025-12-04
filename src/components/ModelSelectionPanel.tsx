@@ -3,7 +3,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { MODEL_PROVIDERS } from "@/config/providers";
 import { APIService } from "@/services/api";
 import { useToast } from "./Toast";
-import type { AIProvider, AllProviders } from "@/types";
+import type { AIProvider, AllProviders, ModelOption } from "@/types";
 
 const PROVIDER_PRIORITY: AIProvider[] = [
   "onedocs",
@@ -281,6 +281,25 @@ export const ModelSelectionPanel: React.FC = () => {
       return <img src={iconSrc} alt={provider.name} className="provider-icon-img" />;
     }
     return key.charAt(0).toUpperCase();
+  };
+
+  const renderModelTags = (model: ModelOption) => {
+    if (model.tags?.length) {
+      return model.tags.map((tag, index) => (
+        <span
+          key={`${model.value}-${tag.label}-${index}`}
+          className={`model-tag ${tag.variant ? `model-tag-${tag.variant}` : ""}`.trim()}
+        >
+          {tag.label}
+        </span>
+      ));
+    }
+
+    if (model.tag) {
+      return <span className="model-tag">{model.tag}</span>;
+    }
+
+    return null;
   };
 
   return (
@@ -602,7 +621,7 @@ export const ModelSelectionPanel: React.FC = () => {
                             aria-selected={localModel === model.value}
                           >
                             <span className="model-option-name">{model.name}</span>
-                            {model.tag && <span className="model-tag">{model.tag}</span>}
+                            {renderModelTags(model)}
                           </button>
                         ))}
                       </div>
