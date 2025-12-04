@@ -5,6 +5,25 @@ import { APIService } from "@/services/api";
 import { useToast } from "./Toast";
 import type { AIProvider, AllProviders } from "@/types";
 
+const PROVIDER_PRIORITY: AIProvider[] = [
+  "onedocs",
+  "openai",
+  "gemini",
+  "deepseek",
+  "glm",
+  "siliconflow",
+  "xinghe",
+];
+
+const ORDERED_PROVIDER_KEYS: AIProvider[] = [
+  ...PROVIDER_PRIORITY.filter((key) =>
+    Object.prototype.hasOwnProperty.call(MODEL_PROVIDERS, key)
+  ),
+  ...(Object.keys(MODEL_PROVIDERS) as AIProvider[]).filter(
+    (key) => !PROVIDER_PRIORITY.includes(key)
+  ),
+];
+
 export const ModelSelectionPanel: React.FC = () => {
   const {
     currentProvider,
@@ -44,6 +63,7 @@ export const ModelSelectionPanel: React.FC = () => {
   const [errors, setErrors] = useState({ apiKey: false, baseUrl: false, model: false });
   const [infoDismissed, setInfoDismissed] = useState(false);
   const [freeInfoDismissed, setFreeInfoDismissed] = useState(false);
+  const sanitizeValue = (value?: string) => (value ?? "").trim();
 
   const isCustomProvider = typeof localProvider === "string" && localProvider.startsWith("custom_");
   const config = isCustomProvider ? null : MODEL_PROVIDERS[localProvider as AIProvider];
@@ -254,10 +274,11 @@ export const ModelSelectionPanel: React.FC = () => {
 
   const closeClearConfirm = () => setShowClearConfirm(false);
 
-  const getProviderIcon = (key: string) => {
+  const getProviderIcon = (key: string, useColor = false) => {
     const provider = MODEL_PROVIDERS[key as AIProvider];
     if (provider?.icon) {
-      return <img src={provider.icon} alt={provider.name} className="provider-icon-img" />;
+      const iconSrc = useColor && provider.iconColor ? provider.iconColor : provider.icon;
+      return <img src={iconSrc} alt={provider.name} className="provider-icon-img" />;
     }
     return key.charAt(0).toUpperCase();
   };
@@ -266,12 +287,18 @@ export const ModelSelectionPanel: React.FC = () => {
     <div className="tool-panel">
       {view === "grid" ? (
         <div className="provider-grid">
-          {(Object.keys(MODEL_PROVIDERS) as AIProvider[]).map((key) => {
+          {ORDERED_PROVIDER_KEYS.map((key) => {
             const providerConfig = MODEL_PROVIDERS[key];
-            const isConfigured =
-              providerConfig.requiresApiKey === false
-                ? true
-                : !!providerSettings[key]?.apiKey;
+            const settings = providerSettings[key];
+            const requiresApiKey = providerConfig.requiresApiKey !== false;
+            const requiresBaseUrl = providerConfig.requiresBaseUrl !== false;
+            const hasApiKey = Boolean(
+              sanitizeValue(settings?.apiKey) || sanitizeValue(providerConfig.defaultApiKey)
+            );
+            const hasBaseUrl = Boolean(
+              sanitizeValue(settings?.baseUrl) || sanitizeValue(providerConfig.baseUrl)
+            );
+            const isConfigured = (!requiresApiKey || hasApiKey) && (!requiresBaseUrl || hasBaseUrl);
             const showPrimaryBadge = key === "onedocs" && providerConfig.badgeText;
             return (
               <div
@@ -297,7 +324,7 @@ export const ModelSelectionPanel: React.FC = () => {
                     <span className="available-badge">可用</span>
                   ) : null}
                 </div>
-                <div className="provider-icon">{getProviderIcon(key)}</div>
+                <div className="provider-icon">{getProviderIcon(key, isConfigured)}</div>
                 <div className="provider-name">{MODEL_PROVIDERS[key].name}</div>
               </div>
             );

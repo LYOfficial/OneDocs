@@ -12,6 +12,7 @@ export type AIProvider =
   | '302_ai'
   | 'pony'
   | 'siliconflow'
+  | 'xinghe'
   | 'ppio'
   | 'modelscope'
   | 'oneapi';
@@ -35,6 +36,7 @@ export interface ProviderConfig {
   keyHint: string;
   baseUrlHint: string;
   icon?: string;
+  iconColor?: string;
   badgeText?: string;
   badgeVariant?: 'info' | 'success' | 'warning';
   requiresApiKey?: boolean;

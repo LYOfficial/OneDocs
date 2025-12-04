@@ -108,6 +108,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '请输入 Google AI Studio API Key',
     baseUrlHint: 'API服务器地址',
     icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/gemini.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/gemini-color.png',
   },
   moonshot: {
     name: 'Moonshot AI',
@@ -141,6 +142,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '需要填入有效的智谱API密钥方可使用',
     baseUrlHint: '智谱GLM API服务器地址',
     icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu-color.png',
   },
   deepseek: {
     name: 'DeepSeek',
@@ -155,6 +157,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '需要填入有效的DeepSeek API密钥方可使用，请确保账户余额充足',
     baseUrlHint: 'DeepSeek API服务器地址',
     icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/deepseek.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/deepseek-color.png',
   },
   ollama: {
     name: 'Ollama',
@@ -212,6 +215,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '请输入 302.AI API Key',
     baseUrlHint: 'API服务器地址',
     icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/ai302.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/ai302-color.png',
   },
   pony: {
     name: '小马算力',
@@ -242,7 +246,25 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: 'SiliconFlow API Key',
     keyHint: '需要填入有效的硅基流动API密钥方可使用',
     baseUrlHint: '硅基流动 API服务器地址',
-    icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png',
+    icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/siliconcloud.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/siliconcloud-color.png',
+  },
+  xinghe: {
+    name: '星河大模型',
+    baseUrl: 'https://aistudio.baidu.com/llm/lmapi/v3',
+    endpoint: '/chat/completions',
+    models: [
+      { value: 'ernie-4.5-21b-a3b-thinking', name: 'ERNIE 4.5 21B Thinking' },
+      { value: 'ernie-4.5-vl-28b-a3b-thinking', name: 'ERNIE 4.5 VL 28B Thinking' },
+      { value: 'ernie-5.0-thinking-preview', name: 'ERNIE 5.0 Thinking Preview' },
+    ],
+    defaultModel: 'ernie-4.5-21b-a3b-thinking',
+    keyLabel: 'AI Studio 访问令牌',
+    keyHint: '请填写 AI Studio 访问令牌',
+    baseUrlHint: 'AI Studio 大模型 API 服务域名',
+    icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/wenxin.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/wenxin-color.png',
+    description: 'AI Studio 星河大模型服务，需配置访问令牌与 Base URL。',
   },
   ppio: {
     name: 'PPIO 派欧云',
@@ -256,6 +278,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '请输入 PPIO API Key',
     baseUrlHint: 'API服务器地址',
     icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/ppio.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/ppio-color.png',
   },
   modelscope: {
     name: 'ModelScope',
@@ -269,6 +292,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyHint: '请输入 ModelScope API Key',
     baseUrlHint: 'API服务器地址',
     icon: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/modelscope.png',
+    iconColor: 'https://unpkg.com/@lobehub/icons-static-png@latest/light/modelscope-color.png',
   },
   oneapi: {
     name: 'OneAPI',
