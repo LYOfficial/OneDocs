@@ -811,6 +811,30 @@ body {
     font-weight: 500;
 }
 
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.setting-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    color: var(--primary-color);
+}
+
+.setting-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.setting-desc {
+    color: var(--secondary-color);
+    font-size: 0.92rem;
+}
+
 .setting-hints {
     margin: 0.5rem 0 0;
     padding-left: 1.25rem;
