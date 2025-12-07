@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function downloadApp(platform, type) {
     const useProxy = document.getElementById('useProxy').checked;
-    const baseUrl = 'https://github.com/LYOfficial/OneDocs/releases/download/v1.3.2/';
+    const baseUrl = 'https://github.com/LYOfficial/OneDocs/releases/download/v1.3.3/';
     const proxyUrl = 'https://gh-proxy.com/';
     
     let filename = '';
@@ -165,21 +165,21 @@ function downloadApp(platform, type) {
         case 'windows':
             platformName = 'Windows';
             if (type === 'msi') {
-                filename = 'onedocs_1.3.2_x64_en-US.msi';
+                filename = 'onedocs_1.3.3_x64_en-US.msi';
             } else {
-                filename = 'onedocs_1.3.2_x64-setup.exe';
+                filename = 'onedocs_1.3.3_x64-setup.exe';
             }
             break;
         case 'macos':
             platformName = 'macOS';
-            filename = 'onedocs_1.3.2_aarch64.dmg';
+            filename = 'onedocs_1.3.3_aarch64.dmg';
             break;
         case 'linux':
             platformName = 'Linux';
             if (type === 'deb') {
-                filename = 'onedocs_1.3.2_amd64.deb';
+                filename = 'onedocs_1.3.3_amd64.deb';
             } else {
-                filename = 'onedocs_1.3.2_amd64.AppImage';
+                filename = 'onedocs_1.3.3_amd64.AppImage';
             }
             break;
         default:
