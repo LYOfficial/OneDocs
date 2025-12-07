@@ -46,6 +46,8 @@ interface AppState {
 
   enableFormatReview: boolean;
   setEnableFormatReview: (enabled: boolean) => void;
+  autoSaveAnalysisResult: boolean;
+  setAutoSaveAnalysisResult: (enabled: boolean) => void;
 
   currentProvider: AllProviders;
   providerSettings: Record<AIProvider, ProviderSettings>;
@@ -196,6 +198,8 @@ export const useAppStore = create<AppState>()(
 
       enableFormatReview: false,
       setEnableFormatReview: (enabled) => set({ enableFormatReview: enabled }),
+      autoSaveAnalysisResult: false,
+      setAutoSaveAnalysisResult: (enabled) => set({ autoSaveAnalysisResult: enabled }),
 
       currentProvider: 'openai',
       providerSettings: {
@@ -399,6 +403,7 @@ export const useAppStore = create<AppState>()(
         showFormatNotice: state.showFormatNotice,
         dataDirectory: state.dataDirectory,
         enableFormatReview: state.enableFormatReview,
+        autoSaveAnalysisResult: state.autoSaveAnalysisResult,
       }),
     }
   )

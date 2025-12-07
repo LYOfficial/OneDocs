@@ -7,7 +7,12 @@ import { useToast } from "./Toast";
 const FALLBACK_INSTALL_DIR = "C:\\Program Files\\onedocs";
 
 export const DataManagementPanel: React.FC = () => {
-  const { dataDirectory, setDataDirectory } = useAppStore();
+  const {
+    dataDirectory,
+    setDataDirectory,
+    autoSaveAnalysisResult,
+    setAutoSaveAnalysisResult,
+  } = useAppStore();
   const toast = useToast();
   const [defaultDir, setDefaultDir] = useState("");
   const [isLoadingDefault, setIsLoadingDefault] = useState(true);
@@ -96,6 +101,23 @@ export const DataManagementPanel: React.FC = () => {
           <button className="btn btn-secondary" onClick={handleResetDirectory} disabled={!defaultDir}>
             恢复默认
           </button>
+        </div>
+      </div>
+
+      <div className="data-card">
+        <div className="setting-row">
+          <div className="setting-text">
+            <div className="setting-title">自动保存析文结果</div>
+            <div className="setting-desc">开启后，分析完成即自动将 Markdown 结果保存到当前数据目录</div>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={autoSaveAnalysisResult}
+              onChange={(e) => setAutoSaveAnalysisResult(e.target.checked)}
+            />
+            <span className="toggle-slider" aria-hidden="true"></span>
+          </label>
         </div>
       </div>
     </div>

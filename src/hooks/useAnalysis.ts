@@ -5,6 +5,7 @@ import { PROMPT_CONFIGS } from "@/config/prompts";
 import { MODEL_PROVIDERS } from "@/config/providers";
 import { useToast } from "@/components/Toast";
 import type { AIProvider } from "@/types";
+import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 const SCIENCE_FORMAT_REVIEW_PROMPT = `你是中文学术排版审校助手，只负责在不改变含义的前提下修正格式。必须遵循：
 - 仅处理理工速知的输出内容，保持全中文。
@@ -22,6 +23,8 @@ export const useAnalysis = () => {
     currentProvider,
     getCurrentSettings,
     enableFormatReview,
+    autoSaveAnalysisResult,
+    dataDirectory,
     setIsAnalyzing,
     setAnalysisProgress,
     setAnalysisResult,
@@ -29,6 +32,33 @@ export const useAnalysis = () => {
   } = useAppStore();
 
   const toast = useToast();
+
+  const autoSaveIfNeeded = async (
+    content: string,
+    originalFileName: string,
+  ) => {
+    if (!autoSaveAnalysisResult) return;
+
+    const dir = (dataDirectory || "").trim();
+    if (!dir) {
+      toast.show("自动保存失败：请先在数据管理中设置数据目录");
+      return;
+    }
+
+    const normalizedDir = dir.replace(/[\\/]+$/, "");
+    const baseName = originalFileName.replace(/\.[^./\\]+$/, "") || "OneDocs";
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const fileName = `${baseName}_OneDocs_分析结果_${dateStr}.md`;
+    const fullPath = `${normalizedDir}/${fileName}`;
+
+    try {
+      await writeTextFile(fullPath, content);
+    } catch (error: any) {
+      console.error("自动保存析文结果失败", error);
+      toast.show(error?.message || "自动保存失败，请检查数据目录权限", 5000);
+    }
+  };
 
   const analyzeDocument = async () => {
     const filesToAnalyze = files.length > 0 ? files : (currentFile ? [currentFile] : []);
@@ -60,6 +90,41 @@ export const useAnalysis = () => {
       if (!promptConfig) {
         throw new Error(`未找到 ${selectedFunction} 功能的配置`);
       }
+
+      const processedResults: { fileId: string; result: { content: string; timestamp: number; fileId: string }; fileName: string }[] = [];
+
+      const unwrapFence = (text: string) => {
+        let current = text.trim();
+        const fenceRegex = /^```[a-zA-Z0-9_-]*\s+([\s\S]*?)\s*```\s*$/;
+        // unwrap repeatedly in case of nested single fences
+        while (true) {
+          const match = current.match(fenceRegex);
+          if (!match) break;
+          current = match[1].trim();
+        }
+        return current;
+      };
+
+      const stripLeadingMarkers = (text: string) => {
+        const trimmed = text.trimStart();
+        return trimmed.replace(/^【?格式修正内容】?/i, "").trimStart();
+      };
+
+      const sanitizeReviewedContent = (
+        reviewed: string,
+        original: string,
+        reviewPayload: string,
+      ) => {
+        const trimmed = reviewed.trim();
+        const looksLikeEcho =
+          trimmed.length === reviewPayload.trim().length ||
+          trimmed.startsWith("【格式要求】") ||
+          trimmed.includes("待复查内容");
+        if (!trimmed || looksLikeEcho) {
+          return original;
+        }
+        return trimmed;
+      };
 
       for (let i = 0; i < totalFiles; i++) {
         const fileInfo = filesToAnalyze[i];
@@ -95,7 +160,7 @@ export const useAnalysis = () => {
             }
           );
 
-          let reviewedContent = result;
+          let reviewedContent = stripLeadingMarkers(unwrapFence(result));
 
           const shouldReviewFormat = selectedFunction === "science" && enableFormatReview;
 
@@ -108,7 +173,7 @@ export const useAnalysis = () => {
             const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记与公式排版：\n\n【格式要求】\n1. 一级标题仅为“# 基础知识”“# 典型例题”\n2. 二级标题从1开始递增，格式“## 1. 标题”\n3. 三级标题为“### 1.1 小节”依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\\n公式\\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${reviewedContent}`;
 
             try {
-              reviewedContent = await APIService.callAIWithProvider(
+              const reviewResponse = await APIService.callAIWithProvider(
                 currentProvider,
                 SCIENCE_FORMAT_REVIEW_PROMPT,
                 formatReviewContent,
@@ -117,6 +182,12 @@ export const useAnalysis = () => {
                   baseUrl: settings.baseUrl,
                   model: settings.model,
                 }
+              );
+
+              reviewedContent = sanitizeReviewedContent(
+                stripLeadingMarkers(unwrapFence(reviewResponse)),
+                result,
+                formatReviewContent,
               );
             } catch (reviewError: any) {
               console.error(`文件 ${fileInfo.name} 格式复查失败:`, reviewError);
@@ -129,12 +200,9 @@ export const useAnalysis = () => {
             timestamp: Date.now(),
             fileId: fileId,
           };
-          
-          setMultiFileAnalysisResult(fileId, analysisResult);
 
-          if (i === totalFiles - 1 || totalFiles === 1) {
-            setAnalysisResult(analysisResult);
-          }
+          setMultiFileAnalysisResult(fileId, analysisResult);
+          processedResults.push({ fileId, result: analysisResult, fileName: fileInfo.name });
         } catch (error: any) {
           console.error(`文件 ${fileInfo.name} 分析失败:`, error);
           let errorMessage = error.message || "分析失败";
@@ -154,6 +222,16 @@ export const useAnalysis = () => {
 
       setAnalysisProgress({ percentage: 100, message: "所有文件分析完成！" });
       toast.show(`成功分析 ${totalFiles} 个文件！`);
+
+      // 确保输出与自动保存都在全部复查完成后执行
+      if (processedResults.length > 0) {
+        const last = processedResults[processedResults.length - 1].result;
+        setAnalysisResult(last);
+
+        for (const item of processedResults) {
+          await autoSaveIfNeeded(item.result.content, item.fileName);
+        }
+      }
     } catch (error: any) {
       console.error("批量分析失败:", error);
       toast.show(error.message || "批量分析失败", 5000);
