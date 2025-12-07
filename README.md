@@ -4,6 +4,9 @@
     <a href="./README.md">中文简体</a> | <a href="./README_EN.md">English</a>
 </p>
 
+![milestone1](https://oss.1n.hk/lyofficial/images/onedocs/milestone1.svg)
+
+
 # OneDocs
 
 > A Single Text, All is Known.
