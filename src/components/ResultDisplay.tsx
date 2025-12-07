@@ -42,9 +42,18 @@ export const ResultDisplay: React.FC = () => {
 
   const handleExport = async () => {
     if (!displayResult) return;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const currentFile = files.find((f) => f.id === currentFileId) || files[0];
+    const fileNameBase = mergedResult
+      ? "合并结果"
+      : currentFile
+        ? currentFile.name.replace(/\.[^./\\]+$/, "")
+        : "OneDocs";
+    const defaultFileName = `${fileNameBase}_OneDocs_分析结果_${dateStr}.md`;
     try {
       const filePath = await save({
-        defaultPath: `OneDocs_分析结果_${new Date().getTime()}.md`,
+        defaultPath: defaultFileName,
         filters: [
           {
             name: "Markdown",
@@ -67,7 +76,7 @@ export const ResultDisplay: React.FC = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `OneDocs_分析结果_${new Date().getTime()}.md`;
+        a.download = defaultFileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
