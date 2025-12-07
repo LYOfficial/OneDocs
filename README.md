@@ -112,3 +112,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 - [@LYOfficial ](https://github.com/LYOfficial/) 主要开发，项目主管。
 - [@JHL-HK](https://github.com/JHL-HK)  部分重构，图床提供。
+
+## Star 里程图
+
+[![Star History Chart](https://api.star-history.com/svg?repos=LYOfficial/OneDocs&type=date&legend=top-left)](https://www.star-history.com/#LYOfficial/OneDocs&type=date&legend=top-left)
