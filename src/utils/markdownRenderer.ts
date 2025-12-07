@@ -15,20 +15,26 @@ export class MarkdownRenderer {
         new Map();
       let counter = 0;
 
-      content = content.replace(/\$\$([^$]+?)\$\$/gs, (_match, latex) => {
-        const id = `KATEXBLOCK${counter}KATEX`;
-        mathStore.set(id, { latex: latex.trim(), isBlock: true });
+      const storeMath = (latex: string, isBlock: boolean) => {
+        const id = `${isBlock ? "KATEXBLOCK" : "KATEXINLINE"}${counter}KATEX`;
+        mathStore.set(id, { latex: latex.trim(), isBlock });
         counter++;
-        return `\n\n${id}\n\n`;
+        return isBlock ? `\n\n${id}\n\n` : id;
+      };
+
+      content = content.replace(/\$\$([^$]+?)\$\$/gs, (_match, latex) => {
+        return storeMath(latex, true);
       });
 
       content = content.replace(
-        /(?<!\$)\$(?!\$)([^\$\n]+?)\$(?!\$)/g,
+        /(?<!\\)(?<!\$)\$(?!\$)([\s\S]+?)(?<!\\)\$(?!\$)/g,
         (_match, latex) => {
-          const id = `KATEXINLINE${counter}KATEX`;
-          mathStore.set(id, { latex: latex.trim(), isBlock: false });
-          counter++;
-          return id;
+          const normalized = latex.trim();
+          const isBlock =
+            /\\begin|\\end|\\\\|\n|\\cases|\\array|\\align/i.test(
+              normalized,
+            );
+          return storeMath(normalized, isBlock);
         },
       );
 
