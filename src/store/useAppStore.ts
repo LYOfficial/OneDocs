@@ -44,6 +44,9 @@ interface AppState {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
 
+  enableFormatReview: boolean;
+  setEnableFormatReview: (enabled: boolean) => void;
+
   currentProvider: AllProviders;
   providerSettings: Record<AIProvider, ProviderSettings>;
   providerCustomModels: Record<AIProvider, ModelOption[]>;
@@ -190,6 +193,9 @@ export const useAppStore = create<AppState>()(
 
       viewMode: 'render',
       setViewMode: (mode) => set({ viewMode: mode }),
+
+      enableFormatReview: false,
+      setEnableFormatReview: (enabled) => set({ enableFormatReview: enabled }),
 
       currentProvider: 'openai',
       providerSettings: {
@@ -392,6 +398,7 @@ export const useAppStore = create<AppState>()(
         isSidebarCollapsed: state.isSidebarCollapsed,
         showFormatNotice: state.showFormatNotice,
         dataDirectory: state.dataDirectory,
+        enableFormatReview: state.enableFormatReview,
       }),
     }
   )

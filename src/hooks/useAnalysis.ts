@@ -6,6 +6,14 @@ import { MODEL_PROVIDERS } from "@/config/providers";
 import { useToast } from "@/components/Toast";
 import type { AIProvider } from "@/types";
 
+const SCIENCE_FORMAT_REVIEW_PROMPT = `你是中文学术排版审校助手，只负责在不改变含义的前提下修正格式。必须遵循：
+- 仅处理理工速知的输出内容，保持全中文。
+- 一级标题只有 “# 基础知识” 与 “# 典型例题”。
+- 二级标题按数字递增（如 ## 1. xxx、## 2. xxx），三级标题使用 1.1、1.2 依次递进。
+- 复杂公式使用单行 $$公式$$ 包裹，禁止跨行的 $\n公式\n$；行内简单变量用 $x$ 形式。
+- 重要概念需加粗，例题结论用 **【最终结论】结论内容** 高亮。
+- 保留原有内容顺序，仅修正格式；若内容已符合规范请原样返回。`;
+
 export const useAnalysis = () => {
   const {
     files,
@@ -13,6 +21,7 @@ export const useAnalysis = () => {
     selectedFunction,
     currentProvider,
     getCurrentSettings,
+    enableFormatReview,
     setIsAnalyzing,
     setAnalysisProgress,
     setAnalysisResult,
@@ -86,8 +95,37 @@ export const useAnalysis = () => {
             }
           );
 
+          let reviewedContent = result;
+
+          const shouldReviewFormat = selectedFunction === "science" && enableFormatReview;
+
+          if (shouldReviewFormat) {
+            setAnalysisProgress({
+              percentage: Math.round((i / totalFiles) * 100 + 60 / totalFiles),
+              message: `正在进行格式复查 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
+            });
+
+            const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记与公式排版：\n\n【格式要求】\n1. 一级标题仅为“# 基础知识”“# 典型例题”\n2. 二级标题从1开始递增，格式“## 1. 标题”\n3. 三级标题为“### 1.1 小节”依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\\n公式\\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${reviewedContent}`;
+
+            try {
+              reviewedContent = await APIService.callAIWithProvider(
+                currentProvider,
+                SCIENCE_FORMAT_REVIEW_PROMPT,
+                formatReviewContent,
+                {
+                  apiKey: settings.apiKey,
+                  baseUrl: settings.baseUrl,
+                  model: settings.model,
+                }
+              );
+            } catch (reviewError: any) {
+              console.error(`文件 ${fileInfo.name} 格式复查失败:`, reviewError);
+              toast.show(`格式复查失败，已返回初步结果：${reviewError.message || "请稍后重试"}`, 5000);
+            }
+          }
+
           const analysisResult = {
-            content: result,
+            content: reviewedContent,
             timestamp: Date.now(),
             fileId: fileId,
           };
