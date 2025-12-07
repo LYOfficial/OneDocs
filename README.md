@@ -4,7 +4,9 @@
     <a href="./README.md">中文简体</a> | <a href="./README_EN.md">English</a>
 </p>
 
-![milestone1](https://oss.1n.hk/lyofficial/images/onedocs/milestone1.svg)
+<p align="center">
+<img src="https://oss.1n.hk/lyofficial/images/onedocs/milestone1.svg" alt="milestone1" height="54" /> <a href="https://www.producthunt.com/products/onedocs?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-onedocs" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1045456&theme=light&t=1765113607287" alt="OneDocs - A&#0032;single&#0032;text&#0044;&#0032;all&#0032;is&#0032;known&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+</p>
 
 
 # OneDocs
