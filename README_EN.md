@@ -29,7 +29,7 @@ In today's data era, we need to read and analyze various documents in every indu
 
 So I created this AI tool, **OneDocs**, and gave it a nice Chinese name "Yi Wen Yi Wen" (一文亦闻). Combining file analysis, large model applications, and output format standardization, it deconstructs and analyzes files uploaded by users, removes useless content, and organizes them into knowledge handbooks. I hope users can understand the essence of things, learn, and progress through simple documents with the power of large models.
 
-Currently, the software supports mainstream document formats such as **Word, PPT, TXT, PDF**, supports **40+ models**, and supports **Windows/macOS/Linux cross-platform** use, basically meeting the needs of various users. Moreover, the software is for local download and use, with no file uploads, so it will not cause file and API Key leaks.
+Currently, the software supports mainstream document formats such as **Word, PPT, Excel, TXT, PDF**, supports **40+ models**, and supports **Windows/macOS/Linux cross-platform** use, basically meeting the needs of various users. Moreover, the software is for local download and use, with no file uploads, so it will not cause file and API Key leaks.
 
 The software has four main functions:
 

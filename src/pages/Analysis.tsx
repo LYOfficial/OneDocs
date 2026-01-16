@@ -46,7 +46,7 @@ export const Analysis: React.FC = () => {
                 <p>
                   <strong>📋 格式说明：</strong>支持 <code>.pdf</code>、
                   <code>.docx</code>、<code>.doc</code>、<code>.pptx</code>、
-                  <code>.ppt</code>、<code>.txt</code> 格式文件
+                  <code>.ppt</code>、<code>.xlsx</code>、<code>.xls</code>、<code>.txt</code> 格式文件
                 </p>
                 <button
                   className="notice-close"

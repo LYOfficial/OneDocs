@@ -2911,3 +2911,9 @@ option[value^="custom_"] {
     color: white;
 }
 
+:root.dark .toast {
+    background: var(--surface-color);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+}
+

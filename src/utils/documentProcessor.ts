@@ -1,6 +1,7 @@
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 import JSZip from "jszip";
+import * as XLSX from "xlsx";
 import type { SupportedFileType } from "@/types";
 
 if (typeof window !== "undefined") {
@@ -25,6 +26,10 @@ export class DocumentProcessor {
       case "application/vnd.ms-powerpoint":
       case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         return await this.extractPowerPointText(file);
+
+      case "application/vnd.ms-excel":
+      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        return await this.extractExcelText(file);
 
       default:
         throw new Error(`不支持的文件格式: ${fileType}`);
@@ -150,6 +155,31 @@ export class DocumentProcessor {
     }
   }
 
+  private static async extractExcelText(file: File): Promise<string> {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer);
+      let fullText = "";
+
+      workbook.SheetNames.forEach((sheetName) => {
+        const worksheet = workbook.Sheets[sheetName];
+        const text = XLSX.utils.sheet_to_txt(worksheet);
+        if (text.trim().length > 0) {
+          fullText += `\n=== 工作表: ${sheetName} ===\n${text}\n`;
+        }
+      });
+
+      if (fullText.trim().length === 0) {
+        throw new Error("Excel文档中未检测到文本内容");
+      }
+
+      return fullText.trim();
+    } catch (error: any) {
+      console.error("Excel解析错误:", error);
+      throw new Error(`Excel解析失败：${error.message}`);
+    }
+  }
+
   static isValidFileType(type: string): type is SupportedFileType {
     const supportedTypes: SupportedFileType[] = [
       "application/pdf",
@@ -157,6 +187,8 @@ export class DocumentProcessor {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "text/plain",
     ];
     return supportedTypes.includes(type as SupportedFileType);
@@ -169,6 +201,9 @@ export class DocumentProcessor {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
         "已选择Word文档，正在准备解析...",
       "application/vnd.ms-powerpoint": "已选择PowerPoint文档，正在准备解析...",
+      "application/vnd.ms-excel": "已选择Excel表格，正在准备解析...",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        "已选择Excel表格，正在准备解析...",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation":
         "已选择PowerPoint文档，正在准备解析...",
       "text/plain": "已选择TXT文件，解析速度最快",

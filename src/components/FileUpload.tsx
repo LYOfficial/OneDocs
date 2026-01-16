@@ -108,11 +108,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             <div className="upload-content">
               <div className="upload-icon">📁</div>
               <p className="upload-text">点击选择文档（支持多选）</p>
-              <p className="upload-hint">支持 PDF、Word、PowerPoint、TXT 格式，单个文件不超过50MB</p>
+              <p className="upload-hint">支持 PDF、Word、PowerPoint、Excel、TXT 格式，单个文件不超过50MB</p>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
                 multiple
                 style={{ display: "none" }}
                 onChange={handleFileSelect}
