@@ -1998,7 +1998,8 @@ body {
 }
 
 .setting-item input,
-.setting-item select {
+.setting-item select,
+.custom-model-form input {
     width: 100%;
     padding: 0.4rem;
     border: 1px solid var(--border-color);
@@ -2006,12 +2007,13 @@ body {
     font-size: 0.9rem;
     transition: var(--transition);
     font-family: inherit;
+    background-color: var(--surface-color);
+    color: var(--primary-color);
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
     user-select: text;
 }
-
 
 .setting-item select {
     max-height: 200px;
@@ -2021,8 +2023,9 @@ body {
     appearance: menulist;
 }
 
-
 .setting-item select option {
+    background-color: var(--surface-color);
+    color: var(--primary-color);
     padding: 0.5rem;
     font-size: 0.95rem;
 }
@@ -2517,7 +2520,7 @@ option[value^="custom_"] {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: var(--background-color);
+    background: #f3f4f6;
     display: flex;
     align-items: center;
     justify-content: center;
