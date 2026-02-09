@@ -113,6 +113,12 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 - [@LYOfficial ](https://github.com/LYOfficial/) 主要开发，项目主管。
 - [@JHL-HK](https://github.com/JHL-HK)  部分重构，图床提供。
 
+## 特别鸣谢
+
+> 糖方科技提供苹果软件签名
+
+![candyrectangle](https://github.com/LYOfficial/OneDocs/blob/f4bbdea5317f82ac7f734599fc54346ea4b85e1b/candyrectangle.png)
+
 ## Star 里程图
 
 [![Star History Chart](https://api.star-history.com/svg?repos=LYOfficial/OneDocs&type=date&legend=top-left)](https://www.star-history.com/#LYOfficial/OneDocs&type=date&legend=top-left)
