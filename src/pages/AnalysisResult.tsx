@@ -2,9 +2,11 @@ import React from "react";
 import { FunctionSelector } from "@/components/FunctionSelector";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { useAppStore } from "@/store/useAppStore";
+import { useTranslation } from "react-i18next";
 
 export const AnalysisResult: React.FC = () => {
   const { analysisResult, multiFileAnalysisResults } = useAppStore();
+  const { t } = useTranslation();
   const hasAnalysisResults =
     analysisResult !== null || Object.keys(multiFileAnalysisResults).length > 0;
 
@@ -18,8 +20,8 @@ export const AnalysisResult: React.FC = () => {
               <ResultDisplay />
             ) : (
               <div className="result-empty-card">
-                <h3>暂无分析结果</h3>
-                <p>请先在“分析”页面上传文档并完成析文，结果会在此处展示。</p>
+                <h3>{t("analysisResult.empty.title")}</h3>
+                <p>{t("analysisResult.empty.body")}</p>
               </div>
             )}
           </div>

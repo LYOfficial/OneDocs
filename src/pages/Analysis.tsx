@@ -4,8 +4,10 @@ import { useAnalysis } from "@/hooks/useAnalysis";
 import { FunctionSelector } from "@/components/FunctionSelector";
 import { FileUpload } from "@/components/FileUpload";
 import { ProgressBar } from "@/components/ProgressBar";
+import { useTranslation } from "react-i18next";
 
 export const Analysis: React.FC = () => {
+  const { t } = useTranslation();
   const {
     files,
     currentFile,
@@ -24,7 +26,8 @@ export const Analysis: React.FC = () => {
   const hasFiles = files.length > 0 || currentFile !== null;
   const canAnalyze = hasFiles && settings.apiKey && !isAnalyzing;
 
-  const hasAnalysisResults = analysisResult !== null || Object.keys(multiFileAnalysisResults).length > 0;
+  const hasAnalysisResults =
+    analysisResult !== null || Object.keys(multiFileAnalysisResults).length > 0;
 
   const handleMainButtonClick = () => {
     if (hasAnalysisResults) {
@@ -44,9 +47,8 @@ export const Analysis: React.FC = () => {
             {showFormatNotice && (
               <div className="format-notice">
                 <p>
-                  <strong>📋 格式说明：</strong>支持 <code>.pdf</code>、
-                  <code>.docx</code>、<code>.doc</code>、<code>.pptx</code>、
-                  <code>.ppt</code>、<code>.xlsx</code>、<code>.xls</code>、<code>.txt</code> 格式文件
+                  <strong>{t("analysis.formatNotice.title")}</strong>{" "}
+                  {t("analysis.formatNotice.body")}
                 </p>
                 <button
                   className="notice-close"
@@ -68,8 +70,8 @@ export const Analysis: React.FC = () => {
 
             {hasAnalysisResults && (
               <div className="result-hint-card">
-                <h3>分析结果已生成</h3>
-                <p>请通过顶部菜单切换到「分析结果」页面查看、复制或导出内容。</p>
+                <h3>{t("analysis.resultHint.title")}</h3>
+                <p>{t("analysis.resultHint.body")}</p>
               </div>
             )}
           </div>

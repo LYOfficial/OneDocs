@@ -2,24 +2,41 @@ import React, { useState } from "react";
 import { AnalysisSettingsPanel } from "@/components/AnalysisSettingsPanel";
 import { ModelSelectionPanel } from "@/components/ModelSelectionPanel";
 import { DataManagementPanel } from "@/components/DataManagementPanel";
+import { useTranslation } from "react-i18next";
 
 const SETTING_SECTIONS = [
-  { id: "analysis", label: "析文设置", icon: "fas fa-sliders-h", desc: "控制析文偏好" },
-  { id: "model", label: "模型选择", icon: "fas fa-brain", desc: "管理模型供应商" },
-  { id: "data", label: "数据管理", icon: "fas fa-database", desc: "配置数据目录" },
+  {
+    id: "analysis",
+    labelKey: "settings.sections.analysis.label",
+    descKey: "settings.sections.analysis.desc",
+    icon: "fas fa-sliders-h",
+  },
+  {
+    id: "model",
+    labelKey: "settings.sections.model.label",
+    descKey: "settings.sections.model.desc",
+    icon: "fas fa-brain",
+  },
+  {
+    id: "data",
+    labelKey: "settings.sections.data.label",
+    descKey: "settings.sections.data.desc",
+    icon: "fas fa-database",
+  },
 ] as const;
 
 type SectionId = (typeof SETTING_SECTIONS)[number]["id"];
 
 export const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState<SectionId>("model");
+  const { t } = useTranslation();
 
   return (
     <div className="tools-container">
       <aside className="tools-sidebar">
         <div className="tools-sidebar-header">
-          <h2>设置</h2>
-          <p>集中管理模型与数据策略</p>
+          <h2>{t("settings.title")}</h2>
+          <p>{t("settings.subtitle")}</p>
         </div>
         <nav className="tools-nav">
           {SETTING_SECTIONS.map((section) => (
@@ -32,8 +49,8 @@ export const Settings: React.FC = () => {
                 <i className={section.icon} aria-hidden="true"></i>
               </div>
               <div className="tools-nav-meta">
-                <span>{section.label}</span>
-                <small>{section.desc}</small>
+                <span>{t(section.labelKey)}</span>
+                <small>{t(section.descKey)}</small>
               </div>
             </button>
           ))}

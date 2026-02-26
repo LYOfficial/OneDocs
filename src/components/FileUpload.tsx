@@ -3,6 +3,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { DocumentProcessor } from "@/utils/documentProcessor";
 import { FILE_SIZE_LIMIT } from "@/config/providers";
 import { useToast } from "./Toast";
+import { useTranslation } from "react-i18next";
 import type { FileInfo, SupportedFileType } from "@/types";
 
 interface FileUploadProps {
@@ -12,15 +13,23 @@ interface FileUploadProps {
   hasAnalysisResults?: boolean;
 }
 
-export const FileUpload: React.FC<FileUploadProps> = ({ 
-  onAnalyze, 
-  canAnalyze = false, 
-  isAnalyzing = false, 
-  hasAnalysisResults = false 
+export const FileUpload: React.FC<FileUploadProps> = ({
+  onAnalyze,
+  canAnalyze = false,
+  isAnalyzing = false,
+  hasAnalysisResults = false,
 }) => {
-  const { files, addFile, removeFile, setFiles, setCurrentFileId, currentFileId } = useAppStore();
+  const {
+    files,
+    addFile,
+    removeFile,
+    setFiles,
+    setCurrentFileId,
+    currentFileId,
+  } = useAppStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+  const { t } = useTranslation();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -34,17 +43,17 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const processFiles = (fileList: File[]) => {
     const validFiles: FileInfo[] = [];
-    
+
     fileList.forEach((file) => {
       if (!DocumentProcessor.isValidFileType(file.type)) {
         toast.show(
-          `文件 ${file.name} 格式不支持 (${file.type})，已跳过`,
+          t("upload.toast.unsupported", { name: file.name, type: file.type }),
         );
         return;
       }
 
       if (file.size > FILE_SIZE_LIMIT) {
-        toast.show(`文件 ${file.name} 过大（超过50MB），已跳过`);
+        toast.show(t("upload.toast.tooLarge", { name: file.name }));
         return;
       }
 
@@ -60,7 +69,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
     if (validFiles.length > 0) {
       validFiles.forEach((fileInfo) => addFile(fileInfo));
-      toast.show(`成功添加 ${validFiles.length} 个文件`);
+      toast.show(t("upload.toast.added", { count: validFiles.length }));
     }
   };
 
@@ -80,25 +89,31 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const handleMoveUp = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
     if (index === 0) return;
-    
+
     const newFiles = [...files];
-    [newFiles[index - 1], newFiles[index]] = [newFiles[index], newFiles[index - 1]];
+    [newFiles[index - 1], newFiles[index]] = [
+      newFiles[index],
+      newFiles[index - 1],
+    ];
     setFiles(newFiles);
   };
 
   const handleMoveDown = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
     if (index === files.length - 1) return;
-    
+
     const newFiles = [...files];
-    [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
+    [newFiles[index], newFiles[index + 1]] = [
+      newFiles[index + 1],
+      newFiles[index],
+    ];
     setFiles(newFiles);
   };
 
   return (
     <>
       <div className="upload-section">
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
+        <div style={{ display: "flex", gap: "16px", alignItems: "stretch" }}>
           <div
             className="upload-area"
             id="uploadArea"
@@ -107,8 +122,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           >
             <div className="upload-content">
               <div className="upload-icon">📁</div>
-              <p className="upload-text">点击选择文档（支持多选）</p>
-              <p className="upload-hint">支持 PDF、Word、PowerPoint、Excel、TXT 格式，单个文件不超过50MB</p>
+              <p className="upload-text">{t("upload.select")}</p>
+              <p className="upload-hint">{t("upload.hint")}</p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -119,7 +134,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               />
             </div>
           </div>
-          
+
           {onAnalyze && (
             <button
               className="analyze-button-mini"
@@ -130,7 +145,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               disabled={!hasAnalysisResults && !canAnalyze}
             >
               <span className="button-text">
-                {hasAnalysisResults ? "新建析文" : "开始析文"}
+                {hasAnalysisResults
+                  ? t("upload.analyze.new")
+                  : t("upload.analyze.start")}
               </span>
               <i className="fas fa-play button-icon" aria-hidden="true"></i>
               {isAnalyzing && <div className="button-loader"></div>}
@@ -142,8 +159,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       {files.length > 0 && (
         <div className="files-list">
           <div className="files-list-header">
-            <span>已上传文件 ({files.length})</span>
-            <span className="files-hint">点击箭头调整顺序</span>
+            <span>{t("upload.files.header", { count: files.length })}</span>
+            <span className="files-hint">{t("upload.files.reorderHint")}</span>
           </div>
           <div className="files-items">
             {files.map((fileInfo, index) => {
@@ -151,7 +168,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               const isActive = currentFileId === fileId;
               const isFirst = index === 0;
               const isLast = index === files.length - 1;
-              
+
               return (
                 <div
                   key={fileId}
@@ -163,7 +180,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                       className="file-item-arrow file-item-arrow-up"
                       onClick={(e) => handleMoveUp(e, index)}
                       disabled={isFirst}
-                      title="上移"
+                      title={t("upload.moveUp")}
                     >
                       ↑
                     </button>
@@ -171,7 +188,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                       className="file-item-arrow file-item-arrow-down"
                       onClick={(e) => handleMoveDown(e, index)}
                       disabled={isLast}
-                      title="下移"
+                      title={t("upload.moveDown")}
                     >
                       ↓
                     </button>
@@ -185,7 +202,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   <button
                     className="file-item-remove"
                     onClick={(e) => handleRemoveFile(e, fileId)}
-                    title="删除"
+                    title={t("upload.remove")}
                   >
                     ×
                   </button>
