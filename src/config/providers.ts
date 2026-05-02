@@ -32,44 +32,38 @@ export const MODEL_PROVIDERS: ModelProviders = {
     baseUrl: ONEDOCS_BASE_URL,
     endpoint: "/chat/completions",
     models: [
-      { value: "Qwen/Qwen2.5-7B-Instruct", name: "Qwen2.5-7B Instruct" },
-      {
-        value: "Qwen/Qwen3-8B",
-        name: "Qwen3-8B",
-        tags: [{ label: "Fast", variant: "fast" }],
+      { 
+        value: "openai/gpt-oss-120b:free", 
+        name: "gpt-oss-120b",
+        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/openai.png"
       },
-      { value: "THUDM/glm-4-9b-chat", name: "GLM-4-9B Chat" },
-      {
-        value: "THUDM/GLM-Z1-9B-0414",
-        name: "GLM-Z1-9B 0414",
-        tags: [{ label: "Thinking" }],
+      { 
+        value: "qwen/qwen3-next-80b-a3b-instruct:free", 
+        name: "qwen3-next-80b-a3b-instruct",
+        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/alibaba.png"
       },
-      {
-        value: "THUDM/GLM-4.1V-9B-Thinking",
-        name: "GLM-4.1V-9B Thinking",
-        tags: [
-          { label: "Thinking" },
-          { label: "Vision", variant: "vision" },
-          { label: "Better", variant: "better" },
-        ],
+      { 
+        value: "z-ai/glm-4.5-air:free", 
+        name: "glm-4.5-air",
+        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/zhipu.png"
       },
-      {
-        value: "THUDM/GLM-4-9B-0414",
-        name: "GLM-4-9B 0414",
-        tags: [{ label: "Vision", variant: "vision" }],
+      { 
+        value: "google/gemma-4-26b-a4b-it:free", 
+        name: "gemma-4-26b-a4b-it",
+        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/gemini.png"
       },
-      {
-        value: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
-        name: "DeepSeek-R1 Qwen3-8B",
-        tags: [{ label: "Thinking" }, { label: "Better", variant: "better" }],
+      { 
+        value: "minimax/minimax-m2.5:free", 
+        name: "minimax-m2.5",
+        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/minimax.png"
       },
-      {
-        value: "glm-4-flash",
-        name: "GLM-4-Flash",
-        tags: [{ label: "Fast", variant: "fast" }],
+      { 
+        value: "meta-llama/llama-3.3-70b-instruct:free", 
+        name: "llama-3.3-70b-instruct",
+        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/darkmeta.png"
       },
     ],
-    defaultModel: "glm-4-flash",
+    defaultModel: "openai/gpt-oss-120b:free",
     keyLabel: "OneDocs API Key",
     keyHint: HAS_MANAGED_ONEDOCS_CREDENTIALS
       ? "OneDocs 内置凭证，无需额外填写"

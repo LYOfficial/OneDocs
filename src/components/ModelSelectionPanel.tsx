@@ -620,6 +620,14 @@ export const ModelSelectionPanel: React.FC = () => {
                             role="option"
                             aria-selected={localModel === model.value}
                           >
+                            {model.icon && (
+                              <img
+                                src={model.icon}
+                                alt=""
+                                className="model-option-icon"
+                                style={{ width: 16, height: 16, marginRight: 8 }}
+                              />
+                            )}
                             <span className="model-option-name">{model.name}</span>
                             {renderModelTags(model)}
                           </button>

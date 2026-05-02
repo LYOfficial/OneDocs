@@ -1,7 +1,7 @@
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 import JSZip from "jszip";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import type { SupportedFileType } from "@/types";
 
 if (typeof window !== "undefined") {
@@ -158,25 +158,42 @@ export class DocumentProcessor {
   private static async extractExcelText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer);
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+
       let fullText = "";
 
-      workbook.SheetNames.forEach((sheetName) => {
-        const worksheet = workbook.Sheets[sheetName];
-        const text = XLSX.utils.sheet_to_txt(worksheet);
-        if (text.trim().length > 0) {
-          fullText += `\n=== 工作表: ${sheetName} ===\n${text}\n`;
+      workbook.eachSheet((worksheet) => {
+        let sheetText = "";
+        worksheet.eachRow((row) => {
+          const cells: string[] = [];
+          row.eachCell((cell) => {
+            if (cell.value !== undefined && cell.value !== null) {
+              const value =
+                typeof cell.value === "object"
+                  ? JSON.stringify(cell.value)
+                  : String(cell.value);
+              cells.push(value);
+            }
+          });
+          if (cells.length > 0) {
+            sheetText += cells.join("\t") + "\n";
+          }
+        });
+        
+        if (sheetText.trim().length > 0) {
+          fullText += `\n=== 工作表：${worksheet.name} ===\n${sheetText}\n`;
         }
       });
 
       if (fullText.trim().length === 0) {
-        throw new Error("Excel文档中未检测到文本内容");
+        throw new Error("Excel 文档中未检测到文本内容");
       }
 
       return fullText.trim();
     } catch (error: any) {
-      console.error("Excel解析错误:", error);
-      throw new Error(`Excel解析失败：${error.message}`);
+      console.error("Excel 解析错误:", error);
+      throw new Error(`Excel 解析失败：${error.message}`);
     }
   }
 

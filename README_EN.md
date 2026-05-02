@@ -84,27 +84,127 @@ For more detailed instructions, please read the Wiki: [OneDocs Wiki](https://git
 To participate in the development and deployment of this project, please clone this repository first:
 
 ```bash
-  git clone https://github.com/LYOfficial/OneDocs.git
+git clone https://github.com/LYOfficial/OneDocs.git
 ```
 
-Install Rust: https://rust-lang.org/tools/install
+### Requirements
+
+- Node.js (LTS recommended) + npm
+- Rust + Tauri CLI (required for desktop builds)
+- macOS users can install Rust here: https://rust-lang.org/tools/install
+
 ```bash
-# MacOS users
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-Start the development server:
+### Tauri Version Notes (Important)
+
+In some mirrored registry environments (such as `ustc`), available Tauri Rust crate versions may lag behind the latest npm packages.
+To avoid `tauri-runtime` / `tauri-runtime-wry` conflicts, keep the currently validated version set and use **exact versions** (do not use `^`):
+
+- npm:
+  - `@tauri-apps/api = 2.6.0`
+  - `@tauri-apps/cli = 2.6.0`
+  - `@tauri-apps/plugin-dialog = 2.3.0`
+  - `@tauri-apps/plugin-fs = 2.4.0`
+  - `@tauri-apps/plugin-shell = 2.3.0`
+- Rust (`src-tauri/Cargo.toml`):
+  - `tauri = =2.6.0`
+  - `tauri-build = =2.6.0`
+  - `tauri-runtime = =2.9.2`
+  - `tauri-plugin-dialog = =2.3.0`
+  - `tauri-plugin-fs = =2.4.0`
+  - `tauri-plugin-shell = =2.3.0`
+
+If you upgrade Tauri, keep npm and Rust sides on the same generation and re-verify with `npm run tauri:dev`.
+
+### Run and Build
 
 ```bash
-  npm install
-  npm run tauri dev
+npm install
+
+# Web (Vite)
+npm run dev
+
+# Desktop (Tauri)
+npm run tauri:dev
 ```
 
-Build:
+Build releases:
 
 ```bash
-  npm run tauri build
+# Web
+npm run build
+
+# Desktop (Tauri)
+npm run tauri:build
 ```
+
+### Project Structure (Core)
+
+- src/: React + TypeScript front end
+  - components/: reusable UI (upload, results, model selection, settings)
+  - pages/: page entry points (Landing / Analysis / AnalysisResult / Settings)
+  - hooks/: business hooks (analysis workflow)
+  - services/: API + Tauri wrappers
+  - store/: global state (Zustand + persist)
+  - utils/: document parsing, Markdown/LaTeX rendering
+  - config/: providers, prompt configs, function metadata
+  - i18n/: localization resources
+  - styles/: global and component styles
+- src-tauri/: Tauri desktop shell (Rust)
+  - src/main.rs: Tauri entry + command registration
+  - src/lib.rs: request forwarding + API calls
+- docs/: static site assets
+- dist/: build output (generated)
+
+### Data Flow
+
+1. User picks files and a function (FunctionSelector / FileUpload)
+2. DocumentProcessor extracts plain text
+3. useAnalysis builds prompts and calls APIService
+4. APIService invokes Rust through Tauri
+5. Rust uses reqwest to call the model API and returns the result
+6. Zustand stores results, ResultDisplay renders/export/copies
+
+### Functions and Prompts
+
+Prompt configs live in config/prompts/index.ts and map to four modes:
+
+- News Overview (news)
+- Data Analysis (data)
+- STEM Quick Know (science, optional format review)
+- Liberal Arts Richness (liberal)
+
+### Models and Providers (Built-in)
+
+Provider configuration is in config/providers.ts and supports hosted APIs and local servers:
+
+- OneDocs: Qwen2.5-7B, Qwen3-8B, GLM-4-9B, GLM-Z1-9B 0414, GLM-4.1V-9B Thinking, GLM-4-9B 0414, DeepSeek-R1 Qwen3-8B, GLM-4-Flash
+- OpenAI: gpt-4o, gpt-4o-mini, gpt-4, gpt-3.5-turbo
+- Anthropic: Claude 3.5 Sonnet/Haiku, Claude 3 Opus/Sonnet
+- Google Gemini: gemini-3-pro, 2.5-pro, 2.5-flash, 1.5-pro, 1.5-flash
+- Moonshot: moonshot-v1-8k/32k/128k
+- Zhipu GLM: glm-4-flash/flashx/plus/0520/long/4v-plus
+- DeepSeek: deepseek-chat, deepseek-reasoner
+- Ollama (local): llama3.2, qwen2.5, gemma2, mistral
+- LM Studio (local): local-model
+- Compatible platforms: CompShare, 302.AI, TokenPony, SiliconFlow, Xinghe, PPIO, ModelScope, OneAPI
+
+> You can also add a custom provider and custom model name in Settings.
+
+### Document Parsing and Limits
+
+- Supported: PDF, Word, PowerPoint, Excel, TXT
+- Max file size: 50 MB (FILE_SIZE_LIMIT)
+- Parsing is in utils/documentProcessor.ts (pdfjs, mammoth, jszip, exceljs)
+
+### Environment Variables (Optional)
+
+To provide managed OneDocs credentials, set:
+
+- VITE_ONEDOCS_API_URL
+- VITE_ONEDOCS_API_KEY
 
 ## Authors
 
