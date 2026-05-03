@@ -2490,14 +2490,29 @@ option[value^="custom_"] {
     color: var(--accent-color);
 }
 
+:root.dark .provider-tag-info {
+    background: rgba(59, 130, 246, 0.18);
+    color: #bfdbfe;
+}
+
 .provider-tag-success {
     background: #dcfce7;
     color: #15803d;
 }
 
+:root.dark .provider-tag-success {
+    background: rgba(34, 197, 94, 0.16);
+    color: #bbf7d0;
+}
+
 .provider-tag-warning {
     background: #fef9c3;
     color: #b45309;
+}
+
+:root.dark .provider-tag-warning {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fde68a;
 }
 
 .provider-card:hover {
@@ -2516,6 +2531,11 @@ option[value^="custom_"] {
     box-shadow: 0 0 0 2px var(--accent-color);
 }
 
+:root.dark .provider-card.active {
+    background: rgba(59, 130, 246, 0.18);
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.7);
+}
+
 .provider-icon {
     width: 36px;
     height: 36px;
@@ -2529,6 +2549,32 @@ option[value^="custom_"] {
     color: var(--accent-color);
     margin-bottom: 0.5rem;
     box-shadow: var(--shadow-light);
+}
+
+.provider-card.clear-cache {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+:root.dark .provider-card.clear-cache {
+    background: #1f2937;
+    border-color: #7f1d1d;
+}
+
+.provider-card.clear-cache .provider-icon {
+    font-size: 20px;
+}
+
+.provider-card.clear-cache .provider-name {
+    color: #ef4444;
+}
+
+:root.dark .provider-card.clear-cache .provider-name {
+    color: #fca5a5;
+}
+
+:root.dark .provider-icon {
+    background: #111827;
 }
 
 .provider-icon.custom {
@@ -2564,9 +2610,20 @@ option[value^="custom_"] {
     border-radius: 4px;
 }
 
+:root.dark .available-badge {
+    background: rgba(59, 130, 246, 0.16);
+    color: #bfdbfe;
+    border-color: rgba(96, 165, 250, 0.8);
+}
+
 .input-error {
     border-color: var(--error-color) !important;
     background-color: #fef2f2;
+}
+
+:root.dark .input-error {
+    background-color: rgba(127, 29, 29, 0.28);
+    border-color: #ef4444 !important;
 }
 
 .model-options.input-error {
@@ -2580,6 +2637,11 @@ option[value^="custom_"] {
     background: rgba(245, 158, 11, 0.1);
     padding: 2px 6px;
     border-radius: 4px;
+}
+
+:root.dark .custom-badge {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fde68a;
 }
 
 .header-title-area {
@@ -2637,6 +2699,12 @@ option[value^="custom_"] {
     position: relative;
 }
 
+:root.dark .provider-info-banner {
+    background: rgba(30, 41, 59, 0.92);
+    border-color: rgba(96, 165, 250, 0.25);
+    color: var(--primary-color);
+}
+
 .provider-info-banner small {
     display: block;
     margin-top: 0.25rem;
@@ -2670,6 +2738,12 @@ option[value^="custom_"] {
     background: #fef2f2;
     border: 1px solid #fecaca;
     color: #b91c1c;
+}
+
+:root.dark .provider-alert.warning {
+    background: rgba(127, 29, 29, 0.28);
+    border-color: rgba(248, 113, 113, 0.45);
+    color: #fecaca;
 }
 
 .model-options {
@@ -2724,6 +2798,11 @@ option[value^="custom_"] {
     box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
 }
 
+:root.dark .model-option.active {
+    background: rgba(59, 130, 246, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.35);
+}
+
 .model-option-name {
     flex: 1;
     text-align: left;
@@ -2744,14 +2823,29 @@ option[value^="custom_"] {
     color: #a855f7;
 }
 
+:root.dark .model-tag-vision {
+    background: rgba(168, 85, 247, 0.18);
+    color: #d8b4fe;
+}
+
 .model-tag-fast {
     background: rgba(16, 185, 129, 0.15);
     color: #10b981;
 }
 
+:root.dark .model-tag-fast {
+    background: rgba(16, 185, 129, 0.18);
+    color: #a7f3d0;
+}
+
 .model-tag-better {
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
+}
+
+:root.dark .model-tag-better {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fecaca;
 }
 
 .model-tag-flagship {
@@ -2760,16 +2854,39 @@ option[value^="custom_"] {
     border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
+:root.dark .model-tag-flagship {
+    background: rgba(239, 68, 68, 0.16);
+    color: #fecaca;
+    border-color: rgba(248, 113, 113, 0.35);
+}
+
 .model-tag-affordable {
     background: rgba(59, 130, 246, 0.14);
     color: #2563eb;
     border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
+:root.dark .model-tag-affordable {
+    background: rgba(59, 130, 246, 0.16);
+    color: #bfdbfe;
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
 .model-tag-free {
     background: rgba(16, 185, 129, 0.14);
     color: #059669;
     border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+:root.dark .model-tag-free {
+    background: rgba(16, 185, 129, 0.16);
+    color: #a7f3d0;
+    border-color: rgba(52, 211, 153, 0.35);
+}
+
+:root.dark option[value^="custom_"] {
+    background: #1f2937;
+    color: #f3f4f6;
 }
 
 

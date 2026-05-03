@@ -447,12 +447,11 @@ export const ModelSelectionPanel: React.FC = () => {
           <div
             className="provider-card clear-cache"
             onClick={handleClearCache}
-            style={{ borderColor: "#fee2e2", backgroundColor: "#fef2f2" }}
           >
-            <div className="provider-icon" style={{ fontSize: "20px" }}>
+            <div className="provider-icon clear-cache-icon">
               🗑️
             </div>
-            <div className="provider-name" style={{ color: "#ef4444" }}>
+            <div className="provider-name">
               清除所有模型缓存
             </div>
           </div>
