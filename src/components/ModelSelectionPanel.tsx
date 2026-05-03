@@ -49,13 +49,26 @@ const ModelIcon: React.FC<{ src: string | null; staticIcon?: boolean }> = ({
   );
 };
 
+const SOURCE_LOGO_PROVIDERS = new Set<AIProvider>([
+  "onedocs",
+  "openrouter",
+  "comp_share",
+  "302_ai",
+  "pony",
+  "siliconflow",
+  "xinghe",
+  "ppio",
+  "modelscope",
+  "oneapi",
+]);
+
 function getModelLogoSrc(
   provider: AIProvider | null,
   model: ModelOption
 ) {
   if (!provider) return null;
 
-  if (provider === "onedocs") {
+  if (SOURCE_LOGO_PROVIDERS.has(provider)) {
     const source = model.value.split("/")[0].toLowerCase();
     const logo = MODEL_SOURCE_LOGOS[source as keyof typeof MODEL_SOURCE_LOGOS];
     return logo || null;
