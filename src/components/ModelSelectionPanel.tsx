@@ -90,6 +90,7 @@ export const ModelSelectionPanel: React.FC = () => {
     setCurrentProvider,
     theme,
     providerSettings,
+    updateProviderSettings,
     providerCustomModels,
     customProviders,
     addCustomProvider,
@@ -416,7 +417,11 @@ export const ModelSelectionPanel: React.FC = () => {
           })}
 
           {Object.entries(customProviders).map(([id, provider]) => {
-            const isConfigured = !!provider.apiKey;
+            const isConfigured = !!(
+              sanitizeValue(provider.apiKey) &&
+              sanitizeValue(provider.baseUrl) &&
+              sanitizeValue(provider.model)
+            );
             return (
               <div
                 key={id}
