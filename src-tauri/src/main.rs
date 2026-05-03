@@ -7,6 +7,10 @@ struct RequestBody {
     model: String,
     messages: Vec<Message>,
     stream: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f32>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -24,6 +28,53 @@ struct ApiResponse {
 struct Choice {
     message: Message,
 }
+#[tauri::command]
+async fn test_model_connection_rust(
+    api_key: String,
+    api_base_url: String,
+    model: String,
+) -> Result<bool, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(12))
+        .build()
+        .map_err(|e| format!("创建HTTP客户端失败: {}", e))?;
+
+    let request_body = RequestBody {
+        model,
+        messages: vec![Message {
+            role: "user".to_string(),
+            content: "hi".to_string(),
+        }],
+        stream: Some(false),
+        max_tokens: Some(1),
+        temperature: Some(0.0),
+    };
+
+    let response = client
+        .post(format!("{}/chat/completions", api_base_url.trim_end_matches('/')))
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| format!("请求测试失败: {}", e))?;
+
+    if !response.status().is_success() {
+        let status_code = response.status();
+        let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+        return Err(format!("API request failed with status {}: {}", status_code, error_text));
+    }
+
+    let response_text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read response text: {}", e))?;
+
+    serde_json::from_str::<ApiResponse>(&response_text)
+        .map_err(|e| format!("Failed to parse API response: {}. Response body: {}", e, response_text))?;
+
+    Ok(true)
+}
 
 #[tauri::command]
 async fn analyze_content_rust(api_key: String, api_base_url: String, system_prompt: String, text_content: String, model: String) -> Result<String, String> {
@@ -35,6 +86,8 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
             Message { role: "user".to_string(), content: format!("这是我上传的文档内容，请开始分析：\n\n{}", text_content) },
         ],
         stream: Some(false),
+        max_tokens: None,
+        temperature: None,
     };
 
     let mut request_builder = client
@@ -79,7 +132,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![analyze_content_rust])
+        .invoke_handler(tauri::generate_handler![analyze_content_rust, test_model_connection_rust])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

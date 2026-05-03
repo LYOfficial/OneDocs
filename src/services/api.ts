@@ -129,17 +129,32 @@ export class APIService {
     model?: string,
   ): Promise<boolean> {
     try {
-      await this.callAI({
-        systemPrompt: "You are a helpful assistant.",
-        content: "Hello, this is a connection test.",
-        provider,
-        apiKey,
-        baseUrl,
-        model,
+      const finalModel = model || MODEL_PROVIDERS[provider]?.defaultModel || '';
+      const finalBaseUrl = baseUrl || MODEL_PROVIDERS[provider]?.baseUrl || '';
+      const finalApiKey = apiKey || MODEL_PROVIDERS[provider]?.defaultApiKey || '';
+
+      if (!finalBaseUrl) {
+        throw new Error('未检测到有效的 Base URL 配置');
+      }
+
+      const result = await invoke<boolean>('test_model_connection_rust', {
+        apiKey: finalApiKey,
+        apiBaseUrl: finalBaseUrl,
+        model: finalModel,
       });
-      return true;
+
+      if (result) {
+        return true;
+      }
+
+      throw new Error(`模型可用性检测失败：${finalModel}`);
     } catch (error: any) {
-      if ((error as any).isBalanceError) {
+      const handledError = this.handleAPIError(
+        error instanceof Error ? error : new Error(String(error)),
+        provider
+      );
+
+      if ((handledError as any).isBalanceError) {
         let rechargeMessage = "";
         
         switch (provider) {
@@ -162,7 +177,7 @@ export class APIService {
         throw warningError;
       }
       
-      throw error;
+      throw handledError;
     }
   }
 
@@ -172,25 +187,32 @@ export class APIService {
     model: string,
   ): Promise<boolean> {
     try {
-      await this.callCustomAI({
-        systemPrompt: "You are a helpful assistant.",
-        content: "Hello, this is a connection test.",
+      const result = await invoke<boolean>('test_model_connection_rust', {
         apiKey,
-        baseUrl,
+        apiBaseUrl: baseUrl,
         model,
       });
-      return true;
+
+      if (result) {
+        return true;
+      }
+
+      throw new Error('模型不可用');
     } catch (error: any) {
-      if ((error as any).isBalanceError) {
+      const handledError = this.handleCustomAPIError(
+        error instanceof Error ? error : new Error(String(error))
+      );
+
+      if ((handledError as any).isBalanceError) {
         const rechargeMessage = "请检查账户余额是否充足";
-        
+
         const warningError = new Error("BALANCE_WARNING");
         (warningError as any).isWarning = true;
         (warningError as any).originalMessage = `连接正常，但账户余额不足\n\n${rechargeMessage}`;
         throw warningError;
       }
-      
-      throw error;
+
+      throw handledError;
     }
   }
 
