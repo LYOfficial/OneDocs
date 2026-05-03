@@ -1,4 +1,5 @@
 import { ModelProviders, CustomProviderConfig } from "@/types";
+import { PROVIDER_LOGOS } from "./logoAssets";
 import OneDocsIcon from "../../app-icon.png";
 
 const sanitizeEnvValue = (value: unknown) =>
@@ -102,7 +103,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "OpenAI API Key",
     keyHint: "需要填入有效的OpenAI API密钥方可使用",
     baseUrlHint: "API服务器地址，默认为OpenAI官方地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png",
+    icon: PROVIDER_LOGOS.openai,
   },
   anthropic: {
     name: "Anthropic",
@@ -119,7 +120,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "Anthropic API Key",
     keyHint: "请输入 Anthropic API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/anthropic.png",
+    icon: PROVIDER_LOGOS.anthropic,
   },
   gemini: {
     name: "Google Gemini",
@@ -137,9 +138,27 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "Google API Key",
     keyHint: "请输入 Google AI Studio API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/gemini.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/gemini-color.png",
+    icon: PROVIDER_LOGOS.gemini,
+  },
+  openrouter: {
+    name: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    endpoint: "/chat/completions",
+    models: [
+      { value: "~openai/gpt-latest", name: "OpenAI GPT Latest", tags: [MODEL_TAGS.flagship] },
+      { value: "~anthropic/claude-sonnet-latest", name: "Claude Sonnet Latest", tags: [MODEL_TAGS.flagship] },
+      { value: "~google/gemini-pro-latest", name: "Gemini Pro Latest", tags: [MODEL_TAGS.flagship] },
+      { value: "openai/gpt-5.2", name: "GPT-5.2", tags: [MODEL_TAGS.flagship] },
+      { value: "anthropic/claude-4.6-sonnet", name: "Claude Sonnet 4.6", tags: [MODEL_TAGS.affordable] },
+      { value: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash", tags: [MODEL_TAGS.affordable] },
+      { value: "qwen/qwen3.6-flash", name: "Qwen3.6 Flash", tags: [MODEL_TAGS.affordable] },
+    ],
+    defaultModel: "~openai/gpt-latest",
+    keyLabel: "OpenRouter API Key",
+    keyHint: "请输入 OpenRouter API Key",
+    baseUrlHint: "OpenRouter API服务器地址",
+    icon: PROVIDER_LOGOS.openrouter,
+    description: "OpenRouter 聚合多家模型提供方，使用 OpenAI 兼容接口。",
   },
   moonshot: {
     name: "Moonshot AI",
@@ -155,7 +174,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "Moonshot API Key",
     keyHint: "请输入 Kimi 开放平台 API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/moonshot.png",
+    icon: PROVIDER_LOGOS.moonshot,
   },
   glm: {
     name: "智谱GLM",
@@ -173,9 +192,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "智谱 API Key",
     keyHint: "需要填入有效的智谱API密钥方可使用",
     baseUrlHint: "智谱GLM API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu-color.png",
+    icon: PROVIDER_LOGOS.glm,
   },
   deepseek: {
     name: "DeepSeek",
@@ -193,9 +210,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "DeepSeek API Key",
     keyHint: "需要填入有效的DeepSeek API密钥方可使用，请确保账户余额充足",
     baseUrlHint: "DeepSeek API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/deepseek.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/deepseek-color.png",
+    icon: PROVIDER_LOGOS.deepseek,
   },
   ollama: {
     name: "Ollama",
@@ -216,7 +231,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key (可选)",
     keyHint: "本地部署通常不需要 API Key",
     baseUrlHint: "Ollama 服务地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/ollama.png",
+    icon: PROVIDER_LOGOS.ollama,
   },
   lmstudio: {
     name: "LM Studio",
@@ -235,7 +250,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key (可选)",
     keyHint: "本地部署通常不需要 API Key",
     baseUrlHint: "LM Studio 服务地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/lmstudio.png",
+    icon: PROVIDER_LOGOS.lmstudio,
   },
   comp_share: {
     name: "优云智算",
@@ -253,7 +268,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key",
     keyHint: "请输入优云智算 API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png",
+    icon: PROVIDER_LOGOS.comp_share,
   },
   "302_ai": {
     name: "302.AI",
@@ -271,9 +286,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key",
     keyHint: "请输入 302.AI API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/ai302.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/ai302-color.png",
+    icon: PROVIDER_LOGOS['302_ai'],
   },
   pony: {
     name: "小马算力",
@@ -291,7 +304,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key",
     keyHint: "请输入小马算力 API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png",
+    icon: PROVIDER_LOGOS.pony,
   },
   siliconflow: {
     name: "硅基流动",
@@ -309,9 +322,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "SiliconFlow API Key",
     keyHint: "需要填入有效的硅基流动API密钥方可使用",
     baseUrlHint: "硅基流动 API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/siliconcloud.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/siliconcloud-color.png",
+    icon: PROVIDER_LOGOS.siliconflow,
   },
   xinghe: {
     name: "星河大模型",
@@ -332,9 +343,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "AI Studio 访问令牌",
     keyHint: "请填写 AI Studio 访问令牌",
     baseUrlHint: "AI Studio 大模型 API 服务域名",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/wenxin.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/wenxin-color.png",
+    icon: PROVIDER_LOGOS.xinghe,
     description: "AI Studio 星河大模型服务，需配置访问令牌与 Base URL。",
   },
   ppio: {
@@ -353,9 +362,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key",
     keyHint: "请输入 PPIO API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/ppio.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/ppio-color.png",
+    icon: PROVIDER_LOGOS.ppio,
   },
   modelscope: {
     name: "ModelScope",
@@ -373,9 +380,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key",
     keyHint: "请输入 ModelScope API Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/modelscope.png",
-    iconColor:
-      "https://unpkg.com/@lobehub/icons-static-png@latest/light/modelscope-color.png",
+    icon: PROVIDER_LOGOS.modelscope,
   },
   oneapi: {
     name: "OneAPI",
@@ -393,7 +398,7 @@ export const MODEL_PROVIDERS: ModelProviders = {
     keyLabel: "API Key",
     keyHint: "请输入 OneAPI Key",
     baseUrlHint: "API服务器地址",
-    icon: "https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png",
+    icon: PROVIDER_LOGOS.oneapi,
   },
 };
 

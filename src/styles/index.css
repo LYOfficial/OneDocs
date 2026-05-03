@@ -2616,6 +2616,17 @@ option[value^="custom_"] {
     object-fit: contain;
 }
 
+.provider-icon-img-themed,
+.model-option-icon-img-themed {
+    filter: var(--provider-icon-filter, none);
+    transition: filter 0.2s ease;
+}
+
+.provider-icon-img-static,
+.model-option-icon-img-static {
+    filter: none;
+}
+
 .provider-info-banner {
     background: rgba(59, 130, 246, 0.08);
     border: 1px solid rgba(59, 130, 246, 0.2);
@@ -2778,6 +2789,7 @@ option[value^="custom_"] {
     --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
     --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
     --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    --provider-icon-filter: invert(1) brightness(1.8);
 }
 
 

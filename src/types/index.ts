@@ -15,6 +15,7 @@ export type AIProvider =
   | 'xinghe'
   | 'ppio'
   | 'modelscope'
+  | 'openrouter'
   | 'oneapi';
 
 export type CustomProviderKey = `custom_${string}`;

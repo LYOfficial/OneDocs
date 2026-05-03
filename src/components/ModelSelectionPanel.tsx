@@ -1,39 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { MODEL_PROVIDERS } from "@/config/providers";
+import { MODEL_SOURCE_LOGOS } from "@/config/logoAssets";
 import { APIService } from "@/services/api";
 import { useToast } from "./Toast";
 import type { AIProvider, AllProviders, ModelOption } from "@/types";
-
-const SOURCE_LOGOS: Record<
-  string,
-  { light: string; dark: string }
-> = {
-  openai: {
-    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png",
-    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/openai.png",
-  },
-  qwen: {
-    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/alibaba.png",
-    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/alibaba.png",
-  },
-  "z-ai": {
-    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu.png",
-    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/zhipu.png",
-  },
-  google: {
-    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/gemini.png",
-    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/gemini.png",
-  },
-  minimax: {
-    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/minimax.png",
-    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/minimax.png",
-  },
-  "meta-llama": {
-    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/meta.png",
-    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/meta.png",
-  },
-};
 
 const ModelLogo = () => (
   <svg
@@ -57,7 +28,10 @@ const ModelLogo = () => (
   </svg>
 );
 
-const ModelIcon: React.FC<{ src: string | null }> = ({ src }) => {
+const ModelIcon: React.FC<{ src: string | null; staticIcon?: boolean }> = ({
+  src,
+  staticIcon = false,
+}) => {
   const [failed, setFailed] = useState(false);
 
   if (!src || failed) {
@@ -68,7 +42,7 @@ const ModelIcon: React.FC<{ src: string | null }> = ({ src }) => {
     <img
       src={src}
       alt=""
-      className="model-option-icon-img"
+      className={`model-option-icon-img ${staticIcon ? "model-option-icon-img-static" : "model-option-icon-img-themed"}`}
       style={{ width: 16, height: 16 }}
       onError={() => setFailed(true)}
     />
@@ -77,24 +51,14 @@ const ModelIcon: React.FC<{ src: string | null }> = ({ src }) => {
 
 function getModelLogoSrc(
   provider: AIProvider | null,
-  model: ModelOption,
-  theme: "light" | "dark" | "system"
+  model: ModelOption
 ) {
-  const effectiveTheme =
-    theme === "dark"
-      ? "dark"
-      : theme === "light"
-        ? "light"
-        : window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
-
   if (!provider) return null;
 
   if (provider === "onedocs") {
     const source = model.value.split("/")[0].toLowerCase();
-    const logo = SOURCE_LOGOS[source];
-    return logo ? logo[effectiveTheme] : null;
+    const logo = MODEL_SOURCE_LOGOS[source as keyof typeof MODEL_SOURCE_LOGOS];
+    return logo || null;
   }
 
   const providerConfig = MODEL_PROVIDERS[provider];
@@ -105,6 +69,7 @@ const PROVIDER_PRIORITY: AIProvider[] = [
   "onedocs",
   "openai",
   "gemini",
+  "openrouter",
   "glm",
   "siliconflow",
   "xinghe",
@@ -369,11 +334,17 @@ export const ModelSelectionPanel: React.FC = () => {
 
   const closeClearConfirm = () => setShowClearConfirm(false);
 
-  const getProviderIcon = (key: string, useColor = false) => {
+  const getProviderIcon = (key: string) => {
     const provider = MODEL_PROVIDERS[key as AIProvider];
     if (provider?.icon) {
-      const iconSrc = useColor && provider.iconColor ? provider.iconColor : provider.icon;
-      return <img src={iconSrc} alt={provider.name} className="provider-icon-img" />;
+      const staticIcon = key === "onedocs";
+      return (
+        <img
+          src={provider.icon}
+          alt={provider.name}
+          className={`provider-icon-img ${staticIcon ? "provider-icon-img-static" : "provider-icon-img-themed"}`}
+        />
+      );
     }
     return key.charAt(0).toUpperCase();
   };
@@ -438,7 +409,7 @@ export const ModelSelectionPanel: React.FC = () => {
                     <span className="available-badge">可用</span>
                   ) : null}
                 </div>
-                <div className="provider-icon">{getProviderIcon(key, isConfigured)}</div>
+                <div className="provider-icon">{getProviderIcon(key)}</div>
                 <div className="provider-name">{MODEL_PROVIDERS[key].name}</div>
               </div>
             );
@@ -729,15 +700,14 @@ export const ModelSelectionPanel: React.FC = () => {
                             >
                               {getModelLogoSrc(
                                 isCustomProvider ? null : (localProvider as AIProvider),
-                                model,
-                                theme
+                                  model
                               ) ? (
                                 <ModelIcon
                                   src={getModelLogoSrc(
                                     isCustomProvider ? null : (localProvider as AIProvider),
-                                    model,
-                                    theme
+                                    model
                                   )}
+                                  staticIcon={localProvider === "onedocs"}
                                 />
                               ) : (
                                 <ModelLogo />
