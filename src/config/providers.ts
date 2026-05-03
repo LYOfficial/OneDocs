@@ -35,32 +35,26 @@ export const MODEL_PROVIDERS: ModelProviders = {
       { 
         value: "openai/gpt-oss-120b:free", 
         name: "gpt-oss-120b",
-        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/openai.png"
       },
       { 
         value: "qwen/qwen3-next-80b-a3b-instruct:free", 
         name: "qwen3-next-80b-a3b-instruct",
-        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/alibaba.png"
       },
       { 
         value: "z-ai/glm-4.5-air:free", 
         name: "glm-4.5-air",
-        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/zhipu.png"
       },
       { 
         value: "google/gemma-4-26b-a4b-it:free", 
         name: "gemma-4-26b-a4b-it",
-        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/gemini.png"
       },
       { 
         value: "minimax/minimax-m2.5:free", 
         name: "minimax-m2.5",
-        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/minimax.png"
       },
       { 
         value: "meta-llama/llama-3.3-70b-instruct:free", 
         name: "llama-3.3-70b-instruct",
-        icon: "https://unpkg.com/@lobehub/icons-static-png@latest/darkmeta.png"
       },
     ],
     defaultModel: "openai/gpt-oss-120b:free",

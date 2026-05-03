@@ -3,7 +3,32 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
         <title>OneDocs - 一文亦闻</title>
+        <script>
+            (function () {
+                try {
+                    const storage = localStorage.getItem('onedocs-storage');
+                    let theme = 'system';
+                    if (storage) {
+                        const parsed = JSON.parse(storage);
+                        theme = parsed?.state?.theme || theme;
+                    }
+                    const isDark =
+                        theme === 'dark' ||
+                        (theme === 'system' &&
+                            window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    const root = document.documentElement;
+                    root.classList.toggle('dark', isDark);
+                    root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                } catch (_) {
+                    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const root = document.documentElement;
+                    root.classList.toggle('dark', isDark);
+                    root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                }
+            })();
+        </script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link

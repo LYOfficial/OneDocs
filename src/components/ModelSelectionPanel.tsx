@@ -5,16 +5,110 @@ import { APIService } from "@/services/api";
 import { useToast } from "./Toast";
 import type { AIProvider, AllProviders, ModelOption } from "@/types";
 
+const SOURCE_LOGOS: Record<
+  string,
+  { light: string; dark: string }
+> = {
+  openai: {
+    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png",
+    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/openai.png",
+  },
+  qwen: {
+    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/alibaba.png",
+    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/alibaba.png",
+  },
+  "z-ai": {
+    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu.png",
+    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/zhipu.png",
+  },
+  google: {
+    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/gemini.png",
+    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/gemini.png",
+  },
+  minimax: {
+    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/minimax.png",
+    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/minimax.png",
+  },
+  "meta-llama": {
+    light: "https://unpkg.com/@lobehub/icons-static-png@latest/light/meta.png",
+    dark: "https://unpkg.com/@lobehub/icons-static-png@latest/dark/meta.png",
+  },
+};
+
+const ModelLogo = () => (
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+    width="16"
+    height="16"
+    style={{ color: "var(--primary-color)" }}
+  >
+    <path
+      d="M7 4.5h8.8c1.8 0 3.2 1.4 3.2 3.2V14a5.5 5.5 0 0 1-5.5 5.5H9.2L5 22V7.7A3.2 3.2 0 0 1 8.2 4.5Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <circle cx="9" cy="10" r="1" fill="currentColor" />
+    <circle cx="12" cy="10" r="1" fill="currentColor" />
+    <circle cx="15" cy="10" r="1" fill="currentColor" />
+  </svg>
+);
+
+const ModelIcon: React.FC<{ src: string | null }> = ({ src }) => {
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return <ModelLogo />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt=""
+      className="model-option-icon-img"
+      style={{ width: 16, height: 16 }}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
+function getModelLogoSrc(
+  provider: AIProvider | null,
+  model: ModelOption,
+  theme: "light" | "dark" | "system"
+) {
+  const effectiveTheme =
+    theme === "dark"
+      ? "dark"
+      : theme === "light"
+        ? "light"
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+
+  if (!provider) return null;
+
+  if (provider === "onedocs") {
+    const source = model.value.split("/")[0].toLowerCase();
+    const logo = SOURCE_LOGOS[source];
+    return logo ? logo[effectiveTheme] : null;
+  }
+
+  const providerConfig = MODEL_PROVIDERS[provider];
+  return providerConfig?.icon || null;
+}
+
 const PROVIDER_PRIORITY: AIProvider[] = [
   "onedocs",
   "openai",
   "gemini",
-  "deepseek",
   "glm",
   "siliconflow",
   "xinghe",
 ];
-
 const ORDERED_PROVIDER_KEYS: AIProvider[] = [
   ...PROVIDER_PRIORITY.filter((key) =>
     Object.prototype.hasOwnProperty.call(MODEL_PROVIDERS, key)
@@ -25,16 +119,17 @@ const ORDERED_PROVIDER_KEYS: AIProvider[] = [
 ];
 
 export const ModelSelectionPanel: React.FC = () => {
+
   const {
     currentProvider,
     setCurrentProvider,
+    theme,
     providerSettings,
-    updateProviderSettings,
+    providerCustomModels,
     customProviders,
     addCustomProvider,
     updateCustomProvider,
     deleteCustomProvider,
-    providerCustomModels,
     addProviderCustomModel,
     removeProviderCustomModel,
     clearAllCache,
@@ -620,14 +715,34 @@ export const ModelSelectionPanel: React.FC = () => {
                             role="option"
                             aria-selected={localModel === model.value}
                           >
-                            {model.icon && (
-                              <img
-                                src={model.icon}
-                                alt=""
-                                className="model-option-icon"
-                                style={{ width: 16, height: 16, marginRight: 8 }}
-                              />
-                            )}
+                            <span
+                              className="model-option-icon"
+                              style={{
+                                display: "inline-flex",
+                                width: 16,
+                                height: 16,
+                                marginRight: 8,
+                                flexShrink: 0,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {getModelLogoSrc(
+                                isCustomProvider ? null : (localProvider as AIProvider),
+                                model,
+                                theme
+                              ) ? (
+                                <ModelIcon
+                                  src={getModelLogoSrc(
+                                    isCustomProvider ? null : (localProvider as AIProvider),
+                                    model,
+                                    theme
+                                  )}
+                                />
+                              ) : (
+                                <ModelLogo />
+                              )}
+                            </span>
                             <span className="model-option-name">{model.name}</span>
                             {renderModelTags(model)}
                           </button>
