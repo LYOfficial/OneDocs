@@ -20,7 +20,14 @@ export type AIProvider =
 export type CustomProviderKey = `custom_${string}`;
 export type AllProviders = AIProvider | CustomProviderKey;
 
-export type ModelTagVariant = 'thinking' | 'vision' | 'fast' | 'better';
+export type ModelTagVariant =
+  | 'thinking'
+  | 'vision'
+  | 'fast'
+  | 'better'
+  | 'flagship'
+  | 'affordable'
+  | 'free';
 
 export interface ModelTag {
   label: string;

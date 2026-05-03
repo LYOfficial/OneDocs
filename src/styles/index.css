@@ -2743,6 +2743,24 @@ option[value^="custom_"] {
     color: #ef4444;
 }
 
+.model-tag-flagship {
+    background: rgba(239, 68, 68, 0.14);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.model-tag-affordable {
+    background: rgba(59, 130, 246, 0.14);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.model-tag-free {
+    background: rgba(16, 185, 129, 0.14);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
 
 
 :root.dark {
