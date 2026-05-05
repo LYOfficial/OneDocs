@@ -148,5 +148,31 @@
       "unknownError": "未知错误",
       "mergeFail": "合并失败: {{message}}"
     }
+  },
+  "notebook": {
+    "title": "知识库",
+    "reviewPast": "温故",
+    "createNew": "知新",
+    "newNotebook": "新建笔记本",
+    "namePlaceholder": "输入笔记本名称",
+    "confirm": "确认",
+    "cancel": "取消",
+    "files": "个文件",
+    "edit": "重命名",
+    "delete": "删除",
+    "confirmDelete": "确定要删除这个笔记本吗？",
+    "removeFile": "移除文件",
+    "emptyHint": "暂无文件，请上传文档到这个笔记本。",
+    "selectAtLeastOne": "请先选择要分析的文件",
+    "analyzeSelected": "析文所选文件",
+    "chunking": "正在分块...",
+    "embedding": "正在生成向量...",
+    "retrieval": "正在检索相关片段..."
+  },
+  "analysis": {
+    "mode": {
+      "direct": "直接析文",
+      "notebook": "知识库"
+    }
   }
 }

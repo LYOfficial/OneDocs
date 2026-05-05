@@ -6,6 +6,8 @@ mod embedded_python;
 
 use embedded_python::{
     extract_pdf_analysis_bundle_embedded,
+    generate_text_embedding,
+    generate_batch_embeddings,
     get_embedded_python_status,
     prepare_embedded_python_runtime,
     EmbeddedPythonManager,
@@ -147,6 +149,8 @@ fn main() {
             get_embedded_python_status,
             prepare_embedded_python_runtime,
             extract_pdf_analysis_bundle_embedded,
+            generate_text_embedding,
+            generate_batch_embeddings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

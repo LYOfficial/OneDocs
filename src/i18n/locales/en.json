@@ -148,5 +148,31 @@
       "unknownError": "Unknown error",
       "mergeFail": "Merge failed: {{message}}"
     }
+  },
+  "notebook": {
+    "title": "Knowledge Base",
+    "reviewPast": "Review Past",
+    "createNew": "Create New",
+    "newNotebook": "New Notebook",
+    "namePlaceholder": "Enter notebook name",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "files": "files",
+    "edit": "Rename",
+    "delete": "Delete",
+    "confirmDelete": "Delete this notebook?",
+    "removeFile": "Remove file",
+    "emptyHint": "No files yet. Upload documents to this notebook.",
+    "selectAtLeastOne": "Please select at least one file to analyze",
+    "analyzeSelected": "Analyze Selected Files",
+    "chunking": "Chunking...",
+    "embedding": "Generating embeddings...",
+    "retrieval": "Retrieving relevant chunks..."
+  },
+  "analysis": {
+    "mode": {
+      "direct": "Direct Analysis",
+      "notebook": "Knowledge Base"
+    }
   }
 }

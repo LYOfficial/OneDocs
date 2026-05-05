@@ -1,13 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { useAnalysis } from "@/hooks/useAnalysis";
 import { FunctionSelector } from "@/components/FunctionSelector";
 import { FileUpload } from "@/components/FileUpload";
+import { NotebookPanel } from "@/components/NotebookPanel";
 import { ProgressBar } from "@/components/ProgressBar";
 import { useTranslation } from "react-i18next";
 
+type AnalysisMode = 'direct' | 'notebook';
+
 export const Analysis: React.FC = () => {
   const { t } = useTranslation();
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('direct');
   const {
     files,
     currentFile,
@@ -59,12 +63,32 @@ export const Analysis: React.FC = () => {
               </div>
             )}
 
-            <FileUpload
-              onAnalyze={handleMainButtonClick}
-              canAnalyze={!!canAnalyze}
-              isAnalyzing={isAnalyzing}
-              hasAnalysisResults={hasAnalysisResults}
-            />
+            {/* Mode Toggle */}
+            <div className="analysis-mode-toggle">
+              <button
+                className={`mode-btn ${analysisMode === 'direct' ? 'active' : ''}`}
+                onClick={() => setAnalysisMode('direct')}
+              >
+                📄 {t('analysis.mode.direct') || '直接析文'}
+              </button>
+              <button
+                className={`mode-btn ${analysisMode === 'notebook' ? 'active' : ''}`}
+                onClick={() => setAnalysisMode('notebook')}
+              >
+                📚 {t('analysis.mode.notebook') || '知识库'}
+              </button>
+            </div>
+
+            {analysisMode === 'direct' ? (
+              <FileUpload
+                onAnalyze={handleMainButtonClick}
+                canAnalyze={!!canAnalyze}
+                isAnalyzing={isAnalyzing}
+                hasAnalysisResults={hasAnalysisResults}
+              />
+            ) : (
+              <NotebookPanel />
+            )}
 
             <ProgressBar />
 

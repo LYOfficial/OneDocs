@@ -700,3 +700,139 @@ fn get_content_core_script() -> String {
     ]
     .join("\n")
 }
+
+/// Generate embedding for a single text using sentence-transformers via embedded Python
+#[tauri::command]
+pub async fn generate_text_embedding(
+    app: AppHandle,
+    manager: State<'_, EmbeddedPythonManager>,
+    text: String,
+) -> Result<Vec<f64>, String> {
+    manager.ensure_ready(&app, false).await?;
+    
+    let runtime_root = embedded_python_root(&app)?;
+    let python_exe = runtime_root.join("python.exe");
+    if !python_exe.exists() {
+        return Err("嵌入式 Python 未准备好".to_string());
+    }
+    
+    // Create a Python script for embedding
+    let script_content = r#"
+import sys
+sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
+
+try:
+    from sentence_transformers import SentenceTransformer
+    import json
+    
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    embedding = model.encode("%s", convert_to_numpy=True)
+    
+    # Output as JSON array
+    print(json.dumps(embedding.tolist()))
+except Exception as e:
+    print(str(e), file=sys.stderr)
+    sys.exit(1)
+"#;
+    
+    // Escape the text for safe embedding in Python string
+    let escaped_text = text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    let script = script_content.replace("%s", &escaped_text);
+    
+    let output = StdCommand::new(&python_exe)
+        .arg("-c")
+        .arg(&script)
+        .output()
+        .map_err(|e| format!("执行 Python 嵌入脚本失败: {}", e))?;
+    
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("嵌入生成失败: {}", stderr));
+    }
+    
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let embedding: Vec<f64> = serde_json::from_str(&stdout)
+        .map_err(|e| format!("解析嵌入向量失败: {}，原始输出: {}", e, stdout))?;
+    
+    Ok(embedding)
+}
+
+/// Generate embeddings for multiple chunks in batch
+#[tauri::command]
+pub async fn generate_batch_embeddings(
+    app: AppHandle,
+    manager: State<'_, EmbeddedPythonManager>,
+    chunks: Vec<ChunkInput>,  // Array of {id, content}
+) -> Result<Vec<ChunkEmbedding>, String> {
+    manager.ensure_ready(&app, false).await?;
+    
+    let runtime_root = embedded_python_root(&app)?;
+    let python_exe = runtime_root.join("python.exe");
+    if !python_exe.exists() {
+        return Err("嵌入式 Python 未准备好".to_string());
+    }
+    
+    // Create a Python script for batch embedding
+    let chunks_json = serde_json::to_string(&chunks)
+        .map_err(|e| format!("序列化 chunk 数据失败: {}", e))?;
+    
+    let script_content = r#"
+import sys
+sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
+
+try:
+    import json
+    from sentence_transformers import SentenceTransformer
+    
+    chunks = json.loads('''%s''')
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    texts = [c['content'] for c in chunks]
+    embeddings = model.encode(texts, convert_to_numpy=True, show_progress_bar=False)
+    
+    results = []
+    for i, chunk in enumerate(chunks):
+        results.append({
+            'id': chunk['id'],
+            'embedding': embeddings[i].tolist()
+        })
+    
+    print(json.dumps(results, ensure_ascii=False))
+except Exception as e:
+    print(str(e), file=sys.stderr)
+    sys.exit(1)
+"#;
+    
+    let script = script_content.replace("%s", &chunks_json);
+    
+    let output = StdCommand::new(&python_exe)
+        .arg("-c")
+        .arg(&script)
+        .output()
+        .map_err(|e| format!("执行 Python 批量嵌入脚本失败: {}", e))?;
+    
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("批量嵌入生成失败: {}", stderr));
+    }
+    
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let results: Vec<ChunkEmbedding> = serde_json::from_str(&stdout)
+        .map_err(|e| format!("解析嵌入结果失败: {}，原始输出: {}", e, stdout))?;
+    
+    Ok(results)
+}
+
+/// Input for chunk embedding
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ChunkInput {
+    pub id: String,
+    pub content: String,
+}
+
+/// Output for chunk embedding
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ChunkEmbedding {
+    pub id: String,
+    pub embedding: Vec<f64>,
+}
