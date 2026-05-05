@@ -6,6 +6,7 @@ import { Settings } from "@/pages/Settings";
 import { Toast } from "@/components/Toast";
 import { TitleBar } from "@/components/TitleBar";
 import { useAppStore } from "@/store/useAppStore";
+import { invoke } from "@tauri-apps/api/core";
 
 type Page = "landing" | "analysis" | "analysisResult" | "settings";
 
@@ -20,6 +21,12 @@ const App: React.FC = () => {
       setCurrentPage("analysis");
     }
   }, [hasAnalysisResults, currentPage, setCurrentPage]);
+
+  useEffect(() => {
+    void invoke("prepare_embedded_python_runtime", { force: false }).catch(() => {
+      // Bootstrapping failures are surfaced in the settings panel.
+    });
+  }, []);
 
   return (
     <div className="app-container">

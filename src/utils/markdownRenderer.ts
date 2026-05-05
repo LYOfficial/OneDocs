@@ -1,5 +1,6 @@
 import { marked } from "marked";
 import katex from "katex";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 marked.setOptions({
   breaks: true,
@@ -67,6 +68,8 @@ export class MarkdownRenderer {
         }
       });
 
+      html = this.rewriteLocalImageSources(html);
+
       html = html.replace(/KATEX(BLOCK|INLINE)\d+KATEX/g, (match) => {
         console.warn("发现未替换的占位符:", match);
         return "[公式]";
@@ -99,5 +102,24 @@ export class MarkdownRenderer {
     return markdown.replace(/^(#{1,6})\s+(.+)$/gm, (_, hashes, text) => {
       return `${hashes}# ${text}`;
     });
+  }
+
+  private static rewriteLocalImageSources(html: string): string {
+    return html.replace(
+      /<img([^>]*?)src=("|')(.*?)(\2)([^>]*?)>/g,
+      (_match, before, quote, src, _closingQuote, after) => {
+        if (!this.isLocalImageSource(src)) {
+          return `<img${before}src=${quote}${src}${quote}${after}>`;
+        }
+
+        const normalized = src.replace(/\\/g, "/");
+        const converted = convertFileSrc(normalized);
+        return `<img${before}src=${quote}${converted}${quote}${after}>`;
+      },
+    );
+  }
+
+  private static isLocalImageSource(src: string): boolean {
+    return /^(?:[a-zA-Z]:[\\/]|\/|file:\/\/)/.test(src);
   }
 }

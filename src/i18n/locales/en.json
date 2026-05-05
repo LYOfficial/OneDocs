@@ -67,6 +67,14 @@
       "data": {
         "label": "Data",
         "desc": "Configure data directory"
+      },
+      "about": {
+        "label": "About",
+        "desc": "Version and links"
+      },
+      "developer": {
+        "label": "Developer",
+        "desc": "Internal logs"
       }
     }
   },

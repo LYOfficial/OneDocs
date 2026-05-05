@@ -1,0 +1,145 @@
+Metadata-Version: 2.4
+Name: fast-ebook
+Version: 0.2.0
+Classifier: Programming Language :: Rust
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Topic :: Text Processing :: Markup
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Operating System :: OS Independent
+License-File: LICENSE
+Summary: Rust-powered EPUB2/EPUB3 library for Python. Fast reading, writing, validation, and markdown conversion.
+License-Expression: MIT
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown; charset=UTF-8; variant=GFM
+Project-URL: Homepage, https://github.com/arc53/fast-ebook
+Project-URL: Issues, https://github.com/arc53/fast-ebook/issues
+Project-URL: Repository, https://github.com/arc53/fast-ebook
+
+# fast-ebook
+
+[![PyPI version](https://img.shields.io/pypi/v/fast-ebook.svg)](https://pypi.org/project/fast-ebook/)
+[![License](https://img.shields.io/pypi/l/fast-ebook.svg)](https://github.com/arc53/fast-ebook/blob/main/LICENSE)
+[![CI](https://github.com/arc53/fast-ebook/actions/workflows/ci.yml/badge.svg)](https://github.com/arc53/fast-ebook/actions/workflows/ci.yml)
+
+Rust-powered EPUB2/EPUB3 library for Python. Fast reading, writing, validation, and markdown conversion — MIT-licensed.
+
+## How fast?
+
+Converting **War and Peace** (1.8 MB EPUB) to a single markdown document:
+
+| Library | Time | |
+|---|---:|---|
+| ebooklib + html2text | 375 ms | baseline |
+| **fast-ebook `book.to_markdown()`** | **56 ms** | **6.7x faster** |
+
+
+```python
+from fast_ebook import epub
+
+book = epub.read_epub('war_and_peace.epub')
+markdown = book.to_markdown()
+```
+
+Other operations on the same book — read+extract every chapter is **3x** faster, `get_item_with_id` is **78x** faster. Full numbers and methodology: [docs/benchmarks.md](docs/benchmarks.md).
+
+## Installation
+
+```bash
+pip install fast-ebook
+```
+
+## Quick Start
+
+## Migration from ebooklib
+
+The public API mirrors ebooklib — for most code you only need to change the import:
+
+```python
+from fast_ebook import epub
+import fast_ebook  # for ITEM_* constants
+```
+
+Or use the drop-in compatibility layer for a one-line change:
+
+```python
+import fast_ebook.compat as ebooklib
+from fast_ebook.compat import epub
+```
+
+### Read
+
+```python
+from fast_ebook import epub
+import fast_ebook
+
+book = epub.read_epub('book.epub')
+
+print(book.get_metadata('DC', 'title'))
+
+for img in book.get_items_of_type(fast_ebook.ITEM_IMAGE):
+    print(img.get_name(), len(img.get_content()), 'bytes')
+
+item = book.get_item_with_id('chapter1')
+
+for entry in book.toc:
+    print(entry.title, entry.href)
+```
+
+Also accepts `Path`, `bytes`, or `BytesIO`. See [docs/api.md](docs/api.md) for the full reading API, options (`lazy`, `ignore_ncx`, `ignore_nav`), and the context manager form.
+
+### Write
+
+```python
+from fast_ebook import epub
+
+book = epub.EpubBook()
+book.set_identifier('id123')
+book.set_title('My Book')
+book.set_language('en')
+book.add_author('Author Name')
+
+c1 = epub.EpubHtml(title='Intro', file_name='chap_01.xhtml', lang='en')
+c1.content = '<h1>Hello</h1><p>World</p>'
+
+book.add_item(c1)
+book.add_item(epub.EpubNcx())
+book.add_item(epub.EpubNav())
+
+book.toc = [epub.Link('chap_01.xhtml', 'Introduction', 'intro')]
+book.spine = ['nav', c1]
+
+epub.write_epub('output.epub', book)
+```
+
+### Convert to Markdown
+
+```python
+md = epub.read_epub('book.epub').to_markdown()
+```
+
+### Parallel batch read
+
+```python
+from fast_ebook import epub
+
+books = epub.read_epubs(['a.epub', 'b.epub', 'c.epub'], workers=4)
+```
+
+## Documentation
+
+- [docs/api.md](docs/api.md) — Full Python API reference, options, item types, compat layer
+- [docs/benchmarks.md](docs/benchmarks.md) — Read/write/batch/markdown benchmarks vs ebooklib
+- [docs/architecture.md](docs/architecture.md) — How fast-ebook is built (Rust core, PyO3 bridge)
+- [docs/threat-model.md](docs/threat-model.md) — Security model for parsing untrusted EPUBs
+
+## License
+
+MIT
+

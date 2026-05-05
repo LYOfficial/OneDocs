@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
+import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useAppStore } from "@/store/useAppStore";
 import { useTranslation } from "react-i18next";
@@ -15,7 +16,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   onTabChange,
 }) => {
   const { theme, setTheme } = useAppStore();
-  const appWindowRef = useRef(getCurrentWindow());
+  const isTauriRuntime = isTauri();
+  const appWindowRef = useRef(isTauriRuntime ? getCurrentWindow() : null);
   const { t, i18n } = useTranslation();
   const isChinese = i18n.language.toLowerCase().startsWith("zh");
   const switchToLabel = isChinese
@@ -62,6 +64,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
       const target = event.target as HTMLElement;
       if (target.closest('[data-tauri-drag-region="false"]')) return;
+
+      if (!appWindowRef.current) return;
 
       appWindowRef.current.startDragging().catch((error) => {
         if (import.meta.env.DEV) {
@@ -154,29 +158,31 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           </button>
         </div>
 
-        <div className="window-controls">
-          <button
-            className="window-btn minimize"
-            onClick={() => getCurrentWindow().minimize()}
-            data-tauri-drag-region="false"
-          >
-            <i className="fas fa-minus"></i>
-          </button>
-          <button
-            className="window-btn maximize"
-            onClick={() => getCurrentWindow().toggleMaximize()}
-            data-tauri-drag-region="false"
-          >
-            <i className="far fa-square"></i>
-          </button>
-          <button
-            className="window-btn close"
-            onClick={() => getCurrentWindow().close()}
-            data-tauri-drag-region="false"
-          >
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
+        {isTauriRuntime && (
+          <div className="window-controls">
+            <button
+              className="window-btn minimize"
+              onClick={() => appWindowRef.current?.minimize()}
+              data-tauri-drag-region="false"
+            >
+              <i className="fas fa-minus"></i>
+            </button>
+            <button
+              className="window-btn maximize"
+              onClick={() => appWindowRef.current?.toggleMaximize()}
+              data-tauri-drag-region="false"
+            >
+              <i className="far fa-square"></i>
+            </button>
+            <button
+              className="window-btn close"
+              onClick={() => appWindowRef.current?.close()}
+              data-tauri-drag-region="false"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

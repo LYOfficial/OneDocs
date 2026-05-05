@@ -1,14 +1,90 @@
-import * as pdfjsLib from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import mammoth from "mammoth";
 import JSZip from "jszip";
 import ExcelJS from "exceljs";
-import type { SupportedFileType } from "@/types";
+import { invoke } from "@tauri-apps/api/core";
+import { appDataDir } from "@tauri-apps/api/path";
+import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
+import type {
+  DocumentAnalysisBundle,
+  DocumentImageAsset,
+  SupportedFileType,
+} from "@/types";
 
 if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
 export class DocumentProcessor {
+  private static isTauriRuntime(): boolean {
+    return (
+      typeof window !== "undefined" &&
+      Object.prototype.hasOwnProperty.call(window, "__TAURI__")
+    );
+  }
+
+  private static async loadPdfDocument(arrayBuffer: ArrayBuffer) {
+    const data = new Uint8Array(arrayBuffer);
+    try {
+      return await pdfjsLib.getDocument({
+        data,
+        useSystemFonts: true,
+        disableAutoFetch: true,
+      }).promise;
+    } catch (error) {
+      console.warn("PDF 解析失败，改用主线程模式", error);
+      try {
+        return await pdfjsLib.getDocument({
+          data,
+          disableWorker: true,
+          useSystemFonts: true,
+          disableAutoFetch: true,
+        }).promise;
+      } catch (fallbackError) {
+        console.warn("主线程解析失败，改用字节数组模式", fallbackError);
+        return await pdfjsLib.getDocument({
+          data,
+          disableWorker: true,
+          isEvalSupported: false,
+          useSystemFonts: true,
+        }).promise;
+      }
+    }
+  }
+
+  static async extractAnalysisBundle(
+    file: File,
+    outputRoot?: string,
+  ): Promise<DocumentAnalysisBundle> {
+    const fileType = file.type as SupportedFileType;
+
+    switch (fileType) {
+      case "application/pdf":
+        if (this.isTauriRuntime()) {
+          return await this.extractPDFAnalysisBundleWithContentCore(file, outputRoot);
+        }
+        return await this.extractPDFAnalysisBundle(file, outputRoot);
+
+      case "text/plain":
+      case "application/msword":
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      case "application/vnd.ms-powerpoint":
+      case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      case "application/vnd.ms-excel":
+      case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+        return {
+          text: await this.extractContent(file),
+          pageTexts: [],
+          images: [],
+          pageCount: 0,
+        };
+
+      default:
+        throw new Error(`不支持的文件格式: ${fileType}`);
+    }
+  }
+
   static async extractContent(file: File): Promise<string> {
     const fileType = file.type as SupportedFileType;
 
@@ -17,6 +93,10 @@ export class DocumentProcessor {
         return await this.extractTextFile(file);
 
       case "application/pdf":
+        if (this.isTauriRuntime()) {
+          const bundle = await this.extractPDFAnalysisBundleWithContentCore(file);
+          return bundle.text;
+        }
         return await this.extractPDFText(file);
 
       case "application/msword":
@@ -57,7 +137,7 @@ export class DocumentProcessor {
   private static async extractPDFText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await this.loadPdfDocument(arrayBuffer);
       let fullText = "";
 
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
@@ -81,8 +161,187 @@ export class DocumentProcessor {
       if (error.message?.includes("图片扫描版")) {
         throw error;
       }
-      throw new Error("PDF文件解析失败，请确认文件格式正确或尝试转换为TXT格式");
+      throw new Error(
+        `PDF文件解析失败：${error?.message || "未知错误"}，请确认文件格式正确或尝试转换为TXT格式`,
+      );
     }
+  }
+
+  private static async extractPDFAnalysisBundle(
+    file: File,
+    outputRoot?: string,
+  ): Promise<DocumentAnalysisBundle> {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await this.loadPdfDocument(arrayBuffer);
+      const pageTexts: string[] = [];
+      const imageAssets: DocumentImageAsset[] = [];
+      let fullText = "";
+
+      const baseName = this.sanitizeFileStem(file.name) || "OneDocs";
+      const imageFolder = outputRoot
+        ? `${this.normalizePath(outputRoot)}/${baseName}_pdf_assets`
+        : "";
+
+      if (imageFolder) {
+        await mkdir(imageFolder, { recursive: true });
+      }
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(" ")
+          .trim();
+
+        pageTexts.push(pageText);
+        fullText += `\n=== 第 ${pageNum} 页 ===\n${pageText}\n`;
+
+        {
+          try {
+            const pageImage = await this.renderPdfPageToImage(
+              page,
+              pageNum,
+              imageFolder,
+              baseName,
+            );
+            if (pageImage) {
+              imageAssets.push(pageImage);
+            }
+          } catch (imageError) {
+            console.warn(`PDF 页面渲染失败，跳过图片: 第 ${pageNum} 页`, imageError);
+          }
+        }
+      }
+
+      if (fullText.trim().length === 0) {
+        throw new Error("PDF文件中未检测到文本内容，可能是图片扫描版PDF");
+      }
+
+      return {
+        text: fullText.trim(),
+        pageTexts,
+        images: imageAssets,
+        pageCount: pdf.numPages,
+      };
+    } catch (error: any) {
+      console.error("PDF解析错误:", error);
+      const message = error?.message || String(error) || "未知错误";
+      if (message.includes("图片扫描版")) {
+        throw error;
+      }
+      throw new Error(
+        `PDF文件解析失败：${message}，请确认文件格式正确或尝试转换为TXT格式`,
+      );
+    }
+  }
+
+  private static async extractPDFAnalysisBundleWithContentCore(
+    file: File,
+    outputRoot?: string,
+  ): Promise<DocumentAnalysisBundle> {
+    const arrayBuffer = await file.arrayBuffer();
+    const baseName = this.sanitizeFileStem(file.name) || "OneDocs";
+    const baseDir = outputRoot
+      ? this.normalizePath(outputRoot)
+      : this.normalizePath(await appDataDir());
+    const imageFolder = `${baseDir}/${baseName}_contentcore_assets`;
+    const inputPath = `${baseDir}/${baseName}_contentcore_input.pdf`;
+
+    await mkdir(imageFolder, { recursive: true });
+    await writeFile(inputPath, new Uint8Array(arrayBuffer));
+    try {
+      const result = await invoke<string>("extract_pdf_analysis_bundle_embedded", {
+        inputPath,
+        outputRoot: imageFolder,
+        baseName,
+      });
+      const payload = JSON.parse(result || "{}");
+      return {
+        text: String(payload.text || "").trim(),
+        pageTexts: Array.isArray(payload.pageTexts) ? payload.pageTexts : [],
+        images: Array.isArray(payload.images) ? payload.images : [],
+        pageCount: Number(payload.pageCount || 0),
+      };
+    } catch (error) {
+      throw new Error(`content-core 返回结果解析失败，请重试：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private static async renderPdfPageToImage(
+    page: any,
+    pageNum: number,
+    imageFolder: string,
+    baseName: string,
+  ): Promise<DocumentImageAsset | null> {
+    if (typeof document === "undefined") {
+      return null;
+    }
+
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return null;
+    }
+
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+
+    try {
+      await page.render({ canvasContext: context, viewport }).promise;
+    } catch (error) {
+      console.warn(`PDF 页面渲染失败：第 ${pageNum} 页`, error);
+      return null;
+    }
+
+    let dataUrl = "";
+    try {
+      dataUrl = canvas.toDataURL("image/png");
+    } catch (error) {
+      console.warn(`PDF 页面导出失败：第 ${pageNum} 页`, error);
+      return null;
+    }
+    const fileName = `${baseName}_page_${String(pageNum).padStart(3, "0")}.png`;
+    const localPath = imageFolder ? `${imageFolder}/${fileName}` : "";
+
+    if (localPath) {
+      try {
+        await mkdir(imageFolder, { recursive: true });
+        await writeFile(localPath, this.dataUrlToBytes(dataUrl));
+      } catch (error) {
+        console.warn(`写入 PDF 页面图片失败：${fileName}`, error);
+      }
+    }
+
+    return {
+      pageNumber: pageNum,
+      fileName,
+      localPath,
+      dataUrl,
+    };
+  }
+
+  private static dataUrlToBytes(dataUrl: string): Uint8Array {
+    const base64 = dataUrl.split(",")[1] || "";
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    return bytes;
+  }
+
+  private static sanitizeFileStem(fileName: string): string {
+    return fileName.replace(/\.[^./\\]+$/, "").replace(/[\\/:*?"<>|]+/g, "_").trim();
+  }
+
+  private static normalizePath(pathValue: string): string {
+    return pathValue.replace(/[\\/]+$/, "").replace(/\\/g, "/");
   }
 
   private static async extractWordText(file: File): Promise<string> {

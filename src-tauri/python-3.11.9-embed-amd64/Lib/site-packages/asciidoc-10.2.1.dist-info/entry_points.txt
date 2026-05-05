@@ -1,0 +1,4 @@
+[console_scripts]
+a2x = asciidoc.a2x:cli
+asciidoc = asciidoc.asciidoc:cli
+

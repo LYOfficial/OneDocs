@@ -8,12 +8,15 @@ import type {
   AnalysisProgress,
   AnalysisResult,
   MultiFileAnalysisResult,
+  DeveloperLogEntry,
   ViewMode,
   ProviderSettings,
   CustomProviderSettings,
   ModelOption,
 } from '@/types';
 import { MODEL_PROVIDERS, createCustomProvider } from '@/config/providers';
+
+const MAX_DEV_LOGS = 500;
 
 interface AppState {
   files: FileInfo[];
@@ -71,6 +74,12 @@ interface AppState {
 
   dataDirectory: string;
   setDataDirectory: (dir: string) => void;
+
+  devMode: boolean;
+  setDevMode: (enabled: boolean) => void;
+  developerLogs: DeveloperLogEntry[];
+  addLog: (entry: DeveloperLogEntry) => void;
+  clearLogs: () => void;
 
   resetAnalysis: () => void;
   resetAll: () => void;
@@ -220,6 +229,7 @@ export const useAppStore = create<AppState>()(
         xinghe: getDefaultSettings('xinghe'),
         ppio: getDefaultSettings('ppio'),
         modelscope: getDefaultSettings('modelscope'),
+        newapi: getDefaultSettings('newapi'),
         oneapi: getDefaultSettings('oneapi'),
       },
       providerCustomModels: {
@@ -240,6 +250,7 @@ export const useAppStore = create<AppState>()(
         xinghe: [],
         ppio: [],
         modelscope: [],
+        newapi: [],
         oneapi: [],
       },
       customProviders: {},
@@ -332,6 +343,21 @@ export const useAppStore = create<AppState>()(
       dataDirectory: '',
       setDataDirectory: (dir) => set({ dataDirectory: dir }),
 
+      devMode: false,
+      setDevMode: (enabled) => set({ devMode: enabled }),
+      developerLogs: [],
+      addLog: (entry) =>
+        set((state) => {
+          const nextLogs = [...state.developerLogs, entry];
+          return {
+            developerLogs:
+              nextLogs.length > MAX_DEV_LOGS
+                ? nextLogs.slice(nextLogs.length - MAX_DEV_LOGS)
+                : nextLogs,
+          };
+        }),
+      clearLogs: () => set({ developerLogs: [] }),
+
       resetAnalysis: () =>
         set({
           analysisProgress: null,
@@ -371,6 +397,7 @@ export const useAppStore = create<AppState>()(
             xinghe: getDefaultSettings('xinghe'),
             ppio: getDefaultSettings('ppio'),
             modelscope: getDefaultSettings('modelscope'),
+            newapi: getDefaultSettings('newapi'),
             oneapi: getDefaultSettings('oneapi'),
           },
           providerCustomModels: {
@@ -391,6 +418,7 @@ export const useAppStore = create<AppState>()(
             xinghe: [],
             ppio: [],
             modelscope: [],
+            newapi: [],
             oneapi: [],
           },
           customProviders: {},
@@ -408,6 +436,7 @@ export const useAppStore = create<AppState>()(
         dataDirectory: state.dataDirectory,
         enableFormatReview: state.enableFormatReview,
         autoSaveAnalysisResult: state.autoSaveAnalysisResult,
+        devMode: state.devMode,
       }),
     }
   )

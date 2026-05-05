@@ -16,6 +16,7 @@ import qwenLogo from '@lobehub/icons-static-png/light/qwen.png';
 import metaLogo from '@lobehub/icons-static-png/light/meta.png';
 import minimaxLogo from '@lobehub/icons-static-png/light/minimax.png';
 import alibabaLogo from '@lobehub/icons-static-png/light/alibaba.png';
+import newapiLogo from '@lobehub/icons-static-png/light/newapi.png';
 
 export const PROVIDER_LOGOS = {
   openai: openaiLogo,
@@ -34,6 +35,7 @@ export const PROVIDER_LOGOS = {
   xinghe: wenxinLogo,
   ppio: ppioLogo,
   modelscope: modelScopeLogo,
+  newapi: newapiLogo,
   oneapi: openaiLogo,
 } as const;
 

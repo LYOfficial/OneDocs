@@ -2,6 +2,15 @@
 
 use serde::{Deserialize, Serialize};
 
+mod embedded_python;
+
+use embedded_python::{
+    extract_pdf_analysis_bundle_embedded,
+    get_embedded_python_status,
+    prepare_embedded_python_runtime,
+    EmbeddedPythonManager,
+};
+
 #[derive(Serialize, Deserialize)]
 struct RequestBody {
     model: String,
@@ -86,8 +95,8 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
             Message { role: "user".to_string(), content: format!("这是我上传的文档内容，请开始分析：\n\n{}", text_content) },
         ],
         stream: Some(false),
-        max_tokens: None,
-        temperature: None,
+        max_tokens: Some(4000),
+        temperature: Some(0.7),
     };
 
     let mut request_builder = client
@@ -129,10 +138,16 @@ async fn analyze_content_rust(api_key: String, api_base_url: String, system_prom
 
 fn main() {
     tauri::Builder::default()
+        .manage(EmbeddedPythonManager::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![analyze_content_rust, test_model_connection_rust])
+        .invoke_handler(tauri::generate_handler![
+            analyze_content_rust,
+            test_model_connection_rust,
+            get_embedded_python_status,
+            prepare_embedded_python_runtime,
+            extract_pdf_analysis_bundle_embedded,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -59,6 +59,7 @@ const SOURCE_LOGO_PROVIDERS = new Set<AIProvider>([
   "xinghe",
   "ppio",
   "modelscope",
+  "newapi",
   "oneapi",
 ]);
 
@@ -86,6 +87,7 @@ const PROVIDER_PRIORITY: AIProvider[] = [
   "glm",
   "siliconflow",
   "xinghe",
+  "newapi",
 ];
 const ORDERED_PROVIDER_KEYS: AIProvider[] = [
   ...PROVIDER_PRIORITY.filter((key) =>
@@ -101,7 +103,6 @@ export const ModelSelectionPanel: React.FC = () => {
   const {
     currentProvider,
     setCurrentProvider,
-    theme,
     providerSettings,
     updateProviderSettings,
     providerCustomModels,
@@ -351,12 +352,11 @@ export const ModelSelectionPanel: React.FC = () => {
   const getProviderIcon = (key: string) => {
     const provider = MODEL_PROVIDERS[key as AIProvider];
     if (provider?.icon) {
-      const staticIcon = key === "onedocs";
       return (
         <img
           src={provider.icon}
           alt={provider.name}
-          className={`provider-icon-img ${staticIcon ? "provider-icon-img-static" : "provider-icon-img-themed"}`}
+          className="provider-icon-img provider-icon-img-themed"
         />
       );
     }
@@ -724,7 +724,6 @@ export const ModelSelectionPanel: React.FC = () => {
                                     isCustomProvider ? null : (localProvider as AIProvider),
                                     model
                                   )}
-                                  staticIcon={localProvider === "onedocs"}
                                 />
                               ) : (
                                 <ModelLogo />

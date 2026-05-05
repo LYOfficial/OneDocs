@@ -15,6 +15,7 @@ export type AIProvider =
   | 'xinghe'
   | 'ppio'
   | 'modelscope'
+  | 'newapi'
   | 'openrouter'
   | 'oneapi';
 
@@ -103,6 +104,42 @@ export interface FileInfo {
   id?: string;
 }
 
+export interface DocumentImageAsset {
+  pageNumber: number;
+  fileName: string;
+  localPath: string;
+  dataUrl?: string;
+}
+
+export interface DocumentAnalysisBundle {
+  text: string;
+  pageTexts: string[];
+  images: DocumentImageAsset[];
+  pageCount: number;
+}
+
+export interface ChunkPlan {
+  id: string;
+  title: string;
+  pageStart: number;
+  pageEnd: number;
+  summaryFocus?: string;
+  imagePages?: number[];
+}
+
+export interface AnalysisWorkflowPlan {
+  fileName: string;
+  fileType: SupportedFileType;
+  overview: string;
+  chunks: ChunkPlan[];
+  imagePlacementHints: Array<{
+    pageNumber: number;
+    reason: string;
+    preferredSection?: string;
+  }>;
+  finishingNotes: string[];
+}
+
 export interface AnalysisProgress {
   percentage: number;
   message: string;
@@ -145,6 +182,17 @@ export type ViewMode = 'render' | 'markdown';
 export interface ToastMessage {
   message: string;
   duration?: number;
+}
+
+export type DeveloperLogLevel = 'info' | 'warn' | 'error';
+
+export interface DeveloperLogEntry {
+  id: string;
+  timestamp: number;
+  level: DeveloperLogLevel;
+  scope: string;
+  message: string;
+  payload?: unknown;
 }
 
 export interface ChatMessage {

@@ -16,6 +16,10 @@
     "fs:scope-home-recursive",
     "fs:scope-desktop-recursive",
     "fs:scope-document-recursive",
-    "fs:scope-download-recursive"
+    "fs:scope-download-recursive",
+    "fs:allow-mkdir",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-temp-write-recursive",
+    "fs:allow-resource-write-recursive"
   ]
 }

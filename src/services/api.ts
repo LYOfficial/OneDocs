@@ -1,6 +1,52 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { AIProvider } from "@/types";
 import { MODEL_PROVIDERS } from "@/config/providers";
+import { useAppStore } from "@/store/useAppStore";
+
+const REQUEST_TIMEOUT_MS = 120000;
+
+const createLogEntry = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => ({
+  id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  timestamp: Date.now(),
+  level,
+  scope,
+  message,
+  payload,
+});
+
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog(createLogEntry(level, scope, message, payload));
+  }
+};
+
+const invokeWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error("请求超时"));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 interface CallAIParams {
   systemPrompt: string;
@@ -78,18 +124,40 @@ export class APIService {
       hasManagedKey: Boolean(config.defaultApiKey),
     });
 
+    pushDevLog("info", "api", `准备调用 ${config.name} 模型`, {
+      provider,
+      model: finalModel,
+      baseUrl: finalBaseUrl,
+      systemPrompt,
+      content,
+    });
+
     try {
-      const result = await invoke<string>("analyze_content_rust", {
+      const result = await invokeWithTimeout(
+        invoke<string>("analyze_content_rust", {
         apiKey: finalApiKey,
         apiBaseUrl: finalBaseUrl,
         systemPrompt,
         textContent: `请分析以下文档内容：\n\n${content}`,
         model: finalModel,
+        }),
+        REQUEST_TIMEOUT_MS,
+      );
+
+      pushDevLog("info", "api", `模型响应成功 (${config.name})`, {
+        provider,
+        model: finalModel,
+        response: result,
       });
 
       return result;
     } catch (error: any) {
       console.error("API 调用失败:", error);
+      pushDevLog("error", "api", `模型响应失败 (${config.name})`, {
+        provider,
+        model: finalModel,
+        error: error?.message || String(error),
+      });
       throw this.handleAPIError(error, provider);
     }
   }
@@ -106,18 +174,39 @@ export class APIService {
       baseUrl,
     });
 
+    pushDevLog("info", "api", "准备调用自定义模型", {
+      model,
+      baseUrl,
+      systemPrompt,
+      content,
+    });
+
     try {
-      const result = await invoke<string>("analyze_content_rust", {
+      const result = await invokeWithTimeout(
+        invoke<string>("analyze_content_rust", {
         apiKey,
         apiBaseUrl: baseUrl,
         systemPrompt,
         textContent: `请分析以下文档内容：\n\n${content}`,
         model,
+        }),
+        REQUEST_TIMEOUT_MS,
+      );
+
+      pushDevLog("info", "api", "自定义模型响应成功", {
+        model,
+        baseUrl,
+        response: result,
       });
 
       return result;
     } catch (error: any) {
       console.error("自定义 API 调用失败:", error);
+      pushDevLog("error", "api", "自定义模型响应失败", {
+        model,
+        baseUrl,
+        error: error?.message || String(error),
+      });
       throw this.handleCustomAPIError(error);
     }
   }
@@ -258,7 +347,8 @@ export class APIService {
       errorMessage = `请求频率过高\n\n建议：\n1. 稍后再试\n2. 检查账户限额\n3. 考虑升级服务计划`;
     } else if (
       errorMessage.includes("timeout") ||
-      errorMessage.includes("ETIMEDOUT")
+      errorMessage.includes("ETIMEDOUT") ||
+      errorMessage.includes("请求超时")
     ) {
       errorMessage = `请求超时\n\n可能原因：\n1. 网络连接不稳定\n2. 服务器响应缓慢\n3. 文档内容过长`;
     } else if (
@@ -332,7 +422,8 @@ export class APIService {
       errorMessage = `请求频率过高\n\n建议：\n1. 稍后再试\n2. 检查账户限额\n3. 考虑升级服务计划`;
     } else if (
       errorMessage.includes("timeout") ||
-      errorMessage.includes("ETIMEDOUT")
+      errorMessage.includes("ETIMEDOUT") ||
+      errorMessage.includes("请求超时")
     ) {
       errorMessage = `请求超时\n\n可能原因：\n1. 网络连接不稳定\n2. 服务器响应缓慢\n3. 文档内容过长`;
     } else if (
