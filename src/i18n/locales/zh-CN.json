@@ -81,7 +81,7 @@
   "analysis": {
     "formatNotice": {
       "title": "📋 格式说明：",
-      "body": "支持 .pdf、.docx、.doc、.pptx、.ppt、.xlsx、.xls、.txt 格式文件"
+      "body": "仅支持 .pdf 格式文件"
     },
     "resultHint": {
       "title": "分析结果已生成",
@@ -93,7 +93,7 @@
   },
   "upload": {
     "select": "点击选择文档（支持多选）",
-    "hint": "支持 PDF、Word、PowerPoint、Excel、TXT 格式，单个文件不超过50MB",
+    "hint": "仅支持 PDF 格式，单个文件不超过30MB",
     "analyze": {
       "start": "开始析文",
       "new": "新建析文"
@@ -107,7 +107,7 @@
     "remove": "删除",
     "toast": {
       "unsupported": "文件 {{name}} 格式不支持 ({{type}})，已跳过",
-      "tooLarge": "文件 {{name}} 过大（超过50MB），已跳过",
+      "tooLarge": "文件 {{name}} 过大（超过30MB），已跳过",
       "added": "成功添加 {{count}} 个文件"
     }
   },

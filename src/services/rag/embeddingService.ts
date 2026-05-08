@@ -1,24 +1,15 @@
 /**
- * Local embedding service using Python's sentence-transformers
+ * Local embedding service using fallback hash-based embeddings
  * 
- * This module provides embedding generation using local models
- * via the Tauri embedded Python runtime.
+ * This module provides embedding generation using simple hash-based
+ * pseudo-vectors for demo/testing purposes.
  */
 
 import type { TextChunk } from '@/types';
-import { invoke } from '@tauri-apps/api/core';
 
-/** Generate embedding for a single text using Python backend */
+/** Generate embedding for a single text using fallback */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  try {
-    // Call Tauri command that uses embedded Python with sentence-transformers
-    const result = await invoke<number[]>('generate_text_embedding', { text });
-    return result;
-  } catch (error) {
-    console.error('[Embedding] Failed to generate embedding via Tauri:', error);
-    // Fallback to simple hash-based embedding (for demo/testing)
-    return generateFallbackEmbedding(text);
-  }
+  return generateFallbackEmbedding(text);
 }
 
 /** Generate embeddings for multiple chunks in batch */
@@ -27,22 +18,8 @@ export async function generateEmbeddingsForChunks(
 ): Promise<Map<string, number[]>> {
   const results = new Map<string, number[]>();
   
-  try {
-    // Call batch embedding via Tauri
-    const embeddings = await invoke<Array<{ id: string; embedding: number[] }>>(
-      'generate_batch_embeddings',
-      { chunks }
-    );
-    
-    for (const { id, embedding } of embeddings) {
-      results.set(id, embedding);
-    }
-  } catch (error) {
-    console.error('[Embedding] Batch embedding failed, using fallback:', error);
-    // Fallback for each chunk
-    for (const chunk of chunks) {
-      results.set(chunk.id, generateFallbackEmbedding(chunk.content));
-    }
+  for (const chunk of chunks) {
+    results.set(chunk.id, generateFallbackEmbedding(chunk.content));
   }
   
   return results;
@@ -91,7 +68,7 @@ export function findTopKSimilar(
  * Fallback embedding using simple hash (for demo purposes)
  * NOT a real embedding - produces deterministic pseudo-vectors
  */
-function generateFallbackEmbedding(text: string): number[] {
+export function generateFallbackEmbedding(text: string): number[] {
   const dim = 384; // Standard embedding dimension
   const embedding = new Array(dim).fill(0);
   

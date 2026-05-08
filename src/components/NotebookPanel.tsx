@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { useTranslation } from 'react-i18next';
 import { chunkText } from '@/services/rag/textChunking';
-import { invoke } from '@tauri-apps/api/core';
+import { generateFallbackEmbedding } from '@/services/rag/embeddingService';
 import type { Notebook, NotebookFile } from '@/types';
 
 interface NotebookPanelProps {
@@ -131,24 +131,18 @@ export const NotebookPanel: React.FC<NotebookPanelProps> = ({ onAnalyze }) => {
         if (file.type === 'application/pdf') {
           try {
             setProcessingMessage(`正在提取 ${file.name} 内容...`);
-            const result = await invoke<string>('extract_pdf_analysis_bundle_embedded', {
-              inputPath: (file as any).path || file.name,
-              outputRoot: '',
-              baseName: file.name,
-            });
-            
-            if (result) {
-              const parsed = JSON.parse(result);
-              textContent = parsed.text || '';
-              pageTexts = parsed.pageTexts || [];
-              pageCount = parsed.pageCount || 1;
-            }
+            // Use DocumentProcessor for PDF text extraction
+            const { DocumentProcessor } = await import('@/utils/documentProcessor');
+            const bundle = await DocumentProcessor.extractAnalysisBundle(file);
+            textContent = bundle.text;
+            pageTexts = bundle.pageTexts;
+            pageCount = bundle.pageCount;
           } catch (e) {
-            console.warn('Embedded Python extraction failed, using browser fallback:', e);
-            textContent = await extractTextFromFile(file);
+            console.warn('PDF extraction failed:', e);
+            throw e;
           }
         } else {
-          textContent = await extractTextFromFile(file);
+          throw new Error(`不支持的文件格式: ${file.type}，仅支持 PDF 文件`);
         }
 
         const notebookFile: NotebookFile = {
@@ -172,12 +166,11 @@ export const NotebookPanel: React.FC<NotebookPanelProps> = ({ onAnalyze }) => {
         });
 
         setProcessingMessage(t('notebook.embedding') || '正在生成向量...');
+        const { generateEmbedding } = await import('@/services/rag/embeddingService');
         const chunksWithEmbeddings = await Promise.all(
           chunks.map(async (chunk) => {
             try {
-              const embedding = await invoke<number[]>('generate_text_embedding', {
-                text: chunk.content,
-              });
+              const embedding = await generateEmbedding(chunk.content);
               return {
                 ...chunk,
                 embedding,
@@ -205,21 +198,6 @@ export const NotebookPanel: React.FC<NotebookPanelProps> = ({ onAnalyze }) => {
 
     setIsProcessingFile(false);
     setProcessingMessage('');
-  };
-
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (file.type === 'text/plain') {
-          resolve(reader.result as string);
-        } else {
-          resolve('');
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsText(file);
-    });
   };
 
   return (
@@ -390,7 +368,7 @@ export const NotebookPanel: React.FC<NotebookPanelProps> = ({ onAnalyze }) => {
               type="file"
               id="notebook-file-input"
               multiple
-              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt"
+              accept=".pdf"
               onChange={(e) => {
                 if (e.target.files && e.target.files.length > 0) {
                   handleFileUpload(e.target.files);
@@ -404,7 +382,7 @@ export const NotebookPanel: React.FC<NotebookPanelProps> = ({ onAnalyze }) => {
                 {t('upload.select') || '点击选择文档（支持多选）'}
               </span>
               <span className="notebook-upload-hint">
-                {t('upload.hint') || '支持 PDF、Word、PowerPoint、Excel、TXT'}
+                {t('upload.hint') || '仅支持 PDF 格式'}
               </span>
             </label>
           </div>
@@ -423,23 +401,3 @@ export const NotebookPanel: React.FC<NotebookPanelProps> = ({ onAnalyze }) => {
     </div>
   );
 };
-
-function generateFallbackEmbedding(text: string): number[] {
-  const dim = 384;
-  const embedding = new Array(dim).fill(0);
-
-  for (let i = 0; i < text.length; i++) {
-    const charCode = text.charCodeAt(i);
-    const idx = (charCode * (i + 1) * 31) % dim;
-    embedding[idx] += charCode / 255;
-  }
-
-  const norm = Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0));
-  if (norm > 0) {
-    for (let i = 0; i < dim; i++) {
-      embedding[i] /= norm;
-    }
-  }
-
-  return embedding;
-}

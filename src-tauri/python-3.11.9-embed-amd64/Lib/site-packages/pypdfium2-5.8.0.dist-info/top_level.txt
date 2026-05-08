@@ -1,4 +1,0 @@
-pypdfium2
-pypdfium2_cfg
-pypdfium2_cli
-pypdfium2_raw

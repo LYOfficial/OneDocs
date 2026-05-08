@@ -81,7 +81,7 @@
   "analysis": {
     "formatNotice": {
       "title": "📋 Format Notice:",
-      "body": "Supported formats: .pdf, .docx, .doc, .pptx, .ppt, .xlsx, .xls, .txt"
+      "body": "Only .pdf format is supported"
     },
     "resultHint": {
       "title": "Analysis results are ready",
@@ -93,7 +93,7 @@
   },
   "upload": {
     "select": "Click to select documents (multi-select supported)",
-    "hint": "Supports PDF, Word, PowerPoint, Excel, TXT. Max 50MB per file.",
+    "hint": "Only PDF format. Max 30MB per file.",
     "analyze": {
       "start": "Start analysis",
       "new": "New analysis"
@@ -107,7 +107,7 @@
     "remove": "Delete",
     "toast": {
       "unsupported": "File {{name}} is not supported ({{type}}). Skipped.",
-      "tooLarge": "File {{name}} is too large (over 50MB). Skipped.",
+      "tooLarge": "File {{name}} is too large (over 30MB). Skipped.",
       "added": "Added {{count}} file(s) successfully."
     }
   },

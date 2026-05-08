@@ -1,2 +1,0 @@
-[console_scripts]
-pypdfium2 = pypdfium2_cli.__main__:cli_main

@@ -505,11 +505,9 @@ export const useAnalysis = () => {
           
           if (errorMessage.includes("401")) {
             errorMessage +=
-              "\n\n建议：请使用带有可选择文本的PDF，或将内容复制到TXT文件中";
+              "\n\n建议：请使用带有可选择文本的PDF";
           } else if (errorMessage.includes("PDF")) {
-            errorMessage += "\n\n建议：请尝试重新生成PDF或转换为其他格式";
-          } else if (errorMessage.includes("Word")) {
-            errorMessage += "\n\n建议：请检查Word文档格式是否正确，或另存为新文档";
+            errorMessage += "\n\n建议：请尝试重新生成PDF";
           }
 
           toast.show(`文件 ${fileInfo.name} 分析失败: ${errorMessage}`, 5000);

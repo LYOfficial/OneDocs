@@ -1,42 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
-import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "./Toast";
-
-type EmbeddedPythonStatus = {
-  state: string;
-  version: string;
-  python_path: string;
-  site_packages_path: string;
-  message: string;
-};
-
-const DEFAULT_EMBEDDED_STATUS: EmbeddedPythonStatus = {
-  state: "未下载",
-  version: "",
-  python_path: "",
-  site_packages_path: "",
-  message: "尚未初始化嵌入式 Python",
-};
-
-const getStatusLabel = (state: string) => {
-  switch (state) {
-    case "未下载":
-      return "未下载";
-    case "下载中":
-      return "下载中";
-    case "已安装 pip":
-      return "已安装 pip";
-    case "已安装 content-core":
-      return "已安装 content-core";
-    case "运行中":
-      return "运行中";
-    case "错误":
-      return "错误";
-    default:
-      return state || "未知";
-  }
-};
 
 const formatTime = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -47,24 +11,6 @@ export const DeveloperModePanel: React.FC = () => {
   const { developerLogs, clearLogs } = useAppStore();
   const toast = useToast();
   const [levelFilter, setLevelFilter] = useState("all");
-  const [embeddedStatus, setEmbeddedStatus] = useState<EmbeddedPythonStatus>(DEFAULT_EMBEDDED_STATUS);
-
-  const refreshEmbeddedStatus = async () => {
-    try {
-      const status = await invoke<EmbeddedPythonStatus>("get_embedded_python_status");
-      setEmbeddedStatus(status || DEFAULT_EMBEDDED_STATUS);
-    } catch (e) {
-      // ignore
-    }
-  };
-
-  useEffect(() => {
-    void refreshEmbeddedStatus();
-    const timer = setInterval(() => {
-      void refreshEmbeddedStatus();
-    }, 2000);
-    return () => clearInterval(timer);
-  }, []);
 
   const filteredLogs = useMemo(() => {
     if (levelFilter === "all") return developerLogs;
@@ -128,16 +74,7 @@ export const DeveloperModePanel: React.FC = () => {
           </div>
         </div>
         <div style={{ marginTop: 12, marginBottom: 12 }}>
-          <h4>Python Runtime</h4>
-          <div style={{ display: "flex", gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <div><strong>状态：</strong>{getStatusLabel(embeddedStatus.state)}</div>
-              <div><strong>版本：</strong>{embeddedStatus.version || "未就绪"}</div>
-              <div><strong>Python 路径：</strong>{embeddedStatus.python_path || "未就绪"}</div>
-              <div><strong>site-packages：</strong>{embeddedStatus.site_packages_path || "未就绪"}</div>
-              <div><strong>说明：</strong>{embeddedStatus.message}</div>
-            </div>
-          </div>
+          <h4>系统日志</h4>
         </div>
         {filteredLogs.length === 0 ? (
           <div className="developer-log-box">

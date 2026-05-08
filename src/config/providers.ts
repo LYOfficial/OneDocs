@@ -519,14 +519,9 @@ export const MODEL_PROVIDERS: ModelProviders = {
 
 export const SUPPORTED_FILE_TYPES = [
   "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/plain",
 ] as const;
 
-export const FILE_SIZE_LIMIT = 50 * 1024 * 1024;
+export const FILE_SIZE_LIMIT = 30 * 1024 * 1024;
 
 export const FUNCTION_INFO = {
   news: {
