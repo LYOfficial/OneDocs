@@ -91,7 +91,7 @@ export function generateFallbackEmbedding(text: string): number[] {
 }
 
 /**
- * Retrieve relevant chunks from a notebook using RAG
+ * Retrieve relevant chunks using RAG
  */
 export async function retrieveRelevantChunks(
   chunks: TextChunk[],

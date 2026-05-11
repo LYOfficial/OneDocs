@@ -13,9 +13,6 @@ import type {
   ProviderSettings,
   CustomProviderSettings,
   ModelOption,
-  Notebook,
-  NotebookFile,
-  TextChunk,
 } from '@/types';
 import { MODEL_PROVIDERS, createCustomProvider } from '@/config/providers';
 
@@ -83,21 +80,6 @@ interface AppState {
   developerLogs: DeveloperLogEntry[];
   addLog: (entry: DeveloperLogEntry) => void;
   clearLogs: () => void;
-
-  // ========== Notebook / RAG State ==========
-  notebooks: Notebook[];
-  currentNotebookId: string | null;
-  /** Chunks for the current notebook, keyed by file id */
-  notebookChunks: Record<string, TextChunk[]>;
-  createNotebook: (name: string) => Notebook;
-  updateNotebook: (id: string, updates: Partial<Notebook>) => void;
-  deleteNotebook: (id: string) => void;
-  addFileToNotebook: (notebookId: string, file: NotebookFile) => void;
-  removeFileFromNotebook: (notebookId: string, fileId: string) => void;
-  setCurrentNotebookId: (id: string | null) => void;
-  setNotebookChunks: (fileId: string, chunks: TextChunk[]) => void;
-  getNotebookChunks: (fileId: string) => TextChunk[];
-  getCurrentNotebook: () => Notebook | null;
 
   resetAnalysis: () => void;
   resetAll: () => void;
@@ -376,81 +358,6 @@ export const useAppStore = create<AppState>()(
         }),
       clearLogs: () => set({ developerLogs: [] }),
 
-      // ========== Notebook / RAG Implementation ==========
-      notebooks: [],
-      currentNotebookId: null,
-      notebookChunks: {},
-
-      createNotebook: (name) => {
-        const now = Date.now();
-        const notebook: Notebook = {
-          id: `nb_${now}_${Math.random().toString(36).substr(2, 9)}`,
-          name,
-          files: [],
-          createdAt: now,
-          updatedAt: now,
-        };
-        set((state) => ({ notebooks: [...state.notebooks, notebook] }));
-        return notebook;
-      },
-
-      updateNotebook: (id, updates) =>
-        set((state) => ({
-          notebooks: state.notebooks.map((nb) =>
-            nb.id === id ? { ...nb, ...updates, updatedAt: Date.now() } : nb
-          ),
-        })),
-
-      deleteNotebook: (id) =>
-        set((state) => {
-          const { [id]: removed, ...restChunks } = state.notebookChunks;
-          return {
-            notebooks: state.notebooks.filter((nb) => nb.id !== id),
-            currentNotebookId: state.currentNotebookId === id ? null : state.currentNotebookId,
-            notebookChunks: restChunks,
-          };
-        }),
-
-      addFileToNotebook: (notebookId, file) =>
-        set((state) => ({
-          notebooks: state.notebooks.map((nb) =>
-            nb.id === notebookId
-              ? { ...nb, files: [...nb.files, file], updatedAt: Date.now() }
-              : nb
-          ),
-        })),
-
-      removeFileFromNotebook: (notebookId, fileId) =>
-        set((state) => {
-          const chunksKey = fileId; // chunks stored by fileId
-          const { [chunksKey]: removed, ...restChunks } = state.notebookChunks;
-          return {
-            notebooks: state.notebooks.map((nb) =>
-              nb.id === notebookId
-                ? { ...nb, files: nb.files.filter((f) => f.id !== fileId), updatedAt: Date.now() }
-                : nb
-            ),
-            notebookChunks: restChunks,
-          };
-        }),
-
-      setCurrentNotebookId: (id) => set({ currentNotebookId: id }),
-
-      setNotebookChunks: (fileId, chunks) =>
-        set((state) => ({
-          notebookChunks: { ...state.notebookChunks, [fileId]: chunks },
-        })),
-
-      getNotebookChunks: (fileId) => {
-        const state = get();
-        return state.notebookChunks[fileId] || [];
-      },
-
-      getCurrentNotebook: () => {
-        const state = get();
-        return state.notebooks.find((nb) => nb.id === state.currentNotebookId) || null;
-      },
-
       resetAnalysis: () =>
         set({
           analysisProgress: null,
@@ -469,7 +376,6 @@ export const useAppStore = create<AppState>()(
           multiFileAnalysisResults: {},
           mergedResult: null,
           isAnalyzing: false,
-          // Note: notebooks and chunks are intentionally preserved (persistent RAG knowledge base)
         }),
       clearAllCache: () =>
         set({
@@ -531,9 +437,6 @@ export const useAppStore = create<AppState>()(
         enableFormatReview: state.enableFormatReview,
         autoSaveAnalysisResult: state.autoSaveAnalysisResult,
         devMode: state.devMode,
-        // Persist notebook knowledge base
-        notebooks: state.notebooks,
-        notebookChunks: state.notebookChunks,
       }),
     }
   )

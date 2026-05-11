@@ -81,6 +81,9 @@ export type PromptType = 'science' | 'liberal' | 'data' | 'news';
 export interface PromptConfig {
   name: string;
   description: string;
+  coreSystemPrompt: string;
+  chunkTasks: string[];
+  sectionHeaders: string[];
   prompt: string;
 }
 
@@ -216,25 +219,10 @@ export interface APIError {
   };
 }
 
-// ========== Notebook / RAG Types ==========
-
-export interface NotebookFile {
-  id: string;
-  name: string;
-  type: SupportedFileType;
-  size: number;
-  /** Raw extracted text content */
-  textContent: string;
-  /** Page-level text segments for chunking reference */
-  pageTexts: string[];
-  pageCount: number;
-  uploadedAt: number;
-}
+// ========== RAG Types ==========
 
 export interface TextChunk {
   id: string;
-  notebookId: string;
-  fileId: string;
   content: string;
   /** Start character index in source text */
   startIndex: number;
@@ -242,16 +230,6 @@ export interface TextChunk {
   endIndex: number;
   /** Which file page this chunk came from */
   sourcePage: number;
-  /** Embedding vector (stored as base64 or raw number array) */
+  /** Embedding vector (stored as raw number array) */
   embedding?: number[];
-}
-
-export interface Notebook {
-  id: string;
-  name: string;
-  files: NotebookFile[];
-  createdAt: number;
-  updatedAt: number;
-  /** Summary text generated from the notebook content */
-  summary?: string;
 }

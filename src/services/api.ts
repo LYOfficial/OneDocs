@@ -55,6 +55,8 @@ interface CallAIParams {
   apiKey: string;
   baseUrl?: string;
   model?: string;
+  /** Optional image URLs (file paths, data URLs, or HTTP URLs) for multimodal */
+  images?: string[];
 }
 
 interface CallCustomAIParams {
@@ -63,6 +65,8 @@ interface CallCustomAIParams {
   apiKey: string;
   baseUrl: string;
   model: string;
+  /** Optional image URLs for multimodal */
+  images?: string[];
 }
 
 export class APIService {
@@ -70,7 +74,8 @@ export class APIService {
     provider: string,
     systemPrompt: string,
     content: string,
-    settings: { apiKey: string; baseUrl: string; model: string }
+    settings: { apiKey: string; baseUrl: string; model: string },
+    images?: string[],
   ): Promise<string> {
     if (provider.startsWith('custom_')) {
       return this.callCustomAI({
@@ -79,6 +84,7 @@ export class APIService {
         apiKey: settings.apiKey,
         baseUrl: settings.baseUrl,
         model: settings.model,
+        images,
       });
     } else {
       return this.callAI({
@@ -88,6 +94,7 @@ export class APIService {
         apiKey: settings.apiKey,
         baseUrl: settings.baseUrl,
         model: settings.model,
+        images,
       });
     }
   }
@@ -99,6 +106,7 @@ export class APIService {
     apiKey,
     baseUrl,
     model,
+    images,
   }: CallAIParams): Promise<string> {
     const config = MODEL_PROVIDERS[provider];
     if (!config) {
@@ -122,6 +130,7 @@ export class APIService {
       model: finalModel,
       baseUrl: finalBaseUrl,
       hasManagedKey: Boolean(config.defaultApiKey),
+      hasImages: Boolean(images && images.length > 0),
     });
 
     pushDevLog("info", "api", `准备调用 ${config.name} 模型`, {
@@ -130,6 +139,7 @@ export class APIService {
       baseUrl: finalBaseUrl,
       systemPrompt,
       content,
+      imageCount: images?.length || 0,
     });
 
     try {
@@ -138,8 +148,9 @@ export class APIService {
         apiKey: finalApiKey,
         apiBaseUrl: finalBaseUrl,
         systemPrompt,
-        textContent: `请分析以下文档内容：\n\n${content}`,
+        textContent: content,
         model: finalModel,
+        images: images && images.length > 0 ? images : undefined,
         }),
         REQUEST_TIMEOUT_MS,
       );
@@ -168,10 +179,12 @@ export class APIService {
     apiKey,
     baseUrl,
     model,
+    images,
   }: CallCustomAIParams): Promise<string> {
     console.log(`调用自定义 API`, {
       model,
       baseUrl,
+      hasImages: Boolean(images && images.length > 0),
     });
 
     pushDevLog("info", "api", "准备调用自定义模型", {
@@ -179,6 +192,7 @@ export class APIService {
       baseUrl,
       systemPrompt,
       content,
+      imageCount: images?.length || 0,
     });
 
     try {
@@ -187,8 +201,9 @@ export class APIService {
         apiKey,
         apiBaseUrl: baseUrl,
         systemPrompt,
-        textContent: `请分析以下文档内容：\n\n${content}`,
+        textContent: content,
         model,
+        images: images && images.length > 0 ? images : undefined,
         }),
         REQUEST_TIMEOUT_MS,
       );

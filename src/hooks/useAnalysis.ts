@@ -5,35 +5,28 @@ import { PROMPT_CONFIGS } from "@/config/prompts";
 import { MODEL_PROVIDERS } from "@/config/providers";
 import { useToast } from "@/components/Toast";
 import {
-  WORKFLOW_PLANNER_MODEL,
-  WORKFLOW_COMPOSER_MODEL,
   applyImagePlacements,
-  buildChunkPrompt,
-  buildComposerPrompt,
   buildImageTokenList,
-  buildLocalWorkflowPlan,
-  parseWorkflowPlan,
-  splitTextIntoChunks,
   stripLeadingMarkers,
   stripMarkdownFence,
 } from "@/utils/analysisWorkflow";
+import { chunkText } from "@/services/rag/textChunking";
+import {
+  generateEmbedding,
+  generateFallbackEmbedding,
+  findTopKSimilar,
+} from "@/services/rag/embeddingService";
 import type { AIProvider, DocumentAnalysisBundle } from "@/types";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 
 const SCIENCE_FORMAT_REVIEW_PROMPT = `你是中文学术排版审校助手，只负责在不改变含义的前提下修正格式。必须遵循：
 - 仅处理理工速知的输出内容，保持全中文。
-- 一级标题只有 “# 基础知识” 与 “# 典型例题”。
+- 一级标题只有 "# 基础知识" 与 "# 典型例题"。
 - 二级标题按数字递增（如 ## 1. xxx、## 2. xxx），三级标题使用 1.1、1.2 依次递进。
 - 复杂公式使用单行 $$公式$$ 包裹，禁止跨行的 $\n公式\n$；行内简单变量用 $x$ 形式。
 - 重要概念需加粗，例题结论用 **【最终结论】结论内容** 高亮。
 - 保留图片占位符与本地图片路径，不要删除或改写图像引用。
 - 保留原有内容顺序，仅修正格式；若内容已符合规范请原样返回。`;
-
-const WORKFLOW_PLANNER_SYSTEM_PROMPT = `你是文档分析工作流规划器，只输出合法 JSON，不要输出多余解释。你的任务是基于文档内容、页码结构和图片素材，制定分段分析与图片插入计划。`;
-
-const WORKFLOW_COMPOSER_SYSTEM_PROMPT = `你是最终文档组装器，只输出完整 Markdown，不要输出分析过程。你需要把多个分段结果整合成连贯、完整、不重复的最终文档。`;
-
-const ANALYSIS_MARKDOWN_SYSTEM_PROMPT = `你是严谨的文档分析助手，只输出 Markdown 内容，不要输出任何解释、前言或结尾寒暄。`;
 
 export const useAnalysis = () => {
   const {
@@ -54,40 +47,6 @@ export const useAnalysis = () => {
 
   const toast = useToast();
 
-  const getOneDocsSettings = () => {
-    const onedocsConfig = MODEL_PROVIDERS.onedocs;
-    const currentSettings = getCurrentSettings();
-    const isUsingOneDocsProvider = currentProvider === "onedocs";
-
-    return {
-      apiKey: onedocsConfig.defaultApiKey || (isUsingOneDocsProvider ? currentSettings.apiKey : ""),
-      baseUrl: onedocsConfig.baseUrl || (isUsingOneDocsProvider ? currentSettings.baseUrl : ""),
-      model: isUsingOneDocsProvider ? currentSettings.model : onedocsConfig.defaultModel,
-    };
-  };
-
-  const hasOneDocsCoreConfig = () => {
-    const settings = getOneDocsSettings();
-    return Boolean(settings.baseUrl && settings.apiKey);
-  };
-
-  const callOneDocsAgent = async (model: string, systemPrompt: string, content: string) => {
-    const settings = getOneDocsSettings();
-
-    if (!settings.baseUrl || !settings.apiKey) {
-      throw new Error("未配置 OneDocs 核心模型地址或密钥，请先设置 VITE_ONEDOCS_API_URL / VITE_ONEDOCS_API_KEY");
-    }
-
-    return await APIService.callAI({
-      systemPrompt,
-      content,
-      provider: "onedocs",
-      apiKey: settings.apiKey,
-      baseUrl: settings.baseUrl,
-      model,
-    });
-  };
-
   const pushDevLog = (
     level: "info" | "warn" | "error",
     scope: string,
@@ -105,108 +64,249 @@ export const useAnalysis = () => {
     });
   };
 
-  const runLegacyAnalysis = async (
-    fileInfo: { file: File; name: string },
-    prompt: string,
-    settings: { apiKey: string; baseUrl: string; model: string },
-  ) => {
-    pushDevLog("info", "analysis", `开始全文析文: ${fileInfo.name}`, {
-      provider: currentProvider,
-      model: settings.model,
+  /**
+   * RAG-based retrieval: chunk text, generate embeddings, retrieve relevant chunks
+   */
+  const retrieveRelevantText = async (
+    bundle: DocumentAnalysisBundle,
+    query: string,
+    topK: number = 5,
+    maxChars: number = 3000,
+  ): Promise<{ relevantText: string; chunkCount: number; totalChunks: number }> => {
+    const chunks = chunkText(bundle.text, bundle.pageTexts, {
+      targetChunkSize: 400,
+      overlapChars: 60,
+      minChunkSize: 60,
     });
-    const analysisText = await DocumentProcessor.extractContent(fileInfo.file);
 
-    if (!analysisText || analysisText.trim().length === 0) {
-      throw new Error(`文档 ${fileInfo.name} 内容为空或无法读取`);
+    pushDevLog("info", "rag", `文档分块完成`, {
+      totalChunks: chunks.length,
+      textLength: bundle.text.length,
+    });
+
+    if (chunks.length === 0) {
+      return { relevantText: bundle.text, chunkCount: 1, totalChunks: 1 };
     }
 
-    const result = await APIService.callAIWithProvider(
-      currentProvider,
-      prompt,
-      analysisText,
-      {
-        apiKey: settings.apiKey,
-        baseUrl: settings.baseUrl,
-        model: settings.model,
-      },
+    const chunksWithEmbeddings = await Promise.all(
+      chunks.map(async (chunk) => {
+        try {
+          const embedding = await generateEmbedding(chunk.content);
+          return { chunk, embedding };
+        } catch {
+          return { chunk, embedding: generateFallbackEmbedding(chunk.content) };
+        }
+      }),
     );
 
-    return stripLeadingMarkers(stripMarkdownFence(result)).trim();
+    const queryEmbedding = await generateEmbedding(query);
+    const topResults = findTopKSimilar(queryEmbedding, chunksWithEmbeddings, topK);
+
+    pushDevLog("info", "rag", `RAG检索完成`, {
+      topK,
+      retrievedChunks: topResults.length,
+      scores: topResults.map((r) => r.score.toFixed(4)),
+    });
+
+    const seenContents = new Set<string>();
+    const uniqueResults = topResults.filter((r) => {
+      const key = r.chunk.content.slice(0, 100);
+      if (seenContents.has(key)) return false;
+      seenContents.add(key);
+      return true;
+    });
+
+    uniqueResults.sort((a, b) => a.chunk.sourcePage - b.chunk.sourcePage);
+
+    let totalLen = 0;
+    const truncatedResults = uniqueResults.filter((r) => {
+      totalLen += r.chunk.content.length;
+      return totalLen <= maxChars;
+    });
+
+    const relevantText = truncatedResults
+      .map((r, idx) => `[片段${idx + 1}（第${r.chunk.sourcePage}页）]\n${r.chunk.content}`)
+      .join("\n\n");
+
+    return {
+      relevantText,
+      chunkCount: truncatedResults.length,
+      totalChunks: chunks.length,
+    };
   };
 
-  const runScienceTwoPartAnalysis = async (
-    fileInfo: { file: File; name: string },
-    prompt: string,
-    settings: { apiKey: string; baseUrl: string; model: string },
-    analysisBundle: DocumentAnalysisBundle,
-    includeImages: boolean,
-  ) => {
-    const imageTokens = includeImages
-      ? buildImageTokenList(analysisBundle.images)
-      : [];
-    const imageHint = includeImages
-      ? imageTokens.length > 0
-          ? `\n\n可用图片占位符：${imageTokens.join("、")}。请根据内容需要保留占位符。`
-          : "\n\n无可用图片素材。"
-      : "";
+  /**
+   * Build page-based chunks from the analysis bundle
+   */
+  const buildPageChunks = (
+    bundle: DocumentAnalysisBundle,
+    pagesPerChunk: number = 4,
+  ): Array<{ pageStart: number; pageEnd: number; text: string }> => {
+    const chunks: Array<{ pageStart: number; pageEnd: number; text: string }> = [];
 
-    const buildSectionPrompt = (extraInstruction: string) => [
-      prompt.trim(),
-      "",
-      "# 追加要求",
-      extraInstruction,
-      imageHint,
-      "",
-      "## 文档内容",
-      analysisBundle.text.trim(),
-    ]
-      .filter(Boolean)
-      .join("\n");
-
-    const basicPrompt = buildSectionPrompt(
-      "仅输出“基础知识”部分，必须以“# 基础知识”开头，禁止输出“# 典型例题”。",
-    );
-
-    const examplePrompt = buildSectionPrompt(
-      "仅输出“典型例题”部分，必须以“# 典型例题”开头，禁止输出“# 基础知识”。",
-    );
-
-    pushDevLog("info", "analysis", `理工速知拆分输出: ${fileInfo.name}`, {
-      provider: currentProvider,
-      model: settings.model,
-      mode: "two-part",
-    });
-
-    const basicResponse = await APIService.callAIWithProvider(
-      currentProvider,
-      ANALYSIS_MARKDOWN_SYSTEM_PROMPT,
-      basicPrompt,
-      {
-        apiKey: settings.apiKey,
-        baseUrl: settings.baseUrl,
-        model: settings.model,
-      },
-    );
-
-    const exampleResponse = await APIService.callAIWithProvider(
-      currentProvider,
-      ANALYSIS_MARKDOWN_SYSTEM_PROMPT,
-      examplePrompt,
-      {
-        apiKey: settings.apiKey,
-        baseUrl: settings.baseUrl,
-        model: settings.model,
-      },
-    );
-
-    const basicContent = stripLeadingMarkers(stripMarkdownFence(basicResponse)).trim();
-    const exampleContent = stripLeadingMarkers(stripMarkdownFence(exampleResponse)).trim();
-
-    if (basicContent && exampleContent) {
-      return `${basicContent}\n\n${exampleContent}`;
+    if (bundle.pageTexts.length === 0) {
+      chunks.push({ pageStart: 1, pageEnd: 1, text: bundle.text });
+      return chunks;
     }
 
-    return basicContent || exampleContent;
+    for (let i = 0; i < bundle.pageTexts.length; i += pagesPerChunk) {
+      const pageStart = i + 1;
+      const pageEnd = Math.min(i + pagesPerChunk, bundle.pageTexts.length);
+      const text = bundle.pageTexts.slice(i, pageEnd).join("\n\n");
+
+      if (text.trim()) {
+        chunks.push({ pageStart, pageEnd, text: text.trim() });
+      }
+    }
+
+    return chunks.length > 0 ? chunks : [{ pageStart: 1, pageEnd: bundle.pageCount, text: bundle.text }];
+  };
+
+  /**
+   * Chunk-by-chunk analysis pipeline:
+   * 1. Split document into page-based chunks
+   * 2. For each chunk: RAG retrieve relevant content → LLM call with minimal prompt
+   * 3. Assemble all chunk outputs by section
+   * 4. Insert extracted images
+   */
+  const runChunkPipeline = async (
+    fileInfo: { file: File; name: string },
+    promptConfig: typeof PROMPT_CONFIGS.science,
+    settings: { apiKey: string; baseUrl: string; model: string },
+    analysisBundle: DocumentAnalysisBundle,
+    includeImages: boolean = true,
+  ): Promise<string> => {
+    const { coreSystemPrompt, chunkTasks, sectionHeaders } = promptConfig;
+
+    const pageChunks = buildPageChunks(analysisBundle);
+
+    pushDevLog("info", "analysis", `分块管道启动: ${fileInfo.name}`, {
+      totalPages: analysisBundle.pageCount,
+      pageChunks: pageChunks.length,
+      chunkTasks: chunkTasks.length,
+    });
+
+    const sectionOutputs: Record<string, string[]> = {};
+    for (const header of sectionHeaders) {
+      sectionOutputs[header] = [];
+    }
+
+    let chunkIdx = 0;
+    const totalSteps = pageChunks.length * chunkTasks.length;
+
+    for (const pageChunk of pageChunks) {
+      for (let taskIdx = 0; taskIdx < chunkTasks.length; taskIdx++) {
+        chunkIdx++;
+        const task = chunkTasks[taskIdx];
+        const sectionHeader = sectionHeaders[taskIdx] || sectionHeaders[sectionHeaders.length - 1];
+
+        setAnalysisProgress({
+          percentage: Math.round((chunkIdx / totalSteps) * 85),
+          message: `分块处理 ${chunkIdx}/${totalSteps}: ${sectionHeader} - 第${pageChunk.pageStart}-${pageChunk.pageEnd}页...`,
+        });
+
+        // RAG retrieve for this specific chunk + task
+        const ragQuery = `${task} 第${pageChunk.pageStart}页 第${pageChunk.pageEnd}页`;
+        const { relevantText } = await retrieveRelevantText(
+          analysisBundle,
+          ragQuery,
+          3,
+          2000,
+        );
+
+        // Build minimal per-chunk prompt
+        const imageTokens = includeImages
+          ? buildImageTokenList(
+              analysisBundle.images.filter(
+                (img) => img.pageNumber >= pageChunk.pageStart && img.pageNumber <= pageChunk.pageEnd,
+              ),
+            )
+          : [];
+
+        const imageHint = includeImages && imageTokens.length > 0
+          ? `\n可用图片占位符：${imageTokens.join("、")}。请在合适位置保留。`
+          : "";
+
+        const userPrompt = [
+          `# 本轮任务`,
+          `页码范围：第${pageChunk.pageStart}页 - 第${pageChunk.pageEnd}页`,
+          `输出部分：${sectionHeader}`,
+          `具体要求：${task}`,
+          imageHint,
+          ``,
+          `# 文档内容`,
+          relevantText.trim(),
+        ].filter(Boolean).join("\n");
+
+        // Collect image paths for multimodal
+        const chunkImagePaths = includeImages
+          ? analysisBundle.images
+              .filter((img) => img.pageNumber >= pageChunk.pageStart && img.pageNumber <= pageChunk.pageEnd)
+              .map((img) => img.localPath || img.dataUrl)
+              .filter(Boolean) as string[]
+          : [];
+
+        try {
+          const response = await APIService.callAIWithProvider(
+            currentProvider,
+            coreSystemPrompt,
+            userPrompt,
+            {
+              apiKey: settings.apiKey,
+              baseUrl: settings.baseUrl,
+              model: settings.model,
+            },
+            chunkImagePaths.length > 0 ? chunkImagePaths.slice(0, 3) : undefined,
+          );
+
+          const cleaned = stripLeadingMarkers(stripMarkdownFence(response)).trim();
+          if (cleaned) {
+            sectionOutputs[sectionHeader].push(cleaned);
+          }
+        } catch (err: any) {
+          pushDevLog("warn", "analysis", `分块处理失败: ${sectionHeader} 第${pageChunk.pageStart}-${pageChunk.pageEnd}页`, {
+            error: err?.message || String(err),
+          });
+        }
+      }
+    }
+
+    // Assemble sections
+    const assembledParts: string[] = [];
+    for (const header of sectionHeaders) {
+      const outputs = sectionOutputs[header] || [];
+      if (outputs.length > 0) {
+        assembledParts.push(`# ${header}\n\n${outputs.join("\n\n")}`);
+      }
+    }
+
+    let finalContent = assembledParts.join("\n\n");
+
+    // Insert extracted images
+    if (includeImages && analysisBundle.images.length > 0) {
+      finalContent = applyImagePlacements(finalContent, analysisBundle.images);
+
+      // If no placeholders were replaced, append images at the end
+      const hasImageRef = analysisBundle.images.some(
+        (img) => finalContent.includes(img.localPath || img.dataUrl || "")
+      );
+      if (!hasImageRef) {
+        const imageSection = analysisBundle.images
+          .filter((img) => img.localPath || img.dataUrl)
+          .map((img) => `![第 ${img.pageNumber} 页图片](${(img.localPath || img.dataUrl || "").replace(/\\/g, "/")})`)
+          .join("\n\n");
+        if (imageSection) {
+          finalContent += `\n\n## 附加图片素材\n\n${imageSection}`;
+        }
+      }
+    }
+
+    pushDevLog("info", "analysis", `分块管道完成: ${fileInfo.name}`, {
+      sections: sectionHeaders.length,
+      totalChunks: chunkIdx,
+    });
+
+    return finalContent;
   };
 
   const autoSaveIfNeeded = async (
@@ -297,163 +397,37 @@ export const useAnalysis = () => {
             dataDirectory.trim() || undefined,
           );
 
-          const effectiveBundle = analysisBundle;
-
-          if (!effectiveBundle.text || effectiveBundle.text.trim().length === 0) {
+          if (!analysisBundle.text || analysisBundle.text.trim().length === 0) {
             throw new Error(`文档 ${fileInfo.name} 内容为空或无法读取`);
           }
 
           let finalContent = "";
 
           try {
-            if (selectedFunction === "science") {
-              setAnalysisProgress({
-                percentage: Math.round((i / totalFiles) * 100 + 10 / totalFiles),
-                message: `正在生成理工速知内容 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
-              });
-              finalContent = await runScienceTwoPartAnalysis(
-                fileInfo,
-                promptConfig.prompt,
-                settings,
-                effectiveBundle,
-                true,
-              );
-            } else if (hasOneDocsCoreConfig()) {
-              setAnalysisProgress({
-                percentage: Math.round((i / totalFiles) * 100 + 15 / totalFiles),
-                message: `正在制定工作流计划 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
-              });
-
-              const fallbackPlan = buildLocalWorkflowPlan(
-                effectiveBundle,
-                fileInfo.name,
-                fileInfo.type,
-              );
-
-              const plannerPayload = [
-                `【文件名】${fileInfo.name}`,
-                `【功能】${promptConfig.name}`,
-                `【原始提示】\n${promptConfig.prompt}`,
-                `【页码与摘要】\n${effectiveBundle.pageTexts
-                  .map((pageText, pageIndex) => `第 ${pageIndex + 1} 页：${pageText.slice(0, 800) || "（无文本）"}`)
-                  .join("\n\n")}`,
-                `【图片素材】\n${effectiveBundle.images.length > 0
-                  ? effectiveBundle.images
-                      .map((image) => `第 ${image.pageNumber} 页 -> ${image.localPath || image.dataUrl ? image.fileName : "未落盘"}`)
-                      .join("\n")
-                  : "无图片素材"}`,
-                `【本地候选计划】\n${JSON.stringify(fallbackPlan, null, 2)}`,
-              ].join("\n\n");
-
-              const plannerResponse = await callOneDocsAgent(
-                WORKFLOW_PLANNER_MODEL,
-                WORKFLOW_PLANNER_SYSTEM_PROMPT,
-                plannerPayload,
-              );
-
-              pushDevLog("info", "analysis", `工作流规划完成: ${fileInfo.name}`, {
-                model: WORKFLOW_PLANNER_MODEL,
-                response: plannerResponse,
-              });
-
-              const workflowPlan = parseWorkflowPlan(plannerResponse, fallbackPlan);
-
-              const chunkOutputs: string[] = [];
-              const pageTexts = effectiveBundle.pageTexts.length > 0
-                ? effectiveBundle.pageTexts
-                : splitTextIntoChunks(effectiveBundle.text, 7000);
-
-              for (const chunk of workflowPlan.chunks) {
-                setAnalysisProgress({
-                  percentage: Math.round(
-                    (i / totalFiles) * 100 + 15 / totalFiles + chunkOutputs.length * (45 / Math.max(workflowPlan.chunks.length, 1)) / totalFiles,
-                  ),
-                  message: `正在分段生成 ${chunk.title} ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
-                });
-
-                const chunkText = effectiveBundle.pageTexts.length > 0
-                  ? pageTexts.slice(chunk.pageStart - 1, chunk.pageEnd).join("\n\n")
-                  : pageTexts[workflowPlan.chunks.indexOf(chunk)] || effectiveBundle.text;
-
-                const pageImageTokens = buildImageTokenList(
-                  effectiveBundle.images.filter(
-                    (image) => image.pageNumber >= chunk.pageStart && image.pageNumber <= chunk.pageEnd,
-                  ),
-                );
-
-                const chunkPrompt = buildChunkPrompt({
-                  sourcePrompt: promptConfig.prompt,
-                  workflowPlan,
-                  chunk,
-                  chunkText,
-                  fileName: fileInfo.name,
-                  pageImageTokens,
-                  includeImages: true,
-                });
-
-                const chunkResponse = await APIService.callAIWithProvider(
-                  currentProvider,
-                  ANALYSIS_MARKDOWN_SYSTEM_PROMPT,
-                  chunkPrompt,
-                  {
-                    apiKey: settings.apiKey,
-                    baseUrl: settings.baseUrl,
-                    model: settings.model,
-                  },
-                );
-
-                const cleanedChunk = stripLeadingMarkers(stripMarkdownFence(chunkResponse)).trim();
-                if (cleanedChunk) {
-                  chunkOutputs.push(cleanedChunk);
-                }
-              }
-
-              if (chunkOutputs.length > 0) {
-                setAnalysisProgress({
-                  percentage: Math.round((i / totalFiles) * 100 + 75 / totalFiles),
-                  message: `正在组装最终文档 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
-                });
-
-                const composerPayload = buildComposerPrompt({
-                  sourcePrompt: promptConfig.prompt,
-                  workflowPlan,
-                  fragments: chunkOutputs,
-                  fileName: fileInfo.name,
-                  imageManifest: effectiveBundle.images,
-                  includeImages: true,
-                });
-
-                const composedResponse = await callOneDocsAgent(
-                  WORKFLOW_COMPOSER_MODEL,
-                  WORKFLOW_COMPOSER_SYSTEM_PROMPT,
-                  composerPayload,
-                );
-
-                pushDevLog("info", "analysis", `工作流组装完成: ${fileInfo.name}`, {
-                  model: WORKFLOW_COMPOSER_MODEL,
-                  response: composedResponse,
-                });
-
-                finalContent = stripLeadingMarkers(stripMarkdownFence(composedResponse)).trim();
-              }
-            }
-          } catch (workflowError: any) {
-            console.warn(`文件 ${fileInfo.name} 新工作流失败，回退到单模型全文析文:`, workflowError);
-            pushDevLog("warn", "analysis", `新工作流失败，回退全文析文: ${fileInfo.name}`, {
-              error: workflowError?.message || String(workflowError),
+            setAnalysisProgress({
+              percentage: Math.round((i / totalFiles) * 100 + 5 / totalFiles),
+              message: `正在分块分析 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
             });
-            try {
-              finalContent = await runLegacyAnalysis(fileInfo, promptConfig.prompt, settings);
-            } catch (legacyError: any) {
-              throw legacyError;
-            }
+            finalContent = await runChunkPipeline(
+              fileInfo,
+              promptConfig,
+              settings,
+              analysisBundle,
+              true,
+            );
+          } catch (pipelineError: any) {
+            console.warn(`文件 ${fileInfo.name} 分块管道失败:`, pipelineError);
+            pushDevLog("warn", "analysis", `分块管道失败: ${fileInfo.name}`, {
+              error: pipelineError?.message || String(pipelineError),
+            });
+            throw pipelineError;
           }
 
           if (!finalContent.trim()) {
-            finalContent = await runLegacyAnalysis(fileInfo, promptConfig.prompt, settings);
+            throw new Error("分块管道未生成有效内容");
           }
 
-          finalContent = applyImagePlacements(finalContent, effectiveBundle.images);
+          finalContent = applyImagePlacements(finalContent, analysisBundle.images);
 
           if (selectedFunction === "science" && enableFormatReview) {
             setAnalysisProgress({
@@ -461,7 +435,7 @@ export const useAnalysis = () => {
               message: `正在进行格式复查 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
             });
 
-            const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记、公式排版与图片引用格式：\n\n【格式要求】\n1. 一级标题仅为“# 基础知识”“# 典型例题”\n2. 二级标题从1开始递增，格式“## 1. 标题”\n3. 三级标题为“### 1.1 小节”依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\n公式\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留图片占位符或本地图片路径，不要删除图像引用\n7. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${finalContent}`;
+            const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记、公式排版与图片引用格式：\n\n【格式要求】\n1. 一级标题仅为"# 基础知识""# 典型例题"\n2. 二级标题从1开始递增，格式"## 1. 标题"\n3. 三级标题为"### 1.1 小节"依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\n公式\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留图片占位符或本地图片路径，不要删除图像引用\n7. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${finalContent}`;
 
             try {
               const reviewResponse = await APIService.callAIWithProvider(
@@ -477,7 +451,7 @@ export const useAnalysis = () => {
 
               const reviewedContent = stripLeadingMarkers(stripMarkdownFence(reviewResponse)).trim();
               if (reviewedContent) {
-                finalContent = applyImagePlacements(reviewedContent, effectiveBundle.images);
+                finalContent = applyImagePlacements(reviewedContent, analysisBundle.images);
               }
             } catch (reviewError: any) {
               console.error(`文件 ${fileInfo.name} 格式复查失败:`, reviewError);

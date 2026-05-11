@@ -4,10 +4,31 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize)]
+/// Content part for multimodal messages (text or image)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+enum ContentPart {
+    Text { r#type: String, text: String },
+    ImageUrl { r#type: String, image_url: ImageUrlContent },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct ImageUrlContent {
+    url: String,
+}
+
+/// Message content can be a simple string or an array of content parts
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+enum MessageContent {
+    Text(String),
+    Parts(Vec<ContentPart>),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 struct ChatMessage {
     role: String,
-    content: String,
+    content: MessageContent,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,7 +42,13 @@ struct ChatRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ChatChoice {
-    message: ChatMessage,
+    message: ChatMessageResponse,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ChatMessageResponse {
+    role: String,
+    content: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,7 +68,7 @@ struct ExtractImagesResult {
     images: Vec<ExtractedImage>,
 }
 
-/// Analyze content using LLM API
+/// Analyze content using LLM API, with optional image support
 #[tauri::command]
 async fn analyze_content_rust(
     api_key: String,
@@ -49,17 +76,72 @@ async fn analyze_content_rust(
     system_prompt: String,
     text_content: String,
     model: String,
+    images: Option<Vec<String>>,
 ) -> Result<String, String> {
-    let messages = vec![
-        ChatMessage {
-            role: "system".to_string(),
-            content: system_prompt,
-        },
+    let system_message = ChatMessage {
+        role: "system".to_string(),
+        content: MessageContent::Text(system_prompt),
+    };
+
+    // Build user message - if images are provided, use multimodal format
+    let user_message = if let Some(ref image_list) = images {
+        if image_list.is_empty() {
+            ChatMessage {
+                role: "user".to_string(),
+                content: MessageContent::Text(text_content),
+            }
+        } else {
+            let mut parts: Vec<ContentPart> = vec![ContentPart::Text {
+                r#type: "text".to_string(),
+                text: text_content,
+            }];
+
+            for image_url in image_list {
+                // Support both base64 data URLs and regular URLs
+                let url = if image_url.starts_with("data:") || image_url.starts_with("http") {
+                    image_url.clone()
+                } else {
+                    // Treat as file path - read and convert to base64 data URL
+                    match fs::read(image_url) {
+                        Ok(bytes) => {
+                            let base64_str = base64_encode(&bytes);
+                            let ext = Path::new(image_url)
+                                .extension()
+                                .and_then(|e| e.to_str())
+                                .unwrap_or("png");
+                            let mime = match ext {
+                                "jpg" | "jpeg" => "image/jpeg",
+                                "png" => "image/png",
+                                "gif" => "image/gif",
+                                "webp" => "image/webp",
+                                "bmp" => "image/bmp",
+                                _ => "image/png",
+                            };
+                            format!("data:{};base64,{}", mime, base64_str)
+                        }
+                        Err(_) => continue, // Skip unreadable images
+                    }
+                };
+
+                parts.push(ContentPart::ImageUrl {
+                    r#type: "image_url".to_string(),
+                    image_url: ImageUrlContent { url },
+                });
+            }
+
+            ChatMessage {
+                role: "user".to_string(),
+                content: MessageContent::Parts(parts),
+            }
+        }
+    } else {
         ChatMessage {
             role: "user".to_string(),
-            content: text_content,
-        },
-    ];
+            content: MessageContent::Text(text_content),
+        }
+    };
+
+    let messages = vec![system_message, user_message];
 
     let chat_request = ChatRequest {
         model,
@@ -217,6 +299,32 @@ async fn extract_pdf_images(
 
     serde_json::to_string(&result)
         .map_err(|e| format!("序列化结果失败: {}", e))
+}
+
+/// Simple base64 encoding (no external crate needed)
+fn base64_encode(data: &[u8]) -> String {
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::new();
+    let chunks = data.chunks(3);
+    for chunk in chunks {
+        let b0 = chunk[0] as u32;
+        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
+        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
+        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
+        if chunk.len() > 1 {
+            result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+        if chunk.len() > 2 {
+            result.push(CHARS[(triple & 0x3F) as usize] as char);
+        } else {
+            result.push('=');
+        }
+    }
+    result
 }
 
 /// Save image data from PDF stream to a file.
