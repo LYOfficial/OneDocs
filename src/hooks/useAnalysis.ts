@@ -11,6 +11,13 @@ import {
   stripMarkdownFence,
 } from "@/utils/analysisWorkflow";
 import { chunkText } from "@/services/rag/textChunking";
+import {
+  EMBEDDING_MODEL,
+  generateEmbeddingsBatch,
+  getFreeEmbeddingUses,
+  hasUserEmbeddingToken,
+  isEmbeddingAvailable,
+} from "@/services/rag/embeddingService";
 import type { AIProvider, DocumentAnalysisBundle } from "@/types";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 
@@ -81,6 +88,40 @@ export const useAnalysis = () => {
       overlapChars: 60,
       minChunkSize: 60,
     });
+
+    // Trigger embedding generation once per document to power RAG and logging
+    if (allChunks.length > 0) {
+      if (isEmbeddingAvailable()) {
+        const startAt = Date.now();
+        pushDevLog("info", "embedding", "开始生成嵌入向量", {
+          model: EMBEDDING_MODEL,
+          chunkCount: allChunks.length,
+          hasUserToken: hasUserEmbeddingToken(),
+          freeUsesBefore: hasUserEmbeddingToken() ? null : getFreeEmbeddingUses(),
+        });
+        try {
+          await generateEmbeddingsBatch(
+            allChunks.map((chunk) => chunk.content),
+            { decrementOnce: true }
+          );
+          pushDevLog("info", "embedding", "嵌入向量生成完成", {
+            model: EMBEDDING_MODEL,
+            durationMs: Date.now() - startAt,
+            freeUsesAfter: hasUserEmbeddingToken() ? null : getFreeEmbeddingUses(),
+          });
+        } catch (error: any) {
+          pushDevLog("warn", "embedding", "嵌入向量生成失败，已降级", {
+            model: EMBEDDING_MODEL,
+            error: error?.message || String(error),
+          });
+        }
+      } else {
+        pushDevLog("warn", "embedding", "未配置可用的嵌入 Token，已跳过嵌入生成", {
+          model: EMBEDDING_MODEL,
+          freeUsesRemaining: getFreeEmbeddingUses(),
+        });
+      }
+    }
 
     pushDevLog("info", "analysis", `全量分段管道启动: ${fileInfo.name}`, {
       sections: sectionHeaders.length,

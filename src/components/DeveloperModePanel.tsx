@@ -53,7 +53,7 @@ export const DeveloperModePanel: React.FC = () => {
             <h3>开发者模式</h3>
             <p>查看系统内部执行日志、模型请求与响应</p>
           </div>
-          <div className="data-card-actions">
+          <div className="data-card-actions developer-actions">
             <select
               value={levelFilter}
               onChange={(event) => setLevelFilter(event.target.value)}
