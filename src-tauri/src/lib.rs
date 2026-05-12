@@ -48,7 +48,7 @@ struct ChatChoice {
 #[derive(Debug, Serialize, Deserialize)]
 struct ChatMessageResponse {
     role: String,
-    content: String,
+    content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -185,7 +185,11 @@ async fn analyze_content_rust(
         return Err("API 返回空响应".to_string());
     }
 
-    Ok(chat_response.choices[0].message.content.clone())
+    let content = chat_response.choices[0].message.content.clone();
+    match content {
+        Some(text) if !text.is_empty() => Ok(text),
+        _ => Err("模型返回空内容（可能仅包含思考过程，未生成可见输出）".to_string()),
+    }
 }
 
 /// Extract images from a PDF file using lopdf, with easyyun API as fallback.

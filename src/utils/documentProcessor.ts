@@ -103,6 +103,8 @@ export class DocumentProcessor {
 
         // Step 3: Call Rust to extract images (lopdf + easyyun API fallback)
         imageAssets = await extractPdfImages(pdfPath, imageDir, baseName);
+        console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`, 
+          imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })));
       } catch (imageError) {
         console.warn("PDF 图片提取失败，继续无图片分析:", imageError);
         // Images are optional - continue without them

@@ -136,40 +136,14 @@ export const useAnalysis = () => {
   };
 
   /**
-   * Build page-based chunks from the analysis bundle
+   * Section-by-section analysis pipeline:
+   * RAG already handles document chunking & retrieval.
+   * We only need to call LLM once per section (task), each time:
+   *   system = coreSystemPrompt
+   *   user   = task instruction + RAG-retrieved content + image hints
+   * Then assemble sections and insert images.
    */
-  const buildPageChunks = (
-    bundle: DocumentAnalysisBundle,
-    pagesPerChunk: number = 4,
-  ): Array<{ pageStart: number; pageEnd: number; text: string }> => {
-    const chunks: Array<{ pageStart: number; pageEnd: number; text: string }> = [];
-
-    if (bundle.pageTexts.length === 0) {
-      chunks.push({ pageStart: 1, pageEnd: 1, text: bundle.text });
-      return chunks;
-    }
-
-    for (let i = 0; i < bundle.pageTexts.length; i += pagesPerChunk) {
-      const pageStart = i + 1;
-      const pageEnd = Math.min(i + pagesPerChunk, bundle.pageTexts.length);
-      const text = bundle.pageTexts.slice(i, pageEnd).join("\n\n");
-
-      if (text.trim()) {
-        chunks.push({ pageStart, pageEnd, text: text.trim() });
-      }
-    }
-
-    return chunks.length > 0 ? chunks : [{ pageStart: 1, pageEnd: bundle.pageCount, text: bundle.text }];
-  };
-
-  /**
-   * Chunk-by-chunk analysis pipeline:
-   * 1. Split document into page-based chunks
-   * 2. For each chunk: RAG retrieve relevant content → LLM call with minimal prompt
-   * 3. Assemble all chunk outputs by section
-   * 4. Insert extracted images
-   */
-  const runChunkPipeline = async (
+  const runSectionPipeline = async (
     fileInfo: { file: File; name: string },
     promptConfig: typeof PROMPT_CONFIGS.science,
     settings: { apiKey: string; baseUrl: string; model: string },
@@ -178,105 +152,95 @@ export const useAnalysis = () => {
   ): Promise<string> => {
     const { coreSystemPrompt, chunkTasks, sectionHeaders } = promptConfig;
 
-    const pageChunks = buildPageChunks(analysisBundle);
-
-    pushDevLog("info", "analysis", `分块管道启动: ${fileInfo.name}`, {
-      totalPages: analysisBundle.pageCount,
-      pageChunks: pageChunks.length,
-      chunkTasks: chunkTasks.length,
+    pushDevLog("info", "analysis", `分段管道启动: ${fileInfo.name}`, {
+      sections: sectionHeaders.length,
+      tasks: chunkTasks.length,
+      imageCount: analysisBundle.images.length,
+      imageDetails: analysisBundle.images.map((img) => ({
+        page: img.pageNumber,
+        name: img.fileName,
+        hasLocalPath: Boolean(img.localPath),
+        hasDataUrl: Boolean(img.dataUrl),
+      })),
     });
 
-    const sectionOutputs: Record<string, string[]> = {};
-    for (const header of sectionHeaders) {
-      sectionOutputs[header] = [];
-    }
+    const sectionOutputs: Record<string, string> = {};
+    const totalSteps = chunkTasks.length;
 
-    let chunkIdx = 0;
-    const totalSteps = pageChunks.length * chunkTasks.length;
+    for (let taskIdx = 0; taskIdx < chunkTasks.length; taskIdx++) {
+      const task = chunkTasks[taskIdx];
+      const sectionHeader = sectionHeaders[taskIdx] || sectionHeaders[sectionHeaders.length - 1];
 
-    for (const pageChunk of pageChunks) {
-      for (let taskIdx = 0; taskIdx < chunkTasks.length; taskIdx++) {
-        chunkIdx++;
-        const task = chunkTasks[taskIdx];
-        const sectionHeader = sectionHeaders[taskIdx] || sectionHeaders[sectionHeaders.length - 1];
+      setAnalysisProgress({
+        percentage: Math.round(((taskIdx) / totalSteps) * 85),
+        message: `正在生成 ${sectionHeader} (${taskIdx + 1}/${totalSteps}): ${fileInfo.name}...`,
+      });
 
-        setAnalysisProgress({
-          percentage: Math.round((chunkIdx / totalSteps) * 85),
-          message: `分块处理 ${chunkIdx}/${totalSteps}: ${sectionHeader} - 第${pageChunk.pageStart}-${pageChunk.pageEnd}页...`,
-        });
+      // RAG retrieve for this section's task
+      const ragQuery = `${task} ${sectionHeader}`;
+      const { relevantText, chunkCount, totalChunks } = await retrieveRelevantText(
+        analysisBundle,
+        ragQuery,
+        5,
+        3000,
+      );
 
-        // RAG retrieve for this specific chunk + task
-        const ragQuery = `${task} 第${pageChunk.pageStart}页 第${pageChunk.pageEnd}页`;
-        const { relevantText } = await retrieveRelevantText(
-          analysisBundle,
-          ragQuery,
-          3,
-          2000,
+      // Build image hints for all images (not page-scoped since RAG handles relevance)
+      const imageTokens = includeImages
+        ? buildImageTokenList(analysisBundle.images)
+        : [];
+
+      const imageHint = includeImages && imageTokens.length > 0
+        ? `\n可用图片占位符：${imageTokens.join("、")}。请在合适位置保留。`
+        : "";
+
+      const userPrompt = [
+        `# 任务`,
+        `输出部分：${sectionHeader}`,
+        `要求：${task}`,
+        imageHint,
+        ``,
+        `# 文档内容（RAG检索 ${chunkCount}/${totalChunks} 片段）`,
+        relevantText.trim(),
+      ].filter(Boolean).join("\n");
+
+      // Collect all image paths for multimodal
+      const allImagePaths = includeImages
+        ? analysisBundle.images
+            .map((img) => img.localPath || img.dataUrl)
+            .filter(Boolean) as string[]
+        : [];
+
+      try {
+        const response = await APIService.callAIWithProvider(
+          currentProvider,
+          coreSystemPrompt,
+          userPrompt,
+          {
+            apiKey: settings.apiKey,
+            baseUrl: settings.baseUrl,
+            model: settings.model,
+          },
+          allImagePaths.length > 0 ? allImagePaths.slice(0, 5) : undefined,
         );
 
-        // Build minimal per-chunk prompt
-        const imageTokens = includeImages
-          ? buildImageTokenList(
-              analysisBundle.images.filter(
-                (img) => img.pageNumber >= pageChunk.pageStart && img.pageNumber <= pageChunk.pageEnd,
-              ),
-            )
-          : [];
-
-        const imageHint = includeImages && imageTokens.length > 0
-          ? `\n可用图片占位符：${imageTokens.join("、")}。请在合适位置保留。`
-          : "";
-
-        const userPrompt = [
-          `# 本轮任务`,
-          `页码范围：第${pageChunk.pageStart}页 - 第${pageChunk.pageEnd}页`,
-          `输出部分：${sectionHeader}`,
-          `具体要求：${task}`,
-          imageHint,
-          ``,
-          `# 文档内容`,
-          relevantText.trim(),
-        ].filter(Boolean).join("\n");
-
-        // Collect image paths for multimodal
-        const chunkImagePaths = includeImages
-          ? analysisBundle.images
-              .filter((img) => img.pageNumber >= pageChunk.pageStart && img.pageNumber <= pageChunk.pageEnd)
-              .map((img) => img.localPath || img.dataUrl)
-              .filter(Boolean) as string[]
-          : [];
-
-        try {
-          const response = await APIService.callAIWithProvider(
-            currentProvider,
-            coreSystemPrompt,
-            userPrompt,
-            {
-              apiKey: settings.apiKey,
-              baseUrl: settings.baseUrl,
-              model: settings.model,
-            },
-            chunkImagePaths.length > 0 ? chunkImagePaths.slice(0, 3) : undefined,
-          );
-
-          const cleaned = stripLeadingMarkers(stripMarkdownFence(response)).trim();
-          if (cleaned) {
-            sectionOutputs[sectionHeader].push(cleaned);
-          }
-        } catch (err: any) {
-          pushDevLog("warn", "analysis", `分块处理失败: ${sectionHeader} 第${pageChunk.pageStart}-${pageChunk.pageEnd}页`, {
-            error: err?.message || String(err),
-          });
+        const cleaned = stripLeadingMarkers(stripMarkdownFence(response)).trim();
+        if (cleaned) {
+          sectionOutputs[sectionHeader] = cleaned;
         }
+      } catch (err: any) {
+        pushDevLog("warn", "analysis", `分段处理失败: ${sectionHeader}`, {
+          error: err?.message || String(err),
+        });
       }
     }
 
-    // Assemble sections
+    // Assemble sections in order
     const assembledParts: string[] = [];
     for (const header of sectionHeaders) {
-      const outputs = sectionOutputs[header] || [];
-      if (outputs.length > 0) {
-        assembledParts.push(`# ${header}\n\n${outputs.join("\n\n")}`);
+      const output = sectionOutputs[header];
+      if (output) {
+        assembledParts.push(`# ${header}\n\n${output}`);
       }
     }
 
@@ -301,9 +265,8 @@ export const useAnalysis = () => {
       }
     }
 
-    pushDevLog("info", "analysis", `分块管道完成: ${fileInfo.name}`, {
+    pushDevLog("info", "analysis", `分段管道完成: ${fileInfo.name}`, {
       sections: sectionHeaders.length,
-      totalChunks: chunkIdx,
     });
 
     return finalContent;
@@ -406,9 +369,9 @@ export const useAnalysis = () => {
           try {
             setAnalysisProgress({
               percentage: Math.round((i / totalFiles) * 100 + 5 / totalFiles),
-              message: `正在分块分析 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
+              message: `正在分段分析 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
             });
-            finalContent = await runChunkPipeline(
+            finalContent = await runSectionPipeline(
               fileInfo,
               promptConfig,
               settings,
@@ -416,15 +379,15 @@ export const useAnalysis = () => {
               true,
             );
           } catch (pipelineError: any) {
-            console.warn(`文件 ${fileInfo.name} 分块管道失败:`, pipelineError);
-            pushDevLog("warn", "analysis", `分块管道失败: ${fileInfo.name}`, {
+            console.warn(`文件 ${fileInfo.name} 分段管道失败:`, pipelineError);
+            pushDevLog("warn", "analysis", `分段管道失败: ${fileInfo.name}`, {
               error: pipelineError?.message || String(pipelineError),
             });
             throw pipelineError;
           }
 
           if (!finalContent.trim()) {
-            throw new Error("分块管道未生成有效内容");
+            throw new Error("分段管道未生成有效内容");
           }
 
           finalContent = applyImagePlacements(finalContent, analysisBundle.images);
