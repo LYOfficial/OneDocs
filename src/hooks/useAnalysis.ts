@@ -11,11 +11,6 @@ import {
   stripMarkdownFence,
 } from "@/utils/analysisWorkflow";
 import { chunkText } from "@/services/rag/textChunking";
-import {
-  generateEmbedding,
-  generateFallbackEmbedding,
-  findTopKSimilar,
-} from "@/services/rag/embeddingService";
 import type { AIProvider, DocumentAnalysisBundle } from "@/types";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 
@@ -65,83 +60,11 @@ export const useAnalysis = () => {
   };
 
   /**
-   * RAG-based retrieval: chunk text, generate embeddings, retrieve relevant chunks
-   */
-  const retrieveRelevantText = async (
-    bundle: DocumentAnalysisBundle,
-    query: string,
-    topK: number = 5,
-    maxChars: number = 3000,
-  ): Promise<{ relevantText: string; chunkCount: number; totalChunks: number }> => {
-    const chunks = chunkText(bundle.text, bundle.pageTexts, {
-      targetChunkSize: 400,
-      overlapChars: 60,
-      minChunkSize: 60,
-    });
-
-    pushDevLog("info", "rag", `文档分块完成`, {
-      totalChunks: chunks.length,
-      textLength: bundle.text.length,
-    });
-
-    if (chunks.length === 0) {
-      return { relevantText: bundle.text, chunkCount: 1, totalChunks: 1 };
-    }
-
-    const chunksWithEmbeddings = await Promise.all(
-      chunks.map(async (chunk) => {
-        try {
-          const embedding = await generateEmbedding(chunk.content);
-          return { chunk, embedding };
-        } catch {
-          return { chunk, embedding: generateFallbackEmbedding(chunk.content) };
-        }
-      }),
-    );
-
-    const queryEmbedding = await generateEmbedding(query);
-    const topResults = findTopKSimilar(queryEmbedding, chunksWithEmbeddings, topK);
-
-    pushDevLog("info", "rag", `RAG检索完成`, {
-      topK,
-      retrievedChunks: topResults.length,
-      scores: topResults.map((r) => r.score.toFixed(4)),
-    });
-
-    const seenContents = new Set<string>();
-    const uniqueResults = topResults.filter((r) => {
-      const key = r.chunk.content.slice(0, 100);
-      if (seenContents.has(key)) return false;
-      seenContents.add(key);
-      return true;
-    });
-
-    uniqueResults.sort((a, b) => a.chunk.sourcePage - b.chunk.sourcePage);
-
-    let totalLen = 0;
-    const truncatedResults = uniqueResults.filter((r) => {
-      totalLen += r.chunk.content.length;
-      return totalLen <= maxChars;
-    });
-
-    const relevantText = truncatedResults
-      .map((r, idx) => `[片段${idx + 1}（第${r.chunk.sourcePage}页）]\n${r.chunk.content}`)
-      .join("\n\n");
-
-    return {
-      relevantText,
-      chunkCount: truncatedResults.length,
-      totalChunks: chunks.length,
-    };
-  };
-
-  /**
-   * Section-by-section analysis pipeline:
-   * RAG already handles document chunking & retrieval.
-   * We only need to call LLM once per section (task), each time:
-   *   system = coreSystemPrompt
-   *   user   = task instruction + RAG-retrieved content + image hints
-   * Then assemble sections and insert images.
+   * Full-coverage section pipeline (inspired by open-notebook):
+   * Instead of RAG top-K (which only sees ~25% of the document),
+   * we iterate through ALL text chunks in page order for each section task.
+   * Chunks are batched to fit within LLM context limits, and outputs
+   * are accumulated per section to ensure complete coverage.
    */
   const runSectionPipeline = async (
     fileInfo: { file: File; name: string },
@@ -152,16 +75,18 @@ export const useAnalysis = () => {
   ): Promise<string> => {
     const { coreSystemPrompt, chunkTasks, sectionHeaders } = promptConfig;
 
-    pushDevLog("info", "analysis", `分段管道启动: ${fileInfo.name}`, {
+    // Chunk the entire document in page order (no RAG retrieval)
+    const allChunks = chunkText(analysisBundle.text, analysisBundle.pageTexts, {
+      targetChunkSize: 400,
+      overlapChars: 60,
+      minChunkSize: 60,
+    });
+
+    pushDevLog("info", "analysis", `全量分段管道启动: ${fileInfo.name}`, {
       sections: sectionHeaders.length,
       tasks: chunkTasks.length,
+      totalChunks: allChunks.length,
       imageCount: analysisBundle.images.length,
-      imageDetails: analysisBundle.images.map((img) => ({
-        page: img.pageNumber,
-        name: img.fileName,
-        hasLocalPath: Boolean(img.localPath),
-        hasDataUrl: Boolean(img.dataUrl),
-      })),
     });
 
     const sectionOutputs: Record<string, string> = {};
@@ -172,67 +97,98 @@ export const useAnalysis = () => {
       const sectionHeader = sectionHeaders[taskIdx] || sectionHeaders[sectionHeaders.length - 1];
 
       setAnalysisProgress({
-        percentage: Math.round(((taskIdx) / totalSteps) * 85),
+        percentage: Math.round((taskIdx / totalSteps) * 85),
         message: `正在生成 ${sectionHeader} (${taskIdx + 1}/${totalSteps}): ${fileInfo.name}...`,
       });
 
-      // RAG retrieve for this section's task
-      const ragQuery = `${task} ${sectionHeader}`;
-      const { relevantText, chunkCount, totalChunks } = await retrieveRelevantText(
-        analysisBundle,
-        ragQuery,
-        5,
-        3000,
-      );
+      // Process ALL chunks in batches for this section task
+      const MAX_CHARS_PER_BATCH = 4000;
+      const chunkOutputs: string[] = [];
+      let batchChunks: string[] = [];
+      let batchLen = 0;
 
-      // Build image hints for all images (not page-scoped since RAG handles relevance)
-      const imageTokens = includeImages
-        ? buildImageTokenList(analysisBundle.images)
-        : [];
+      const flushBatch = async (batch: string[], batchIdx: number) => {
+        if (batch.length === 0) return;
 
-      const imageHint = includeImages && imageTokens.length > 0
-        ? `\n可用图片占位符：${imageTokens.join("、")}。请在合适位置保留。`
-        : "";
+        const batchText = batch.join("\n\n");
+        const imageTokens = includeImages
+          ? buildImageTokenList(analysisBundle.images)
+          : [];
+        const imageHint = includeImages && imageTokens.length > 0
+          ? `\n可用图片占位符：${imageTokens.join("、")}。请在合适位置保留。`
+          : "";
 
-      const userPrompt = [
-        `# 任务`,
-        `输出部分：${sectionHeader}`,
-        `要求：${task}`,
-        imageHint,
-        ``,
-        `# 文档内容（RAG检索 ${chunkCount}/${totalChunks} 片段）`,
-        relevantText.trim(),
-      ].filter(Boolean).join("\n");
+        const userPrompt = [
+          `# 任务`,
+          `输出部分：${sectionHeader}`,
+          `要求：${task}`,
+          imageHint,
+          ``,
+          `# 文档内容（批次 ${batchIdx + 1}，共 ${batch.length} 片段）`,
+          batchText.trim(),
+          ``,
+          `请基于以上内容完成该部分输出。如果内容不足以完成该任务，请输出你能够确定的部分。`,
+        ].filter(Boolean).join("\n");
 
-      // Collect all image paths for multimodal
-      const allImagePaths = includeImages
-        ? analysisBundle.images
-            .map((img) => img.localPath || img.dataUrl)
-            .filter(Boolean) as string[]
-        : [];
+        const allImagePaths = includeImages
+          ? analysisBundle.images
+              .map((img) => img.localPath || img.dataUrl)
+              .filter(Boolean) as string[]
+          : [];
 
-      try {
-        const response = await APIService.callAIWithProvider(
-          currentProvider,
-          coreSystemPrompt,
-          userPrompt,
-          {
-            apiKey: settings.apiKey,
-            baseUrl: settings.baseUrl,
-            model: settings.model,
-          },
-          allImagePaths.length > 0 ? allImagePaths.slice(0, 5) : undefined,
-        );
+        try {
+          const response = await APIService.callAIWithProvider(
+            currentProvider,
+            coreSystemPrompt,
+            userPrompt,
+            {
+              apiKey: settings.apiKey,
+              baseUrl: settings.baseUrl,
+              model: settings.model,
+            },
+            allImagePaths.length > 0 ? allImagePaths.slice(0, 5) : undefined,
+          );
 
-        const cleaned = stripLeadingMarkers(stripMarkdownFence(response)).trim();
-        if (cleaned) {
-          sectionOutputs[sectionHeader] = cleaned;
+          const cleaned = stripLeadingMarkers(stripMarkdownFence(response)).trim();
+          if (cleaned) {
+            chunkOutputs.push(cleaned);
+          }
+        } catch (err: any) {
+          pushDevLog("warn", "analysis", `批次处理失败: ${sectionHeader} 批次${batchIdx + 1}`, {
+            error: err?.message || String(err),
+          });
         }
-      } catch (err: any) {
-        pushDevLog("warn", "analysis", `分段处理失败: ${sectionHeader}`, {
-          error: err?.message || String(err),
-        });
+      };
+
+      // Iterate through ALL chunks in page order, batching them
+      let batchIndex = 0;
+      for (let i = 0; i < allChunks.length; i++) {
+        const chunkContent = `[片段${i + 1}（第${allChunks[i].sourcePage}页）]\n${allChunks[i].content}`;
+
+        if (batchLen + chunkContent.length > MAX_CHARS_PER_BATCH && batchChunks.length > 0) {
+          // Flush current batch
+          await flushBatch(batchChunks, batchIndex);
+          batchIndex++;
+          batchChunks = [];
+          batchLen = 0;
+        }
+
+        batchChunks.push(chunkContent);
+        batchLen += chunkContent.length;
       }
+
+      // Flush remaining batch
+      await flushBatch(batchChunks, batchIndex);
+
+      // Merge all batch outputs for this section
+      if (chunkOutputs.length > 0) {
+        sectionOutputs[sectionHeader] = chunkOutputs.join("\n\n");
+      }
+
+      pushDevLog("info", "analysis", `分段完成: ${sectionHeader}`, {
+        batches: batchIndex + 1,
+        outputChunks: chunkOutputs.length,
+      });
     }
 
     // Assemble sections in order
@@ -265,7 +221,7 @@ export const useAnalysis = () => {
       }
     }
 
-    pushDevLog("info", "analysis", `分段管道完成: ${fileInfo.name}`, {
+    pushDevLog("info", "analysis", `全量分段管道完成: ${fileInfo.name}`, {
       sections: sectionHeaders.length,
     });
 

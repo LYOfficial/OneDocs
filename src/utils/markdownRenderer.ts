@@ -70,6 +70,9 @@ export class MarkdownRenderer {
 
       html = this.rewriteLocalImageSources(html);
 
+      // Add target="_blank" to external links so they open in default browser
+      html = this.addTargetBlankToLinks(html);
+
       html = html.replace(/KATEX(BLOCK|INLINE)\d+KATEX/g, (match) => {
         console.warn("发现未替换的占位符:", match);
         return "[公式]";
@@ -121,5 +124,23 @@ export class MarkdownRenderer {
 
   private static isLocalImageSource(src: string): boolean {
     return /^(?:[a-zA-Z]:[\\/]|\/|file:\/\/)/.test(src);
+  }
+
+  /** Add target="_blank" rel="noopener noreferrer" to all <a> tags */
+  private static addTargetBlankToLinks(html: string): string {
+    return html.replace(
+      /<a\s+([^>]*?)href=("|')(.*?)\2([^>]*)>/g,
+      (_match, before, _quote, href, after) => {
+        // Skip anchor links
+        if (href.startsWith("#") || href.startsWith("javascript:")) {
+          return _match;
+        }
+        // Avoid duplicate target attributes
+        if (/target\s*=/i.test(before + after)) {
+          return _match;
+        }
+        return `<a ${before}href="${href}"${after} target="_blank" rel="noopener noreferrer">`;
+      },
+    );
   }
 }

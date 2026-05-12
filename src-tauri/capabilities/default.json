@@ -20,6 +20,7 @@
     "fs:allow-mkdir",
     "fs:allow-appdata-write-recursive",
     "fs:allow-temp-write-recursive",
-    "fs:allow-resource-write-recursive"
+    "fs:allow-resource-write-recursive",
+    "opener:default"
   ]
 }

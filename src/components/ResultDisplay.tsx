@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { MarkdownRenderer } from "@/utils/markdownRenderer";
 import { useToast } from "./Toast";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { useTranslation } from "react-i18next";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import "katex/dist/katex.min.css";
 
 export const ResultDisplay: React.FC = () => {
@@ -151,6 +152,24 @@ export const ResultDisplay: React.FC = () => {
       : displayResult.content
     : "";
 
+  // Intercept link clicks to open external URLs in the default browser
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest("a") as HTMLAnchorElement | null;
+    if (!anchor) return;
+    const href = anchor.getAttribute("href") || "";
+    // Skip internal/anchor links
+    if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // Open external links in default browser
+    openUrl(href).catch((err: any) => {
+      console.error("打开链接失败:", err);
+      // Fallback: try window.open
+      window.open(href, "_blank");
+    });
+  }, []);
+
   const hasMultipleFiles = files.length > 1;
   const hasMultipleResults = Object.keys(multiFileAnalysisResults).length > 1;
   const canMerge = hasMultipleFiles && hasMultipleResults;
@@ -251,6 +270,7 @@ export const ResultDisplay: React.FC = () => {
           viewMode === "render" ? (
             <div
               className="result-content"
+              onClick={handleContentClick}
               dangerouslySetInnerHTML={{ __html: renderedContent }}
             />
           ) : (

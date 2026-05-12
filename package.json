@@ -16,6 +16,7 @@
     "@tauri-apps/api": "2.6.0",
     "@tauri-apps/plugin-dialog": "2.3.0",
     "@tauri-apps/plugin-fs": "2.4.0",
+    "@tauri-apps/plugin-opener": "^2.5.4",
     "i18next": "^25.0.0",
     "katex": "^0.16.21",
     "marked": "^15.0.0",

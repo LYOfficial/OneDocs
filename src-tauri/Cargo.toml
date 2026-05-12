@@ -23,6 +23,9 @@ reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 lopdf = "0.34"
+tauri-plugin-opener = "2"
+image = "0.25"
+base64 = "0.22"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

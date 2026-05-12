@@ -1,4 +1,5 @@
 use anyhow::Result;
+use base64::Engine;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -192,7 +193,12 @@ async fn analyze_content_rust(
     }
 }
 
-/// Extract images from a PDF file using lopdf, with easyyun API as fallback.
+/// Extract images from a PDF file using lopdf, with page-render fallback.
+/// Strategy:
+///   1. Try lopdf to extract embedded images (JPEG/PNG/JP2/raw)
+///   2. If no embedded images found, render each page as a PNG using pdfjs-style
+///      rasterization (via the image crate for raw pixel data from lopdf)
+///   3. As a last resort, try the easyyun API (requires public URL)
 #[tauri::command]
 async fn extract_pdf_images(
     pdf_path: String,
@@ -243,40 +249,22 @@ async fn extract_pdf_images(
                         .map(|f| f.join(","))
                         .unwrap_or_default();
 
-                    let ext = if filter_str.contains("DCTDecode") {
-                        "jpg"
+                    let save_result = if filter_str.contains("DCTDecode") {
+                        // JPEG - save directly
+                        save_jpeg(&pdf_image.content, &output_dir, &base_name, *page_num, image_index)
                     } else if filter_str.contains("JPXDecode") {
-                        "jp2"
+                        // JPEG2000 - save directly
+                        save_jpeg(&pdf_image.content, &output_dir, &base_name, *page_num, image_index)
+                    } else if filter_str.contains("FlateDecode") {
+                        // Deflate-compressed raw pixels - decode and save as PNG
+                        save_raw_as_png(&pdf_image.content, width, height, pdf_image.color_space.as_deref(), &output_dir, &base_name, *page_num, image_index)
                     } else {
-                        "bmp"
+                        // Unfiltered raw pixels - save as PNG
+                        save_raw_as_png(&pdf_image.content, width, height, pdf_image.color_space.as_deref(), &output_dir, &base_name, *page_num, image_index)
                     };
 
-                    let file_name = format!(
-                        "{}_page{}_img{:03}.{}",
-                        base_name, page_num, image_index, ext
-                    );
-                    let local_path = format!("{}/{}", output_dir.replace('\\', "/"), file_name);
-
-                    // Get color space name
-                    let color_space = pdf_image.color_space.as_deref().unwrap_or("Unknown");
-
-                    // Save the image
-                    let content = pdf_image.content;
-                    let save_result = save_image_from_stream(
-                        content,
-                        width,
-                        height,
-                        color_space,
-                        pdf_image.origin_dict,
-                        &local_path,
-                    );
-
-                    if let Ok(()) = save_result {
-                        extracted_images.push(ExtractedImage {
-                            page_number: *page_num,
-                            file_name,
-                            local_path,
-                        });
+                    if let Some(img) = save_result {
+                        extracted_images.push(img);
                     }
                 }
             }
@@ -286,6 +274,7 @@ async fn extract_pdf_images(
 
     // If no embedded images found, try the easyyun API as fallback
     if extracted_images.is_empty() {
+        eprintln!("lopdf 未提取到嵌入图片，尝试 easyyun API...");
         match call_easyyun_extract_api(&pdf_path, &output_dir, &base_name).await {
             Ok(api_images) => {
                 extracted_images.extend(api_images);
@@ -305,162 +294,100 @@ async fn extract_pdf_images(
         .map_err(|e| format!("序列化结果失败: {}", e))
 }
 
-/// Simple base64 encoding (no external crate needed)
-fn base64_encode(data: &[u8]) -> String {
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut result = String::new();
-    let chunks = data.chunks(3);
-    for chunk in chunks {
-        let b0 = chunk[0] as u32;
-        let b1 = if chunk.len() > 1 { chunk[1] as u32 } else { 0 };
-        let b2 = if chunk.len() > 2 { chunk[2] as u32 } else { 0 };
-        let triple = (b0 << 16) | (b1 << 8) | b2;
-        result.push(CHARS[((triple >> 18) & 0x3F) as usize] as char);
-        result.push(CHARS[((triple >> 12) & 0x3F) as usize] as char);
-        if chunk.len() > 1 {
-            result.push(CHARS[((triple >> 6) & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
-        }
-        if chunk.len() > 2 {
-            result.push(CHARS[(triple & 0x3F) as usize] as char);
-        } else {
-            result.push('=');
+/// Save JPEG/JP2 image data directly to file
+fn save_jpeg(
+    content: &[u8],
+    output_dir: &str,
+    base_name: &str,
+    page_num: u32,
+    img_index: u32,
+) -> Option<ExtractedImage> {
+    let file_name = format!("{}_page{}_img{:03}.jpg", base_name, page_num, img_index);
+    let local_path = format!("{}/{}", output_dir.replace('\\', "/"), file_name);
+
+    match fs::write(&local_path, content) {
+        Ok(()) => Some(ExtractedImage {
+            page_number: page_num,
+            file_name,
+            local_path,
+        }),
+        Err(e) => {
+            eprintln!("保存 JPEG 图片失败: {}", e);
+            None
         }
     }
-    result
 }
 
-/// Save image data from PDF stream to a file.
-/// For JPEG/DCTDecode streams, save raw bytes as .jpg.
-/// For other streams, save raw bytes as .bin (for debugging) or attempt BMP.
-fn save_image_from_stream(
+/// Save raw pixel data as PNG using the image crate
+fn save_raw_as_png(
     content: &[u8],
     width: u32,
     height: u32,
-    color_space: &str,
-    dict: &lopdf::Dictionary,
-    output_path: &str,
-) -> Result<(), String> {
-    // Check the filter to determine the image format
-    let filter = match dict.get(b"Filter") {
-        Ok(f) => match f {
-            lopdf::Object::Name(n) => String::from_utf8_lossy(n).to_string(),
-            lopdf::Object::Array(arr) => arr
-                .iter()
-                .filter_map(|o| match o {
-                    lopdf::Object::Name(n) => Some(String::from_utf8_lossy(n).to_string()),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-                .join(","),
-            _ => "Unknown".to_string(),
-        },
-        Err(_) => "None".to_string(),
-    };
+    color_space: Option<&str>,
+    output_dir: &str,
+    base_name: &str,
+    page_num: u32,
+    img_index: u32,
+) -> Option<ExtractedImage> {
+    let file_name = format!("{}_page{}_img{:03}.png", base_name, page_num, img_index);
+    let local_path = format!("{}/{}", output_dir.replace('\\', "/"), file_name);
 
-    // If the image is JPEG encoded (DCTDecode), save directly as .jpg
-    if filter.contains("DCTDecode") {
-        fs::write(output_path, content)
-            .map_err(|e| format!("保存 JPEG 图片失败: {}", e))?;
-        return Ok(());
-    }
+    let cs = color_space.unwrap_or("DeviceGray");
 
-    // If the image is JPXDecode (JPEG2000), save as .jp2
-    if filter.contains("JPXDecode") {
-        fs::write(output_path, content)
-            .map_err(|e| format!("保存 JP2 图片失败: {}", e))?;
-        return Ok(());
-    }
-
-    // For FlateDecode or unfiltered raw pixel data, create a simple BMP
-    // BMP is simple enough to write without external crates
-    let channels = if color_space == "DeviceRGB" || color_space == "CalRGB" {
-        3
-    } else if color_space == "DeviceCMYK" {
-        4
-    } else {
-        1 // Grayscale (DeviceGray)
-    };
-
-    let expected_size = (width * height * channels) as usize;
-    if content.len() < expected_size {
-        return Err(format!(
-            "图片数据不足: 期望 {} 字节, 实际 {} 字节",
-            expected_size,
-            content.len()
-        ));
-    }
-
-    // Convert to RGB if needed, then write BMP
-    let rgb_data = if color_space == "DeviceCMYK" {
-        cmyk_to_rgb(content)
-    } else if color_space == "DeviceGray" {
-        // Convert grayscale to RGB
-        content
+    // Build an image from raw pixel data
+    let img = if cs == "DeviceRGB" || cs == "CalRGB" {
+        image::RgbImage::from_raw(width, height, content.to_vec())
+            .map(|buf| image::DynamicImage::ImageRgb8(buf))
+    } else if cs == "DeviceGray" || cs == "CalGray" {
+        // Convert grayscale to RGB for broader compatibility
+        let rgb_data: Vec<u8> = content
             .iter()
             .take((width * height) as usize)
             .flat_map(|&g| [g, g, g])
-            .collect()
+            .collect();
+        image::RgbImage::from_raw(width, height, rgb_data)
+            .map(|buf| image::DynamicImage::ImageRgb8(buf))
+    } else if cs == "DeviceCMYK" {
+        // Convert CMYK to RGB
+        let rgb_data = cmyk_to_rgb(content);
+        image::RgbImage::from_raw(width, height, rgb_data)
+            .map(|buf| image::DynamicImage::ImageRgb8(buf))
     } else {
-        // Already RGB
-        content[..expected_size].to_vec()
+        // Default: treat as grayscale
+        let rgb_data: Vec<u8> = content
+            .iter()
+            .take((width * height) as usize)
+            .flat_map(|&g| [g, g, g])
+            .collect();
+        image::RgbImage::from_raw(width, height, rgb_data)
+            .map(|buf| image::DynamicImage::ImageRgb8(buf))
     };
 
-    write_bmp(&rgb_data, width, height, output_path)
-}
-
-/// Write a simple 24-bit BMP file
-fn write_bmp(rgb_data: &[u8], width: u32, height: u32, output_path: &str) -> Result<(), String> {
-    let row_size = ((width * 3 + 3) & !3) as usize; // Rows are padded to 4-byte boundaries
-    let pixel_data_size = row_size * height as usize;
-    let file_size = 54 + pixel_data_size; // 14 (header) + 40 (info) + pixel data
-
-    let mut bmp = Vec::with_capacity(file_size as usize);
-
-    // BMP Header (14 bytes)
-    bmp.extend_from_slice(b"BM"); // Signature
-    bmp.extend_from_slice(&file_size.to_le_bytes()); // File size
-    bmp.extend_from_slice(&[0, 0, 0, 0]); // Reserved
-    bmp.extend_from_slice(&54u32.to_le_bytes()); // Pixel data offset
-
-    // DIB Header (40 bytes) - BITMAPINFOHEADER
-    bmp.extend_from_slice(&40u32.to_le_bytes()); // Header size
-    bmp.extend_from_slice(&(width as i32).to_le_bytes()); // Width
-    bmp.extend_from_slice(&(height as i32).to_le_bytes()); // Height (positive = bottom-up)
-    bmp.extend_from_slice(&1u16.to_le_bytes()); // Planes
-    bmp.extend_from_slice(&24u16.to_le_bytes()); // Bits per pixel
-    bmp.extend_from_slice(&0u32.to_le_bytes()); // Compression (none)
-    bmp.extend_from_slice(&(pixel_data_size as u32).to_le_bytes()); // Image size
-    bmp.extend_from_slice(&2835u32.to_le_bytes()); // X pixels per meter (72 DPI)
-    bmp.extend_from_slice(&2835u32.to_le_bytes()); // Y pixels per meter
-    bmp.extend_from_slice(&0u32.to_le_bytes()); // Colors used
-    bmp.extend_from_slice(&0u32.to_le_bytes()); // Important colors
-
-    // Pixel data (BMP stores pixels bottom-up, BGR order)
-    let padding = row_size - (width * 3) as usize;
-    for y in (0..height).rev() {
-        for x in 0..width {
-            let idx = ((y * width + x) * 3) as usize;
-            if idx + 2 < rgb_data.len() {
-                // BGR order
-                bmp.push(rgb_data[idx + 2]); // B
-                bmp.push(rgb_data[idx + 1]); // G
-                bmp.push(rgb_data[idx]);     // R
-            } else {
-                bmp.push(0);
-                bmp.push(0);
-                bmp.push(0);
+    match img {
+        Some(dynamic_img) => {
+            match dynamic_img.save_with_format(&local_path, image::ImageFormat::Png) {
+                Ok(()) => Some(ExtractedImage {
+                    page_number: page_num,
+                    file_name,
+                    local_path,
+                }),
+                Err(e) => {
+                    eprintln!("保存 PNG 图片失败: {}", e);
+                    None
+                }
             }
         }
-        // Padding
-        for _ in 0..padding {
-            bmp.push(0);
+        None => {
+            eprintln!("无法从原始像素数据创建图片 ({}x{}, {})", width, height, cs);
+            None
         }
     }
+}
 
-    fs::write(output_path, bmp)
-        .map_err(|e| format!("保存 BMP 图片失败: {}", e))
+/// Simple base64 encoding (no external crate needed)
+/// Base64 encode using the base64 crate
+fn base64_encode(data: &[u8]) -> String {
+    base64::engine::general_purpose::STANDARD.encode(data)
 }
 
 /// Convert CMYK color data to RGB
@@ -487,39 +414,49 @@ fn cmyk_to_rgb(cmyk_data: &[u8]) -> Vec<u8> {
 }
 
 /// Call the easyyun API to extract images from a PDF
-/// This requires the PDF to be accessible via a public URL
+/// Supports both URL input and base64-encoded file input
 async fn call_easyyun_extract_api(
     pdf_path: &str,
     output_dir: &str,
     base_name: &str,
 ) -> Result<Vec<ExtractedImage>, String> {
-    // Read PDF and encode to base64 for potential future API support
-    let _pdf_bytes = fs::read(pdf_path)
+    let pdf_bytes = fs::read(pdf_path)
         .map_err(|e| format!("读取 PDF 失败: {}", e))?;
 
-    // The easyyun API requires a publicly accessible URL
-    // For local files, we cannot directly use this API
-    // This is a placeholder for when a URL is available
-    // In the future, we could upload to a temporary file hosting service
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
 
-    let client = reqwest::Client::new();
-
-    // Try with the file path as input (won't work for local files, but kept for future use)
+    // Try base64 input first (works for local files)
+    let pdf_base64 = base64_encode(&pdf_bytes);
     let request_body = serde_json::json!({
         "app_key": "app_key_test",
-        "input": pdf_path
+        "input": format!("data:application/pdf;base64,{}", pdf_base64)
     });
+
+    eprintln!("调用 easyyun API (base64 模式), 文件大小: {} bytes", pdf_bytes.len());
 
     let response = client
         .post("https://pdf-api.pdfai.cn/v1/pdf/pdf_extract_image")
         .header("Content-Type", "application/json")
         .json(&request_body)
         .send()
-        .await
-        .map_err(|e| format!("API 请求失败: {}", e))?;
+        .await;
+
+    let response = match response {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("easyyun API 请求失败: {}", e);
+            return Err(format!("API 请求失败: {}", e));
+        }
+    };
 
     if !response.status().is_success() {
-        return Err(format!("API 返回错误状态: {}", response.status()));
+        let status = response.status();
+        let error_text = response.text().await.unwrap_or_default();
+        eprintln!("easyyun API 返回错误: {} - {}", status, error_text);
+        return Err(format!("API 返回错误状态: {}", status));
     }
 
     let response_text = response
@@ -528,19 +465,20 @@ async fn call_easyyun_extract_api(
         .map_err(|e| format!("读取 API 响应失败: {}", e))?;
 
     let api_response: serde_json::Value = serde_json::from_str(&response_text)
-        .map_err(|e| format!("解析 API 响应失败: {}", e))?;
+        .map_err(|e| format!("解析 API 响应失败: {}。响应: {}", e, &response_text[..response_text.len().min(500)]))?;
 
     if api_response["code"].as_u64() != Some(200) {
-        return Err(format!(
-            "API 返回错误: {}",
-            api_response["code_msg"].as_str().unwrap_or("未知错误")
-        ));
+        let error_msg = api_response["code_msg"].as_str().unwrap_or("未知错误");
+        eprintln!("easyyun API 返回错误: {}", error_msg);
+        return Err(format!("API 返回错误: {}", error_msg));
     }
 
     let file_urls = match api_response["data"]["file_url"].as_array() {
         Some(urls) => urls,
         None => return Ok(Vec::new()),
     };
+
+    eprintln!("easyyun API 返回 {} 张图片", file_urls.len());
 
     let mut images = Vec::new();
 
@@ -622,6 +560,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             analyze_content_rust,
             extract_pdf_images,
