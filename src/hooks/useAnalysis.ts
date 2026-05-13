@@ -103,7 +103,7 @@ export const useAnalysis = () => {
     progressStart: number = 20,
     progressEnd: number = 85,
   ): Promise<string> => {
-    const { coreSystemPrompt, chunkTasks, sectionHeaders } = promptConfig;
+    const { coreSystemPrompt, chunkTasks, sectionHeaders, chunkFilterKeywords } = promptConfig;
 
     // Chunk the entire document in page order (no RAG retrieval)
     const allChunks = chunkText(analysisBundle.text, analysisBundle.pageTexts, {
@@ -181,6 +181,45 @@ export const useAnalysis = () => {
         if (batch.length === 0) return;
 
         const batchText = batch.join("\n\n");
+
+        // Build image tag context for this batch
+        // Find which pages are referenced in this batch and include their image tags
+        const imageTagLines: string[] = [];
+        if (analysisBundle.pageImageMap.length > 0) {
+          const pagesInBatch = new Set<number>();
+          const pageRefRegex = /第\s*(\d+)\s*页/g;
+          let pageRefMatch;
+          while ((pageRefMatch = pageRefRegex.exec(batchText)) !== null) {
+            pagesInBatch.add(parseInt(pageRefMatch[1], 10));
+          }
+          // Also add pages from chunk sourcePage markers
+          const chunkPageRegex = /片段\d+（第(\d+)页）/g;
+          let chunkPageMatch;
+          while ((chunkPageMatch = chunkPageRegex.exec(batchText)) !== null) {
+            pagesInBatch.add(parseInt(chunkPageMatch[1], 10));
+          }
+
+          for (const pageEntry of analysisBundle.pageImageMap) {
+            if (pageEntry.imageTags.length > 0) {
+              // Include all pages with images, not just those referenced in this batch
+              // This ensures the LLM knows about ALL available images
+              imageTagLines.push(
+                `第${pageEntry.pageNumber}页: ${pageEntry.imageTags.join(", ")} (上下文: "${pageEntry.textSnippet.substring(0, 80)}")`,
+              );
+            }
+          }
+        }
+
+        const imageTagSection = imageTagLines.length > 0
+          ? [
+              ``,
+              `# 可用图片标签`,
+              `原文中包含以下图片，请在相关内容后插入对应标签。每张图片都必须被引用，不要遗漏。`,
+              imageTagLines.join("\n"),
+              ``,
+            ].join("\n")
+          : "";
+
         const userPrompt = [
           `# 任务`,
           `输出部分：${sectionHeader}`,
@@ -188,7 +227,7 @@ export const useAnalysis = () => {
           ``,
           `# 文档内容（批次 ${batchIdx + 1}/${totalBatches}，共 ${batch.length} 片段）`,
           batchText.trim(),
-          ``,
+          imageTagSection,
           `请基于以上内容完成该部分输出。如果内容不足以完成该任务，请输出你能够确定的部分。`,
         ].filter(Boolean).join("\n");
 
@@ -227,12 +266,34 @@ export const useAnalysis = () => {
         }
       };
 
+      // Filter chunks for this task based on chunkFilterKeywords
+      const filterKeywords = chunkFilterKeywords?.[taskIdx];
+      const filteredChunks = (filterKeywords && filterKeywords.length > 0)
+        ? allChunks.filter(chunk =>
+            filterKeywords.some(kw => chunk.content.includes(kw))
+          )
+        : allChunks;
+
+      // If filtering yields too few chunks (less than 20% of total), fall back to all chunks
+      // to avoid missing important content
+      const effectiveChunks = (filteredChunks.length > 0 && filteredChunks.length >= allChunks.length * 0.2)
+        ? filteredChunks
+        : (filteredChunks.length === 0 ? allChunks : filteredChunks);
+
+      pushDevLog("info", "analysis", `Task "${sectionHeader}" chunk过滤: ${allChunks.length} → ${effectiveChunks.length}`, {
+        taskIdx,
+        sectionHeader,
+        totalChunks: allChunks.length,
+        filteredChunks: effectiveChunks.length,
+        filterKeywords: filterKeywords || [],
+      });
+
       // Pre-count total batches for progress reporting
       const tempBatches: string[][] = [];
       let tempBatch: string[] = [];
       let tempLen = 0;
-      for (let i = 0; i < allChunks.length; i++) {
-        const chunkContent = `[片段${i + 1}（第${allChunks[i].sourcePage}页）]\n${allChunks[i].content}`;
+      for (let i = 0; i < effectiveChunks.length; i++) {
+        const chunkContent = `[片段${i + 1}（第${effectiveChunks[i].sourcePage}页）]\n${allChunks[i].content}`;
         if (tempLen + chunkContent.length > MAX_CHARS_PER_BATCH && tempBatch.length > 0) {
           tempBatches.push(tempBatch);
           tempBatch = [];
@@ -244,10 +305,10 @@ export const useAnalysis = () => {
       if (tempBatch.length > 0) tempBatches.push(tempBatch);
       const totalBatches = tempBatches.length;
 
-      // Iterate through ALL chunks in page order, batching them
+      // Iterate through filtered chunks in page order, batching them
       let batchIndex = 0;
-      for (let i = 0; i < allChunks.length; i++) {
-        const chunkContent = `[片段${i + 1}（第${allChunks[i].sourcePage}页）]\n${allChunks[i].content}`;
+      for (let i = 0; i < effectiveChunks.length; i++) {
+        const chunkContent = `[片段${i + 1}（第${effectiveChunks[i].sourcePage}页）]\n${allChunks[i].content}`;
 
         if (batchLen + chunkContent.length > MAX_CHARS_PER_BATCH && batchChunks.length > 0) {
           // Flush current batch
@@ -320,9 +381,7 @@ export const useAnalysis = () => {
       ? `${normalizedDir}/${hashDir}`
       : normalizedDir;
     const mdFileName = `${baseName}_OneDocs_分析结果_${dateStr}.md`;
-    const pdfFileName = `${baseName}_OneDocs_分析结果_${dateStr}.pdf`;
     const mdFullPath = `${saveDir}/${mdFileName}`;
-    const pdfFullPath = `${saveDir}/${pdfFileName}`;
 
     try {
       // Ensure the directory exists
@@ -334,26 +393,6 @@ export const useAnalysis = () => {
         path: mdFullPath,
         hashDir,
       });
-
-      // Save PDF file via Rust backend
-      try {
-        const { invoke } = await import("@tauri-apps/api/core");
-        await invoke<string>("save_markdown_as_pdf", {
-          markdownContent: content,
-          outputPath: pdfFullPath,
-          title: baseName,
-        });
-        pushDevLog("info", "analysis", `分析结果已自动保存 (PDF): ${pdfFullPath}`, {
-          path: pdfFullPath,
-          hashDir,
-        });
-      } catch (pdfError: any) {
-        // PDF save is best-effort — don't block on failure
-        pushDevLog("warn", "analysis", `PDF 自动保存失败，MD 已保存`, {
-          error: pdfError?.message || String(pdfError),
-          pdfPath: pdfFullPath,
-        });
-      }
     } catch (error: any) {
       console.error("自动保存析文结果失败", error);
       toast.show(error?.message || "自动保存失败，请检查数据目录权限", 5000);

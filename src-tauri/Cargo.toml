@@ -26,10 +26,6 @@ lopdf = "0.34"
 tauri-plugin-opener = "2"
 image = "0.25"
 base64 = "0.22"
-aws-config = "1.5"
-aws-credential-types = "1.2"
-aws-sdk-s3 = "1.34"
-dotenvy = "0.15"
 printpdf = "0.7"
 
 [features]

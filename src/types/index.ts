@@ -85,6 +85,12 @@ export interface PromptConfig {
   chunkTasks: string[];
   sectionHeaders: string[];
   prompt: string;
+  /**
+   * Optional keywords for filtering chunks per task.
+   * If provided, only chunks containing at least one keyword are sent to that task.
+   * If not provided or empty array, all chunks are sent (no filtering).
+   */
+  chunkFilterKeywords?: string[][];
 }
 
 export type PromptConfigs = Record<PromptType, PromptConfig>;
@@ -113,6 +119,8 @@ export interface PageImageMap {
   textSnippet: string;
   /** Image file names found on this page */
   imageFileNames: string[];
+  /** Unique insertion tags for each image on this page (e.g. [[IMG_P3_001]]) */
+  imageTags: string[];
 }
 
 export interface DocumentAnalysisBundle {

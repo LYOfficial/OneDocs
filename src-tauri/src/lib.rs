@@ -1,13 +1,9 @@
 use anyhow::Result;
-// NOTE: S3/easyyun imports commented out — preserved for future reference
-// use aws_credential_types::Credentials;
-// use aws_sdk_s3::{primitives::ByteStream, Client as S3Client};
 use base64::Engine;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-// use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Content part for multimodal messages (text or image)
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -198,9 +194,6 @@ async fn analyze_content_rust(
 }
 
 /// Extract images from a PDF file using lopdf.
-/// Strategy:
-///   Use lopdf for local extraction (offline, no S3/API dependency).
-///   The easyyun API + S3 approach is commented out below but preserved for reference.
 #[tauri::command]
 async fn extract_pdf_images(
     pdf_path: String,
@@ -217,27 +210,6 @@ async fn extract_pdf_images(
         .map_err(|e| format!("创建输出目录失败: {}", e))?;
 
     let mut extracted_images: Vec<ExtractedImage> = Vec::new();
-
-    // --- [COMMENTED OUT] Step 1: EasyYun API + S3 approach ---
-    // The easyyun API requires uploading the PDF to a publicly accessible S3 URL.
-    // Since lopdf can handle extraction locally, this is no longer needed.
-    // Uncomment the block below if you want to re-enable the easyyun fallback.
-    //
-    // eprintln!("尝试 easyyun API 提取嵌入图片...");
-    // match call_easyyun_extract_api(&pdf_path, &output_dir, &base_name).await {
-    //     Ok(api_images) => {
-    //         if !api_images.is_empty() {
-    //             eprintln!("easyyun API 提取到 {} 张嵌入图片", api_images.len());
-    //             extracted_images.extend(api_images);
-    //         } else {
-    //             eprintln!("easyyun API 返回 0 张图片，尝试 lopdf...");
-    //         }
-    //     }
-    //     Err(e) => {
-    //         eprintln!("easyyun API 调用失败: {}，尝试 lopdf...", e);
-    //     }
-    // }
-    // --- [END COMMENTED OUT] ---
 
     // Use lopdf for local extraction
     eprintln!("使用 lopdf 本地提取图片...");
@@ -420,251 +392,6 @@ fn cmyk_to_rgb(cmyk_data: &[u8]) -> Vec<u8> {
     }
     rgb
 }
-
-// --- [COMMENTED OUT] EasyYun API + Qiniu S3 approach ---
-// These functions are preserved for reference but no longer used.
-// lopdf handles image extraction locally without needing S3 or external APIs.
-// To re-enable: uncomment this block and the easyyun step in extract_pdf_images.
-//
-// /// Call the easyyun API to extract images from a PDF
-// /// Uploads PDF to Qiniu S3, then uses public URL
-// async fn call_easyyun_extract_api(
-//     pdf_path: &str,
-//     output_dir: &str,
-//     base_name: &str,
-// ) -> Result<Vec<ExtractedImage>, String> {
-//     dotenvy::dotenv().ok();
-//     let pdf_bytes = fs::read(pdf_path)
-//         .map_err(|e| format!("读取 PDF 失败: {}", e))?;
-//
-//     let s3_settings = load_qiniu_s3_settings()?;
-//     let (object_key, public_url) = upload_pdf_to_qiniu_s3(&s3_settings, base_name, &pdf_bytes).await?;
-//
-//     let client = reqwest::Client::builder()
-//         .timeout(std::time::Duration::from_secs(60))
-//         .build()
-//         .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
-//
-//     let request_body = serde_json::json!({
-//         "app_key": "app_key_test",
-//         "input": public_url
-//     });
-//
-//     eprintln!("调用 easyyun API (S3 URL), 文件大小: {} bytes", pdf_bytes.len());
-//
-//     let response = client
-//         .post("https://pdf-api.pdfai.cn/v1/pdf/pdf_extract_image")
-//         .header("Content-Type", "application/json")
-//         .json(&request_body)
-//         .send()
-//         .await;
-//
-//     let response = match response {
-//         Ok(r) => r,
-//         Err(e) => {
-//             eprintln!("easyyun API 请求失败: {}", e);
-//             return Err(format!("API 请求失败: {}", e));
-//         }
-//     };
-//
-//     if !response.status().is_success() {
-//         let status = response.status();
-//         let error_text = response.text().await.unwrap_or_default();
-//         eprintln!("easyyun API 返回错误: {} - {}", status, error_text);
-//         let _ = delete_qiniu_s3_object(&s3_settings, &object_key).await;
-//         return Err(format!("API 返回错误状态: {}", status));
-//     }
-//
-//     let response_text = response
-//         .text()
-//         .await
-//         .map_err(|e| format!("读取 API 响应失败: {}", e))?;
-//
-//     let api_response: serde_json::Value = serde_json::from_str(&response_text)
-//         .map_err(|e| format!("解析 API 响应失败: {}。响应: {}", e, &response_text[..response_text.len().min(500)]))?;
-//
-//     if api_response["code"].as_u64() != Some(200) {
-//         let error_msg = api_response["code_msg"].as_str().unwrap_or("未知错误");
-//         eprintln!("easyyun API 返回错误: {}", error_msg);
-//         let _ = delete_qiniu_s3_object(&s3_settings, &object_key).await;
-//         return Err(format!("API 返回错误: {}", error_msg));
-//     }
-//
-//     let file_urls = match api_response["data"]["file_url"].as_array() {
-//         Some(urls) => urls,
-//         None => return Ok(Vec::new()),
-//     };
-//
-//     eprintln!("easyyun API 返回 {} 张图片", file_urls.len());
-//
-//     let mut images = Vec::new();
-//
-//     for (idx, url_value) in file_urls.iter().enumerate() {
-//         let url = match url_value.as_str() {
-//             Some(u) => u,
-//             None => continue,
-//         };
-//
-//         let file_name = format!("{}_api_img{:03}.png", base_name, idx + 1);
-//         let local_path = format!("{}/{}", output_dir.replace('\\', "/"), file_name);
-//
-//         // Download the image
-//         let img_response = client
-//             .get(url)
-//             .send()
-//             .await
-//             .map_err(|e| format!("下载图片失败: {}", e))?;
-//
-//         if img_response.status().is_success() {
-//             let img_bytes = img_response
-//                 .bytes()
-//                 .await
-//                 .map_err(|e| format!("读取图片数据失败: {}", e))?;
-//
-//             fs::write(&local_path, &img_bytes)
-//                 .map_err(|e| format!("保存图片失败: {}", e))?;
-//
-//             images.push(ExtractedImage {
-//                 page_number: (idx + 1) as u32,
-//                 file_name,
-//                 local_path,
-//             });
-//         }
-//     }
-//
-//     let _ = delete_qiniu_s3_object(&s3_settings, &object_key).await;
-//
-//     Ok(images)
-// }
-//
-// #[derive(Debug, Clone)]
-// struct QiniuS3Settings {
-//     access_key: String,
-//     secret_key: String,
-//     bucket: String,
-//     region: String,
-//     endpoint: String,
-//     public_base: String,
-// }
-//
-// fn load_qiniu_s3_settings() -> Result<QiniuS3Settings, String> {
-//     let access_key = std::env::var("ONEDOCS_QINIU_S3_ACCESS_KEY")
-//         .map_err(|_| "缺少 ONEDOCS_QINIU_S3_ACCESS_KEY".to_string())?;
-//     let secret_key = std::env::var("ONEDOCS_QINIU_S3_SECRET_KEY")
-//         .map_err(|_| "缺少 ONEDOCS_QINIU_S3_SECRET_KEY".to_string())?;
-//     let bucket = std::env::var("ONEDOCS_QINIU_S3_BUCKET")
-//         .map_err(|_| "缺少 ONEDOCS_QINIU_S3_BUCKET".to_string())?;
-//     let region = std::env::var("ONEDOCS_QINIU_S3_REGION").unwrap_or_else(|_| "cn-north-1".to_string());
-//     let endpoint = std::env::var("ONEDOCS_QINIU_S3_ENDPOINT")
-//         .unwrap_or_else(|_| "https://s3.cn-north-1.qiniucs.com".to_string());
-//     let public_base = std::env::var("ONEDOCS_QINIU_S3_PUBLIC_DOMAIN")
-//         .map_err(|_| "缺少 ONEDOCS_QINIU_S3_PUBLIC_DOMAIN".to_string())?;
-//
-//     Ok(QiniuS3Settings {
-//         access_key,
-//         secret_key,
-//         bucket,
-//         region,
-//         endpoint,
-//         public_base,
-//     })
-// }
-//
-// async fn build_s3_client(settings: &QiniuS3Settings) -> Result<S3Client, String> {
-//     let creds = Credentials::new(
-//         settings.access_key.clone(),
-//         settings.secret_key.clone(),
-//         None,
-//         None,
-//         "onedocs-qiniu",
-//     );
-//
-//     let region = aws_sdk_s3::config::Region::new(settings.region.clone());
-//     let config = aws_sdk_s3::config::Builder::new()
-//         .behavior_version_latest()
-//         .credentials_provider(creds)
-//         .region(region)
-//         .endpoint_url(settings.endpoint.clone())
-//         .force_path_style(false)
-//         .build();
-//
-//     Ok(S3Client::from_conf(config))
-// }
-//
-// async fn upload_pdf_to_qiniu_s3(
-//     settings: &QiniuS3Settings,
-//     base_name: &str,
-//     pdf_bytes: &[u8],
-// ) -> Result<(String, String), String> {
-//     let client = build_s3_client(settings).await?;
-//     let ts = SystemTime::now()
-//         .duration_since(UNIX_EPOCH)
-//         .map_err(|_| "获取时间戳失败".to_string())?
-//         .as_millis();
-//     let object_key = format!("onedocs/{}/{}_{}.pdf", base_name, base_name, ts);
-//     let body = ByteStream::from(pdf_bytes.to_vec());
-//
-//     client
-//         .put_object()
-//         .bucket(&settings.bucket)
-//         .key(&object_key)
-//         .content_type("application/pdf")
-//         .body(body)
-//         .send()
-//         .await
-//         .map_err(|e| format!("S3 上传失败: {}", e))?;
-//
-//     let base = settings.public_base.trim_end_matches('/');
-//     let public_url = format!("{}/{}", base, object_key);
-//     Ok((object_key, public_url))
-// }
-//
-// async fn delete_qiniu_s3_object(
-//     settings: &QiniuS3Settings,
-//     object_key: &str,
-// ) -> Result<(), String> {
-//     let client = build_s3_client(settings).await?;
-//     client
-//         .delete_object()
-//         .bucket(&settings.bucket)
-//         .key(object_key)
-//         .send()
-//         .await
-//         .map_err(|e| format!("S3 删除失败: {}", e))?;
-//     Ok(())
-// }
-//
-// #[cfg(test)]
-// mod tests {
-//     use super::call_easyyun_extract_api;
-//     use std::fs;
-//     use std::path::PathBuf;
-//
-//     #[tokio::test]
-//     async fn easyyun_extract_smoke() {
-//         dotenvy::dotenv().ok();
-//         let pdf_path = match std::env::var("ONEDOCS_EASYRUN_PDF_PATH") {
-//             Ok(value) => value,
-//             Err(_) => return,
-//         };
-//
-//         let mut output_dir = std::env::temp_dir();
-//         output_dir.push("onedocs_easyrun_test");
-//         let _ = fs::create_dir_all(&output_dir);
-//
-//         let base_name = "onedocs_easyyun_test";
-//         let images = call_easyyun_extract_api(
-//             &pdf_path,
-//             output_dir.to_string_lossy().as_ref(),
-//             base_name,
-//         )
-//         .await
-//         .expect("EasyYun extract failed");
-//
-//         assert!(!images.is_empty(), "EasyYun returned no images");
-//     }
-// }
-// --- [END COMMENTED OUT] EasyYun API + Qiniu S3 ---
 
 #[tauri::command]
 async fn test_model_connection_rust(

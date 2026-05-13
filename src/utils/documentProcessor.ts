@@ -137,7 +137,7 @@ export class DocumentProcessor {
           fileSize: arrayBufferForSave.byteLength,
         });
 
-        // Step 3: Call Rust to extract images (lopdf + easyyun API fallback)
+        // Step 3: Call Rust to extract images (lopdf)
         imageAssets = await extractPdfImages(pdfPath, imageDir, hashDir);
         console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`,
           imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })));
@@ -157,18 +157,22 @@ export class DocumentProcessor {
 
       // Note: No page-render fallback — we only want actual embedded images,
       // not full-page screenshots. The Rust backend (lopdf) handles extraction.
-
       // Build pageImageMap: for each page, record which images and a text snippet
+      // Also generate unique insertion tags (e.g. [[IMG_P3_001]]) for each image
       const pageImageMap: PageImageMap[] = [];
       for (let i = 0; i < pageTexts.length; i++) {
         const pageNum = i + 1;
         const pageImages = imageAssets.filter(img => img.pageNumber === pageNum);
-        const textSnippet = (pageTexts[i] || "").substring(0, 200).trim();
+        const textSnippet = (pageTexts[i] || "").substring(0, 300).trim();
+        const imageTags = pageImages.map((_, imgIdx) =>
+          `[[IMG_P${pageNum}_${String(imgIdx + 1).padStart(3, "0")}]]`
+        );
         if (pageImages.length > 0 || textSnippet) {
           pageImageMap.push({
             pageNumber: pageNum,
             textSnippet,
             imageFileNames: pageImages.map(img => img.fileName),
+            imageTags,
           });
         }
       }
@@ -237,11 +241,18 @@ export class DocumentProcessor {
   }
 
   /**
-   * Compute a short 12-character hex hash from an ArrayBuffer using SubtleCrypto.
-   * This provides a unique, collision-resistant directory name for each document.
+   * Compute a short hash from an ArrayBuffer + timestamp using SubtleCrypto.
+   * Each analysis gets a unique hash (even for the same file) by including
+   * a timestamp, ensuring a fresh directory every time.
    */
   private static async computeShortHash(buffer: ArrayBuffer): Promise<string> {
-    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+    // Include timestamp so same file analyzed multiple times gets different hashes
+    const timestamp = Date.now().toString(36);
+    const timestampBytes = new TextEncoder().encode(timestamp);
+    const combined = new Uint8Array(buffer.byteLength + timestampBytes.length);
+    combined.set(new Uint8Array(buffer), 0);
+    combined.set(timestampBytes, buffer.byteLength);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", combined);
     const hashArray = new Uint8Array(hashBuffer);
     // Take first 6 bytes (12 hex chars) — sufficient for uniqueness
     const hex = Array.from(hashArray.slice(0, 6))

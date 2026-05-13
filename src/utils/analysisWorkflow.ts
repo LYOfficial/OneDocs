@@ -301,7 +301,7 @@ export const applyImagePlacements = (
       continue;
     }
 
-    const imageMarkdown = `![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})`;
+    const imageMarkdown = `\n\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n\n`;
     if (nextMarkdown.includes(token)) {
       nextMarkdown = nextMarkdown.split(token).join(imageMarkdown);
       usedImageKeys.add(imageTarget);
@@ -353,7 +353,7 @@ export const applyImagePlacements = (
       }
       const imgPath = getNextImage();
       if (imgPath) replacedCount++;
-      return imgPath ? `![${alt.trim()}](${imgPath})` : match;
+      return imgPath ? `\n\n![${alt.trim()}](${imgPath})\n\n` : match;
     });
 
     // Pass 2: Replace text-only placeholders like [图片：xxx]
@@ -361,7 +361,7 @@ export const applyImagePlacements = (
     nextMarkdown = nextMarkdown.replace(textPlaceholderRegex, (match) => {
       const imgPath = getNextImage();
       if (imgPath) replacedCount++;
-      return imgPath ? `![${match.slice(1, -1)}](${imgPath})` : match;
+      return imgPath ? `\n\n![${match.slice(1, -1)}](${imgPath})\n\n` : match;
     });
 
     // Pass 3: Replace bare ![alt] without URL
@@ -369,7 +369,7 @@ export const applyImagePlacements = (
     nextMarkdown = nextMarkdown.replace(bareImageRegex, (match, alt) => {
       const imgPath = getNextImage();
       if (imgPath) replacedCount++;
-      return imgPath ? `![${alt.trim()}](${imgPath})` : match;
+      return imgPath ? `\n\n![${alt.trim()}](${imgPath})\n\n` : match;
     });
   }
 
@@ -454,15 +454,12 @@ const normalizeMarkdownPath = (pathValue: string): string => {
 };
 
 /**
- * Insert images into markdown using LLM-based image-text matching.
+ * Insert images into markdown using tag-based replacement + LLM fallback.
  *
  * Strategy:
- * 1. Find which images are already referenced in the markdown (skip those)
- * 2. Build a prompt with the markdown content and the page→image mapping
- * 3. Ask the LLM to determine where each image should be inserted
- * 4. Apply the LLM's placement decisions
- *
- * If LLM matching fails, fall back to page-context-based insertion.
+ * 1. Replace any [[IMG_P{page}_{idx}]] tags left by the LLM with actual image Markdown
+ * 2. For images not yet referenced (no tag in the output), use LLM matching or rule-based fallback
+ * 3. Ensure every image is on its own line (preceded by a newline)
  */
 export const insertImagesByPageContext = async (
   markdown: string,
@@ -483,15 +480,50 @@ export const insertImagesByPageContext = async (
     return markdown;
   }
 
-  // Find images already referenced in the markdown
+  // Step 1: Build tag → image mapping from pageImageMap
+  const tagToImage = new Map<string, DocumentImageAsset>();
+  if (pageImageMap) {
+    for (const pageEntry of pageImageMap) {
+      for (let i = 0; i < pageEntry.imageTags.length; i++) {
+        const tag = pageEntry.imageTags[i];
+        const fileName = pageEntry.imageFileNames[i];
+        const image = images.find(img => img.fileName === fileName && img.pageNumber === pageEntry.pageNumber);
+        if (image) {
+          tagToImage.set(tag, image);
+        }
+      }
+    }
+  }
+
+  // Step 2: Replace tags with actual image Markdown
+  let result = markdown;
+  let tagReplacedCount = 0;
+
+  for (const [tag, image] of tagToImage) {
+    if (result.includes(tag)) {
+      const imageTarget = image.localPath || image.dataUrl || "";
+      if (imageTarget) {
+        const imageMarkdown = `\n\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n\n`;
+        // Replace all occurrences of the tag
+        result = result.split(tag).join(imageMarkdown);
+        tagReplacedCount++;
+      }
+    }
+  }
+
+  pushDevLog("info", "image-insert", `标签替换完成: ${tagReplacedCount}/${tagToImage.size} 个标签已替换`, {
+    tagReplacedCount,
+    totalTags: tagToImage.size,
+  });
+
+  // Step 3: Find images not yet referenced in the markdown
   const referencedPaths = new Set<string>();
   const imgRefRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
   let refMatch;
-  while ((refMatch = imgRefRegex.exec(markdown)) !== null) {
+  while ((refMatch = imgRefRegex.exec(result)) !== null) {
     referencedPaths.add(refMatch[1]);
   }
 
-  // Filter to unreferenced images
   const unreferencedImages = images.filter((img) => {
     const target = img.localPath || img.dataUrl || "";
     if (!target) return false;
@@ -500,21 +532,21 @@ export const insertImagesByPageContext = async (
   });
 
   if (unreferencedImages.length === 0) {
-    pushDevLog("info", "image-insert", "insertImagesByPageContext: 所有图片已在 Markdown 中引用，无需额外插入");
-    return markdown;
+    pushDevLog("info", "image-insert", "所有图片已通过标签引用，无需额外插入");
+    return result;
   }
 
-  pushDevLog("info", "image-insert", `insertImagesByPageContext: 需要插入 ${unreferencedImages.length} 张未引用图片`, {
+  pushDevLog("info", "image-insert", `还有 ${unreferencedImages.length} 张图片未被引用，尝试 LLM 匹配`, {
     unreferencedCount: unreferencedImages.length,
-    unreferencedImages: unreferencedImages.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
+    unreferencedImages: unreferencedImages.map(img => ({ page: img.pageNumber, name: img.fileName })),
   });
 
-  // Try LLM-based matching if context is provided
+  // Step 4: Try LLM-based matching for unreferenced images
   if (llmContext && pageImageMap && pageImageMap.length > 0) {
     try {
-      const llmResult = await matchImagesWithLLM(markdown, unreferencedImages, pageImageMap, llmContext);
+      const llmResult = await matchImagesWithLLM(result, unreferencedImages, pageImageMap, llmContext);
       if (llmResult) {
-        pushDevLog("info", "image-insert", `LLM 图文匹配成功，已插入 ${unreferencedImages.length} 张图片`);
+        pushDevLog("info", "image-insert", `LLM 图文匹配成功`);
         return llmResult;
       }
     } catch (error: any) {
@@ -522,9 +554,28 @@ export const insertImagesByPageContext = async (
     }
   }
 
-  // Fallback: page-context-based insertion (no LLM)
-  return insertImagesByPageContextFallback(markdown, unreferencedImages);
+  // Step 5: Fallback to rule-based insertion
+  return ensureImageLineBreaks(insertImagesByPageContextFallback(result, unreferencedImages));
 };
+
+/**
+ * Ensure all image references in markdown are on their own lines.
+ * Fixes cases where images are embedded inline within text.
+ */
+function ensureImageLineBreaks(markdown: string): string {
+  // Ensure ![alt](url) is preceded by \n\n and followed by \n\n
+  // But don't add extra newlines if already properly separated
+  return markdown.replace(
+    /([^\n])\s*(!\[[^\]]*\]\([^)]+\))\s*([^\n])/g,
+    "$1\n\n$2\n\n$3",
+  ).replace(
+    /([^\n])\s*(!\[[^\]]*\]\([^)]+\))\s*$/gm,
+    "$1\n\n$2",
+  ).replace(
+    /^(!\[[^\]]*\]\([^)]+\))\s*([^\n])/gm,
+    "$1\n\n$2",
+  );
+}
 
 /**
  * Use LLM to match images with their corresponding text sections.
@@ -639,7 +690,7 @@ ${pageMapStr}
     const imageTarget = image.localPath || image.dataUrl || "";
     if (!imageTarget) continue;
 
-    const imageMarkdown = `\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n`;
+    const imageMarkdown = `\n\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n\n`;
     const afterText = placement.afterText.trim();
 
     if (afterText && result.includes(afterText)) {
@@ -665,7 +716,7 @@ ${pageMapStr}
     insertedCount,
   });
 
-  return insertedCount > 0 ? result : null;
+  return insertedCount > 0 ? ensureImageLineBreaks(result) : null;
 }
 
 /**
@@ -723,7 +774,7 @@ function insertImagesByPageContextFallback(
     const imageTarget = image.localPath || image.dataUrl || "";
     if (!imageTarget) continue;
 
-    const imageMarkdown = `\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n`;
+    const imageMarkdown = `\n\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n\n`;
     const pageNum = image.pageNumber;
 
     let insertAt = -1;
