@@ -11,7 +11,27 @@
 import { invoke } from "@tauri-apps/api/core";
 import { appDataDir } from "@tauri-apps/api/path";
 import { mkdir } from "@tauri-apps/plugin-fs";
+import { useAppStore } from "@/store/useAppStore";
 import type { DocumentImageAsset } from "@/types";
+
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      level,
+      scope,
+      message,
+      payload,
+    });
+  }
+};
 
 interface ExtractedImage {
   page_number: number;
@@ -40,6 +60,12 @@ export async function extractPdfImages(
   outputDir: string,
   baseName: string,
 ): Promise<DocumentImageAsset[]> {
+  pushDevLog("info", "image-extract", "开始调用 Rust 提取 PDF 图片", {
+    pdfPath,
+    outputDir,
+    baseName,
+  });
+
   try {
     const resultJson = await invoke<string>("extract_pdf_images", {
       pdfPath,
@@ -50,16 +76,29 @@ export async function extractPdfImages(
     const result: ExtractImagesResult = JSON.parse(resultJson || "{}");
 
     if (!result.images || !Array.isArray(result.images)) {
+      pushDevLog("warn", "image-extract", "Rust 返回的图片数据为空或格式异常", {
+        resultJson: resultJson?.substring(0, 500),
+      });
       return [];
     }
 
-    return result.images.map((img) => ({
+    const assets = result.images.map((img) => ({
       pageNumber: img.page_number,
       fileName: img.file_name,
       localPath: img.local_path,
     }));
-  } catch (error) {
+
+    pushDevLog("info", "image-extract", `PDF 图片提取成功: ${assets.length} 张`, {
+      images: assets.map((a) => ({ page: a.pageNumber, name: a.fileName, path: a.localPath })),
+    });
+
+    return assets;
+  } catch (error: any) {
     console.error("PDF 图片提取失败:", error);
+    pushDevLog("error", "image-extract", "PDF 图片提取失败", {
+      error: error?.message || String(error),
+      pdfPath,
+    });
     // Return empty array rather than throwing - images are optional
     return [];
   }
@@ -81,11 +120,23 @@ export async function savePdfToDataDir(
   const imageDir = `${baseDir}/${baseName}_pdf_assets`;
   const pdfPath = `${baseDir}/${baseName}_input.pdf`;
 
+  pushDevLog("info", "image-extract", "保存 PDF 到数据目录", {
+    fileName: file.name,
+    fileSize: file.size,
+    pdfPath,
+    imageDir,
+  });
+
   await mkdir(imageDir, { recursive: true });
 
   const arrayBuffer = await file.arrayBuffer();
   const { writeFile } = await import("@tauri-apps/plugin-fs");
   await writeFile(pdfPath, new Uint8Array(arrayBuffer));
+
+  pushDevLog("info", "image-extract", "PDF 文件保存成功", {
+    pdfPath,
+    imageDir,
+  });
 
   return { pdfPath, baseName, imageDir };
 }

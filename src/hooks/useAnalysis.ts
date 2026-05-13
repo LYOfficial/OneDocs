@@ -6,6 +6,7 @@ import { MODEL_PROVIDERS } from "@/config/providers";
 import { useToast } from "@/components/Toast";
 import {
   applyImagePlacements,
+  insertImagesByPageContext,
   stripLeadingMarkers,
   stripMarkdownFence,
 } from "@/utils/analysisWorkflow";
@@ -99,7 +100,8 @@ export const useAnalysis = () => {
     promptConfig: typeof PROMPT_CONFIGS.science,
     settings: { apiKey: string; baseUrl: string; model: string },
     analysisBundle: DocumentAnalysisBundle,
-    includeImages: boolean = true,
+    progressStart: number = 20,
+    progressEnd: number = 85,
   ): Promise<string> => {
     const { coreSystemPrompt, chunkTasks, sectionHeaders } = promptConfig;
 
@@ -113,6 +115,10 @@ export const useAnalysis = () => {
     // Trigger embedding generation once per document to power RAG and logging
     if (allChunks.length > 0) {
       if (isEmbeddingAvailable()) {
+        setAnalysisProgress({
+          percentage: progressStart,
+          message: `正在生成嵌入向量 (${allChunks.length} 个文本片段)...`,
+        });
         const startAt = Date.now();
         pushDevLog("info", "embedding", "开始生成嵌入向量", {
           model: EMBEDDING_MODEL,
@@ -153,14 +159,16 @@ export const useAnalysis = () => {
 
     const sectionOutputs: Record<string, string> = {};
     const totalSteps = chunkTasks.length;
+    const sectionProgressStart = progressStart + Math.round((progressEnd - progressStart) * 0.05);
+    const sectionProgressEnd = progressEnd;
 
     for (let taskIdx = 0; taskIdx < chunkTasks.length; taskIdx++) {
       const task = chunkTasks[taskIdx];
       const sectionHeader = sectionHeaders[taskIdx] || sectionHeaders[sectionHeaders.length - 1];
 
       setAnalysisProgress({
-        percentage: Math.round((taskIdx / totalSteps) * 85),
-        message: `正在生成 ${sectionHeader} (${taskIdx + 1}/${totalSteps}): ${fileInfo.name}...`,
+        percentage: Math.round(sectionProgressStart + ((taskIdx) / totalSteps) * (sectionProgressEnd - sectionProgressStart)),
+        message: `正在调用模型生成「${sectionHeader}」(${taskIdx + 1}/${totalSteps})...`,
       });
 
       // Process ALL chunks in batches for this section task
@@ -169,7 +177,7 @@ export const useAnalysis = () => {
       let batchChunks: string[] = [];
       let batchLen = 0;
 
-      const flushBatch = async (batch: string[], batchIdx: number) => {
+      const flushBatch = async (batch: string[], batchIdx: number, totalBatches: number) => {
         if (batch.length === 0) return;
 
         const batchText = batch.join("\n\n");
@@ -178,19 +186,23 @@ export const useAnalysis = () => {
           `输出部分：${sectionHeader}`,
           `要求：${task}`,
           ``,
-          `# 文档内容（批次 ${batchIdx + 1}，共 ${batch.length} 片段）`,
+          `# 文档内容（批次 ${batchIdx + 1}/${totalBatches}，共 ${batch.length} 片段）`,
           batchText.trim(),
           ``,
           `请基于以上内容完成该部分输出。如果内容不足以完成该任务，请输出你能够确定的部分。`,
         ].filter(Boolean).join("\n");
 
-        const allImagePaths = includeImages
-          ? analysisBundle.images
-              .map((img) => img.localPath || img.dataUrl)
-              .filter(Boolean) as string[]
-          : [];
+        // Update progress for each batch within a section
+        const batchProgressBase = Math.round(sectionProgressStart + (taskIdx / totalSteps) * (sectionProgressEnd - sectionProgressStart));
+        const batchProgressNext = Math.round(sectionProgressStart + ((taskIdx + 1) / totalSteps) * (sectionProgressEnd - sectionProgressStart));
+        setAnalysisProgress({
+          percentage: Math.round(batchProgressBase + (batchIdx / Math.max(totalBatches, 1)) * (batchProgressNext - batchProgressBase)),
+          message: `正在生成「${sectionHeader}」批次 ${batchIdx + 1}/${totalBatches}...`,
+        });
 
         try {
+          // Don't pass local image paths to LLM — most models can't use them.
+          // Images will be inserted by post-processing (applyImagePlacements + insertImagesByPageContext)
           const response = await APIService.callAIWithProvider(
             currentProvider,
             coreSystemPrompt,
@@ -200,7 +212,7 @@ export const useAnalysis = () => {
               baseUrl: settings.baseUrl,
               model: settings.model,
             },
-            allImagePaths.length > 0 ? allImagePaths.slice(0, 5) : undefined,
+            undefined, // Don't send images to LLM
           );
 
           const cleanedRaw = stripLeadingMarkers(stripMarkdownFence(response)).trim();
@@ -215,6 +227,23 @@ export const useAnalysis = () => {
         }
       };
 
+      // Pre-count total batches for progress reporting
+      const tempBatches: string[][] = [];
+      let tempBatch: string[] = [];
+      let tempLen = 0;
+      for (let i = 0; i < allChunks.length; i++) {
+        const chunkContent = `[片段${i + 1}（第${allChunks[i].sourcePage}页）]\n${allChunks[i].content}`;
+        if (tempLen + chunkContent.length > MAX_CHARS_PER_BATCH && tempBatch.length > 0) {
+          tempBatches.push(tempBatch);
+          tempBatch = [];
+          tempLen = 0;
+        }
+        tempBatch.push(chunkContent);
+        tempLen += chunkContent.length;
+      }
+      if (tempBatch.length > 0) tempBatches.push(tempBatch);
+      const totalBatches = tempBatches.length;
+
       // Iterate through ALL chunks in page order, batching them
       let batchIndex = 0;
       for (let i = 0; i < allChunks.length; i++) {
@@ -222,7 +251,7 @@ export const useAnalysis = () => {
 
         if (batchLen + chunkContent.length > MAX_CHARS_PER_BATCH && batchChunks.length > 0) {
           // Flush current batch
-          await flushBatch(batchChunks, batchIndex);
+          await flushBatch(batchChunks, batchIndex, totalBatches);
           batchIndex++;
           batchChunks = [];
           batchLen = 0;
@@ -233,7 +262,7 @@ export const useAnalysis = () => {
       }
 
       // Flush remaining batch
-      await flushBatch(batchChunks, batchIndex);
+      await flushBatch(batchChunks, batchIndex, totalBatches);
 
       // Merge all batch outputs for this section
       if (chunkOutputs.length > 0) {
@@ -257,40 +286,12 @@ export const useAnalysis = () => {
 
     let finalContent = assembledParts.join("\n\n");
 
-    // Insert extracted images
-    if (includeImages && analysisBundle.images.length > 0) {
-      finalContent = applyImagePlacements(finalContent, analysisBundle.images);
-
-      // Log image replacement results
-      const placeholderPatterns = [
-        /\[\[PAGE_IMAGE_\d+\]\]/g,
-        /\[(图片|图|示意图|照片|插图)[:：\s][^\]]+\]/g,
-        /!\[([^\]]*?)\]\(([^)]*(?:图片占位符|placeholder|image_placeholder|占位)[^)]*)\)/gi,
-        /!\[([^\]]*?)\]\(\)/g,
-      ];
-      const remainingPlaceholders = placeholderPatterns.reduce((count, regex) => {
-        const matches = finalContent.match(regex);
-        return count + (matches?.length || 0);
-      }, 0);
-
-      const hasImageRef = analysisBundle.images.some(
-        (img) => finalContent.includes(img.localPath || img.dataUrl || "")
-      );
-
-      pushDevLog("info", "analysis", `图片替换完成: ${fileInfo.name}`, {
-        imageCount: analysisBundle.images.length,
-        hasImageRef,
-        remainingPlaceholders,
-        replacedCount: analysisBundle.images.filter(
-          (img) => finalContent.includes(img.localPath || img.dataUrl || "")
-        ).length,
-        samplePaths: analysisBundle.images.slice(0, 3).map((img) => img.localPath || img.dataUrl),
-      });
-      // No fallback image section — extracted images are already placed inline
-    }
+    // Image insertion is now handled in analyzeDocument after the pipeline completes,
+    // using both placeholder-based replacement and page-context insertion.
 
     pushDevLog("info", "analysis", `全量分段管道完成: ${fileInfo.name}`, {
       sections: sectionHeaders.length,
+      imageCount: analysisBundle.images.length,
     });
 
     return finalContent;
@@ -368,10 +369,12 @@ export const useAnalysis = () => {
       for (let i = 0; i < totalFiles; i++) {
         const fileInfo = filesToAnalyze[i];
         const fileId = fileInfo.id || `file_${i}`;
-        
+        const fileBase = Math.round((i / totalFiles) * 100);
+        const fileSpan = Math.round(100 / totalFiles);
+
         setAnalysisProgress({
-          percentage: Math.round((i / totalFiles) * 100),
-          message: `正在分析文件 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
+          percentage: fileBase,
+          message: `正在读取文件 ${i + 1}/${totalFiles}: ${fileInfo.name}`,
         });
         pushDevLog("info", "analysis", `开始处理文件: ${fileInfo.name}`, {
           index: i + 1,
@@ -379,6 +382,11 @@ export const useAnalysis = () => {
         });
 
         try {
+          setAnalysisProgress({
+            percentage: fileBase + Math.round(fileSpan * 0.05),
+            message: `正在解析 PDF 文本: ${fileInfo.name}`,
+          });
+
           const analysisBundle = await DocumentProcessor.extractAnalysisBundle(
             fileInfo.file,
             dataDirectory.trim() || undefined,
@@ -388,19 +396,21 @@ export const useAnalysis = () => {
             throw new Error(`文档 ${fileInfo.name} 内容为空或无法读取`);
           }
 
+          setAnalysisProgress({
+            percentage: fileBase + Math.round(fileSpan * 0.15),
+            message: `已提取 ${analysisBundle.images.length} 张图片，${analysisBundle.pageCount} 页文本`,
+          });
+
           let finalContent = "";
 
           try {
-            setAnalysisProgress({
-              percentage: Math.round((i / totalFiles) * 100 + 5 / totalFiles),
-              message: `正在分段分析 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
-            });
             finalContent = await runSectionPipeline(
               fileInfo,
               promptConfig,
               settings,
               analysisBundle,
-              true,
+              fileBase + Math.round(fileSpan * 0.2),
+              fileBase + Math.round(fileSpan * 0.85),
             );
           } catch (pipelineError: any) {
             console.warn(`文件 ${fileInfo.name} 分段管道失败:`, pipelineError);
@@ -414,12 +424,31 @@ export const useAnalysis = () => {
             throw new Error("分段管道未生成有效内容");
           }
 
+          setAnalysisProgress({
+            percentage: fileBase + Math.round(fileSpan * 0.87),
+            message: `正在插入 ${analysisBundle.images.length} 张提取图片...`,
+          });
+
+          pushDevLog("info", "analysis", `开始图片插入: ${analysisBundle.images.length} 张图片`, {
+            imageCount: analysisBundle.images.length,
+            images: analysisBundle.images.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
+          });
+
+          // First try placeholder-based replacement (for any placeholders LLM may have generated)
           finalContent = applyImagePlacements(finalContent, analysisBundle.images);
+
+          // Then insert remaining images by page context (for images not matched by placeholders)
+          finalContent = insertImagesByPageContext(finalContent, analysisBundle.images);
+
+          pushDevLog("info", "analysis", `图片插入完成，最终内容长度: ${finalContent.length}`, {
+            contentLength: finalContent.length,
+            imageRefCount: (finalContent.match(/!\[[^\]]*\]\([^)]+\)/g) || []).length,
+          });
 
           if (selectedFunction === "science" && enableFormatReview) {
             setAnalysisProgress({
-              percentage: Math.round((i / totalFiles) * 100 + 88 / totalFiles),
-              message: `正在进行格式复查 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
+              percentage: fileBase + Math.round(fileSpan * 0.9),
+              message: `正在进行格式复查: ${fileInfo.name}`,
             });
 
             const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记、公式排版与图片引用格式：\n\n【格式要求】\n1. 一级标题仅为"# 基础知识""# 典型例题"\n2. 二级标题从1开始递增，格式"## 1. 标题"\n3. 三级标题为"### 1.1 小节"依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\n公式\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留所有本地图片路径（如 ![描述](C:/...) 或 ![描述](/...)），不要删除或改写图像引用，不要将图片路径替换为占位符\n7. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${finalContent}`;
@@ -439,6 +468,7 @@ export const useAnalysis = () => {
               const reviewedContent = stripLeadingMarkers(stripMarkdownFence(reviewResponse)).trim();
               if (reviewedContent) {
                 finalContent = applyImagePlacements(reviewedContent, analysisBundle.images);
+                finalContent = insertImagesByPageContext(finalContent, analysisBundle.images);
               }
             } catch (reviewError: any) {
               console.error(`文件 ${fileInfo.name} 格式复查失败:`, reviewError);

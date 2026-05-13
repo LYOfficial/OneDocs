@@ -1,4 +1,4 @@
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { useAppStore } from "@/store/useAppStore";
 import type {
   AnalysisWorkflowPlan,
   ChunkPlan,
@@ -6,6 +6,25 @@ import type {
   DocumentImageAsset,
   SupportedFileType,
 } from "@/types";
+
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      level,
+      scope,
+      message,
+      payload,
+    });
+  }
+};
 
 const PAGE_IMAGE_TOKEN_PREFIX = "[[PAGE_IMAGE_";
 const DEFAULT_PAGE_CHUNK_SIZE = 4;
@@ -257,11 +276,21 @@ export const applyImagePlacements = (
   images: DocumentImageAsset[],
 ): string => {
   if (!markdown || images.length === 0) {
+    pushDevLog("info", "image-insert", "applyImagePlacements: 无图片需要插入或 Markdown 为空", {
+      hasMarkdown: Boolean(markdown),
+      imageCount: images.length,
+    });
     return markdown;
   }
 
+  pushDevLog("info", "image-insert", "applyImagePlacements: 开始替换图片占位符", {
+    imageCount: images.length,
+    images: images.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
+  });
+
   let nextMarkdown = markdown;
   const usedImageKeys = new Set<string>();
+  let replacedCount = 0;
 
   for (const image of images) {
     const token = getImageToken(image.pageNumber);
@@ -274,6 +303,7 @@ export const applyImagePlacements = (
     if (nextMarkdown.includes(token)) {
       nextMarkdown = nextMarkdown.split(token).join(imageMarkdown);
       usedImageKeys.add(imageTarget);
+      replacedCount++;
     }
   }
 
@@ -320,6 +350,7 @@ export const applyImagePlacements = (
         return match;
       }
       const imgPath = getNextImage();
+      if (imgPath) replacedCount++;
       return imgPath ? `![${alt.trim()}](${imgPath})` : match;
     });
 
@@ -327,6 +358,7 @@ export const applyImagePlacements = (
     const textPlaceholderRegex = /\[(图片|图|示意图|照片|插图)[:：\s][^\]]+\]/g;
     nextMarkdown = nextMarkdown.replace(textPlaceholderRegex, (match) => {
       const imgPath = getNextImage();
+      if (imgPath) replacedCount++;
       return imgPath ? `![${match.slice(1, -1)}](${imgPath})` : match;
     });
 
@@ -334,9 +366,16 @@ export const applyImagePlacements = (
     const bareImageRegex = /!\[([^\]]+)\](?!\()/g;
     nextMarkdown = nextMarkdown.replace(bareImageRegex, (match, alt) => {
       const imgPath = getNextImage();
+      if (imgPath) replacedCount++;
       return imgPath ? `![${alt.trim()}](${imgPath})` : match;
     });
   }
+
+  pushDevLog("info", "image-insert", `applyImagePlacements 完成: 替换了 ${replacedCount} 处图片引用`, {
+    replacedCount,
+    usedImageCount: usedImageKeys.size,
+    totalImages: images.length,
+  });
 
   return nextMarkdown;
 };
@@ -403,16 +442,144 @@ const inferPreferredSection = (text: string): string => {
 };
 
 const normalizeMarkdownPath = (pathValue: string): string => {
-  const normalized = pathValue.replace(/\\/g, "/");
-  // Convert local file paths to Tauri asset protocol URLs for rendering
-  if (/^(?:[a-zA-Z]:[/]|\/)/.test(normalized)) {
-    try {
-      return convertFileSrc(normalized);
-    } catch {
-      return normalized;
-    }
+  // Only normalize backslashes to forward slashes for Markdown compatibility.
+  // Do NOT convert to Tauri asset protocol URLs here — that is the
+  // responsibility of MarkdownRenderer.rewriteLocalImageSources at render time.
+  // Keeping real local paths in the Markdown source ensures:
+  //   1. Source view shows readable local file paths
+  //   2. Render view can properly convert them via convertFileSrc
+  return pathValue.replace(/\\/g, "/");
+};
+
+/**
+ * Insert images into markdown by page context.
+ *
+ * This is the primary image insertion strategy: since LLMs typically don't
+ * generate image placeholders, we insert images based on their page numbers
+ * into the appropriate sections of the document.
+ *
+ * Strategy:
+ * 1. Find which images are already referenced in the markdown (skip those)
+ * 2. For each unreferenced image, find the best insertion point:
+ *    - Look for section headers (## or ###) that correspond to the image's page
+ *    - If no matching header, insert after the first paragraph that mentions the page
+ *    - As a last resort, append at the end of the document
+ */
+export const insertImagesByPageContext = (
+  markdown: string,
+  images: DocumentImageAsset[],
+): string => {
+  if (!markdown || images.length === 0) {
+    pushDevLog("info", "image-insert", "insertImagesByPageContext: 无图片需要插入或 Markdown 为空", {
+      hasMarkdown: Boolean(markdown),
+      imageCount: images.length,
+    });
+    return markdown;
   }
-  return normalized;
+
+  // Find images already referenced in the markdown
+  const referencedPaths = new Set<string>();
+  const imgRefRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
+  let refMatch;
+  while ((refMatch = imgRefRegex.exec(markdown)) !== null) {
+    referencedPaths.add(refMatch[1]);
+  }
+
+  // Filter to unreferenced images
+  const unreferencedImages = images.filter((img) => {
+    const target = img.localPath || img.dataUrl || "";
+    if (!target) return false;
+    const normalized = normalizeMarkdownPath(target);
+    return !referencedPaths.has(normalized) && !referencedPaths.has(target);
+  });
+
+  if (unreferencedImages.length === 0) {
+    pushDevLog("info", "image-insert", "insertImagesByPageContext: 所有图片已在 Markdown 中引用，无需额外插入");
+    return markdown;
+  }
+
+  pushDevLog("info", "image-insert", `insertImagesByPageContext: 需要插入 ${unreferencedImages.length} 张未引用图片`, {
+    unreferencedCount: unreferencedImages.length,
+    unreferencedImages: unreferencedImages.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
+  });
+
+  // Split markdown into lines for insertion
+  const lines = markdown.split("\n");
+  const insertions: { lineIndex: number; imageMarkdown: string }[] = [];
+
+  for (const image of unreferencedImages) {
+    const imageTarget = image.localPath || image.dataUrl || "";
+    if (!imageTarget) continue;
+
+    const imageMarkdown = `\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n`;
+    const pageNum = image.pageNumber;
+
+    // Strategy 1: Find a heading that mentions this page number
+    let insertAt = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Match headings like "## 1. xxx" or "### 1.1 xxx" or lines mentioning "第N页"
+      if (/^#{1,3}\s/.test(line)) {
+        // Check if subsequent content relates to this page
+        // Look ahead a few lines for page references
+        const lookAhead = lines.slice(i + 1, Math.min(i + 5, lines.length)).join(" ");
+        if (lookAhead.includes(`第 ${pageNum} 页`) || lookAhead.includes(`第${pageNum}页`)) {
+          insertAt = i + 1;
+          break;
+        }
+      }
+    }
+
+    // Strategy 2: Find any line mentioning this page number
+    if (insertAt === -1) {
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes(`第 ${pageNum} 页`) || lines[i].includes(`第${pageNum}页`)) {
+          // Insert after this line (or after the paragraph block)
+          insertAt = i + 1;
+          // Skip to end of current paragraph
+          while (insertAt < lines.length && lines[insertAt].trim() !== "") {
+            insertAt++;
+          }
+          break;
+        }
+      }
+    }
+
+    // Strategy 3: For images from early pages, insert after the first ## heading
+    if (insertAt === -1) {
+      for (let i = 0; i < lines.length; i++) {
+        if (/^##\s/.test(lines[i])) {
+          insertAt = i + 1;
+          break;
+        }
+      }
+    }
+
+    // Strategy 4: Append at end
+    if (insertAt === -1) {
+      insertAt = lines.length;
+    }
+
+    insertions.push({ lineIndex: insertAt, imageMarkdown });
+  }
+
+  // Sort insertions by line index in reverse order so we insert from bottom to top
+  // This prevents line indices from shifting
+  insertions.sort((a, b) => b.lineIndex - a.lineIndex);
+
+  for (const { lineIndex, imageMarkdown } of insertions) {
+    lines.splice(lineIndex, 0, imageMarkdown);
+  }
+
+  pushDevLog("info", "image-insert", `insertImagesByPageContext 完成: 插入了 ${insertions.length} 张图片`, {
+    insertedCount: insertions.length,
+    insertions: insertions.map((ins, idx) => ({
+      lineIndex: ins.lineIndex,
+      preview: ins.imageMarkdown.substring(0, 120),
+    })),
+  });
+
+  return lines.join("\n");
 };
 
 const inferChunkFocus = (text: string): string => {

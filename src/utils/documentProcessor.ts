@@ -3,11 +3,31 @@ import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import { appDataDir } from "@tauri-apps/api/path";
 import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
 import { extractPdfImages } from "@/services/pdfImageExtractor";
+import { useAppStore } from "@/store/useAppStore";
 import type {
   DocumentAnalysisBundle,
   DocumentImageAsset,
   SupportedFileType,
 } from "@/types";
+
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      level,
+      scope,
+      message,
+      payload,
+    });
+  }
+};
 
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -100,12 +120,26 @@ export class DocumentProcessor {
         const pdfPath = `${baseDir}/${baseName}_input.pdf`;
         await writeFile(pdfPath, new Uint8Array(arrayBuffer));
 
+        pushDevLog("info", "document-processor", "PDF 已保存到数据目录，准备提取图片", {
+          pdfPath,
+          imageDir,
+          fileSize: arrayBuffer.byteLength,
+        });
+
         // Step 3: Call Rust to extract images (lopdf + easyyun API fallback)
         imageAssets = await extractPdfImages(pdfPath, imageDir, baseName);
         console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`,
           imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })));
-      } catch (imageError) {
+
+        pushDevLog("info", "document-processor", `图片提取完成: ${imageAssets.length} 张`, {
+          imageCount: imageAssets.length,
+          images: imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
+        });
+      } catch (imageError: any) {
         console.warn("PDF 图片提取失败，继续无图片分析:", imageError);
+        pushDevLog("warn", "document-processor", "PDF 图片提取失败，继续无图片分析", {
+          error: imageError?.message || String(imageError),
+        });
         // Images are optional - continue without them
       }
 

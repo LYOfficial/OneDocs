@@ -1,6 +1,26 @@
 import { marked } from "marked";
 import katex from "katex";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { useAppStore } from "@/store/useAppStore";
+
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      level,
+      scope,
+      message,
+      payload,
+    });
+  }
+};
 
 marked.setOptions({
   breaks: true,
@@ -39,9 +59,49 @@ export class MarkdownRenderer {
         },
       );
 
+      // Extract local image paths before marked.parse to prevent URL encoding issues.
+      // marked may mangle Windows paths (C:/...) or other local paths containing colons.
+      const imageStore: Map<string, string> = new Map();
+      let imageCounter = 0;
+      content = content.replace(
+        /!\[([^\]]*)\]\(([^)]+)\)/g,
+        (_match, alt, url) => {
+          const decodedUrl = url.trim();
+          if (this.isLocalImageSource(decodedUrl)) {
+            const placeholder = `LOCALIMG${imageCounter}LOCALIMG`;
+            imageStore.set(placeholder, decodedUrl);
+            imageCounter++;
+            return `![${alt}](${placeholder})`;
+          }
+          return _match;
+        },
+      );
+
       console.log("提取公式数量:", mathStore.size);
+      if (imageStore.size > 0) {
+        console.log(`提取本地图片路径: ${imageStore.size} 张`);
+      }
 
       let html = marked.parse(content) as string;
+
+      // Restore local image paths and convert to Tauri asset URLs
+      imageStore.forEach((originalPath, placeholder) => {
+        const normalized = originalPath.replace(/\\/g, "/");
+        const converted = convertFileSrc(normalized);
+        // marked may have HTML-encoded the placeholder, so try both raw and encoded forms
+        html = html.replace(new RegExp(placeholder, "g"), converted);
+        // Also handle cases where marked encodes the placeholder in the src attribute
+        const encodedPlaceholder = placeholder
+          .replace(/LOCALIMG/g, "LOCALIMG");
+        html = html.replace(new RegExp(encodedPlaceholder, "g"), converted);
+      });
+
+      if (imageStore.size > 0) {
+        pushDevLog("info", "markdown-render", `预提取并转换了 ${imageStore.size} 张本地图片路径`, {
+          count: imageStore.size,
+          paths: Array.from(imageStore.values()),
+        });
+      }
 
       console.log("Markdown 渲染完成，开始替换公式");
 
@@ -121,7 +181,10 @@ export class MarkdownRenderer {
   }
 
   private static rewriteLocalImageSources(html: string): string {
-    return html.replace(
+    let convertedCount = 0;
+    const convertedImages: Array<{ original: string; converted: string }> = [];
+
+    const result = html.replace(
       /<img([^>]*?)src=("|')(.*?)(\2)([^>]*?)>/g,
       (_match, before, quote, src, _closingQuote, after) => {
         const decodedSrc = this.decodeHtmlEntities(src);
@@ -131,14 +194,33 @@ export class MarkdownRenderer {
 
         const normalized = decodedSrc.replace(/\\/g, "/");
         const converted = convertFileSrc(normalized);
+        convertedCount++;
+        convertedImages.push({ original: decodedSrc, converted });
         return `<img${before}src=${quote}${converted}${quote}${after}>`;
       },
     );
+
+    if (convertedCount > 0) {
+      pushDevLog("info", "markdown-render", `渲染时转换了 ${convertedCount} 张本地图片路径`, {
+        convertedCount,
+        images: convertedImages,
+      });
+    }
+
+    return result;
   }
 
   private static isLocalImageSource(src: string): boolean {
-    return /^(?:[a-zA-Z]:[\\/]|\/|file:\/\/)/.test(src) ||
-           /^(?:[a-zA-Z]:&#47;|&#47;|file:&#47;&#47;)/.test(src);
+    // Match Windows absolute paths (C:/, D:\, etc.)
+    // Match Unix absolute paths (/home/, /tmp/, /Users/, etc.) — but not protocol-relative URLs (//cdn.example.com)
+    // Match file:// protocol URLs
+    // Also match paths that may have been partially HTML-encoded
+    return /^(?:[a-zA-Z]:[\\/])/.test(src) ||
+           /^\/(?!\/)[^\s]/.test(src) ||
+           /^file:\/\//.test(src) ||
+           /^(?:[a-zA-Z]:&#47;)/.test(src) ||
+           /^&#47;(?!&#47;)/.test(src) ||
+           /^file:&#47;&#47;/.test(src);
   }
 
   /** Add target="_blank" rel="noopener noreferrer" to all <a> tags */
