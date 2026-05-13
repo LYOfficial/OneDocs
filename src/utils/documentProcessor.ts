@@ -87,14 +87,13 @@ export class DocumentProcessor {
 
       // Step 2: Save PDF to data directory and extract images via Rust
       let imageAssets: DocumentImageAsset[] = [];
+      const baseDir = outputRoot
+        ? this.normalizePath(outputRoot)
+        : this.normalizePath(await appDataDir());
+      const baseName = this.sanitizeFileStem(file.name) || "OneDocs";
+      const imageDir = `${baseDir}/${baseName}_pdf_assets`;
 
       try {
-        const baseDir = outputRoot
-          ? this.normalizePath(outputRoot)
-          : this.normalizePath(await appDataDir());
-        const baseName = this.sanitizeFileStem(file.name) || "OneDocs";
-        const imageDir = `${baseDir}/${baseName}_pdf_assets`;
-
         await mkdir(imageDir, { recursive: true });
 
         // Save PDF file to data directory for Rust processing
@@ -103,12 +102,15 @@ export class DocumentProcessor {
 
         // Step 3: Call Rust to extract images (lopdf + easyyun API fallback)
         imageAssets = await extractPdfImages(pdfPath, imageDir, baseName);
-        console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`, 
+        console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`,
           imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })));
       } catch (imageError) {
         console.warn("PDF 图片提取失败，继续无图片分析:", imageError);
         // Images are optional - continue without them
       }
+
+      // Note: No page-render fallback — we only want actual embedded images,
+      // not full-page screenshots. The Rust backend (EasyYun + lopdf) handles extraction.
 
       return {
         text: fullText.trim(),

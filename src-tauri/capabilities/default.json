@@ -22,6 +22,10 @@
     "fs:allow-appdata-read-recursive",
     "fs:allow-temp-write-recursive",
     "fs:allow-resource-write-recursive",
+    "fs:allow-resource-read-recursive",
+    "fs:allow-read",
+    "fs:allow-read-file",
+    "fs:allow-exists",
     "opener:default"
   ]
 }

@@ -1,9 +1,12 @@
 use anyhow::Result;
+use aws_credential_types::Credentials;
+use aws_sdk_s3::{primitives::ByteStream, Client as S3Client};
 use base64::Engine;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Content part for multimodal messages (text or image)
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -195,10 +198,8 @@ async fn analyze_content_rust(
 
 /// Extract images from a PDF file using lopdf, with page-render fallback.
 /// Strategy:
-///   1. Try lopdf to extract embedded images (JPEG/PNG/JP2/raw)
-///   2. If no embedded images found, render each page as a PNG using pdfjs-style
-///      rasterization (via the image crate for raw pixel data from lopdf)
-///   3. As a last resort, try the easyyun API (requires public URL)
+///   1. Try the easyyun API first (extracts embedded images from PDF, requires S3 URL)
+///   2. If easyyun fails or returns no images, fall back to lopdf local extraction
 #[tauri::command]
 async fn extract_pdf_images(
     pdf_path: String,
@@ -214,75 +215,79 @@ async fn extract_pdf_images(
     fs::create_dir_all(&output_dir)
         .map_err(|e| format!("创建输出目录失败: {}", e))?;
 
-    // Read PDF file bytes
-    let pdf_bytes = fs::read(pdf_file_path)
-        .map_err(|e| format!("读取 PDF 文件失败: {}", e))?;
-
-    // Use lopdf to extract embedded images from the PDF
-    let lopdf_doc = lopdf::Document::load_mem(&pdf_bytes)
-        .map_err(|e| format!("解析 PDF 失败: {}", e))?;
-
     let mut extracted_images: Vec<ExtractedImage> = Vec::new();
-    let mut image_index: u32 = 0;
 
-    // Iterate through pages and extract images using lopdf's built-in method
-    let pages = lopdf_doc.get_pages();
-    for (page_num, page_id) in pages.iter() {
-        // Use lopdf's get_page_images to extract image info
-        match lopdf_doc.get_page_images(*page_id) {
-            Ok(pdf_images) => {
-                for pdf_image in pdf_images {
-                    let width = pdf_image.width as u32;
-                    let height = pdf_image.height as u32;
-
-                    // Skip very small images (likely artifacts)
-                    if width < 10 || height < 10 {
-                        continue;
-                    }
-
-                    image_index += 1;
-
-                    // Determine file extension based on filter
-                    let filter_str = pdf_image
-                        .filters
-                        .as_ref()
-                        .map(|f| f.join(","))
-                        .unwrap_or_default();
-
-                    let save_result = if filter_str.contains("DCTDecode") {
-                        // JPEG - save directly
-                        save_jpeg(&pdf_image.content, &output_dir, &base_name, *page_num, image_index)
-                    } else if filter_str.contains("JPXDecode") {
-                        // JPEG2000 - save directly
-                        save_jpeg(&pdf_image.content, &output_dir, &base_name, *page_num, image_index)
-                    } else if filter_str.contains("FlateDecode") {
-                        // Deflate-compressed raw pixels - decode and save as PNG
-                        save_raw_as_png(&pdf_image.content, width, height, pdf_image.color_space.as_deref(), &output_dir, &base_name, *page_num, image_index)
-                    } else {
-                        // Unfiltered raw pixels - save as PNG
-                        save_raw_as_png(&pdf_image.content, width, height, pdf_image.color_space.as_deref(), &output_dir, &base_name, *page_num, image_index)
-                    };
-
-                    if let Some(img) = save_result {
-                        extracted_images.push(img);
-                    }
-                }
+    // Step 1: Try EasyYun API first (extracts actual embedded images)
+    eprintln!("尝试 easyyun API 提取嵌入图片...");
+    match call_easyyun_extract_api(&pdf_path, &output_dir, &base_name).await {
+        Ok(api_images) => {
+            if !api_images.is_empty() {
+                eprintln!("easyyun API 提取到 {} 张嵌入图片", api_images.len());
+                extracted_images.extend(api_images);
+            } else {
+                eprintln!("easyyun API 返回 0 张图片，尝试 lopdf...");
             }
-            Err(_) => continue,
+        }
+        Err(e) => {
+            eprintln!("easyyun API 调用失败: {}，尝试 lopdf...", e);
         }
     }
 
-    // If no embedded images found, try the easyyun API as fallback
+    // Step 2: If EasyYun failed or returned nothing, try lopdf as fallback
     if extracted_images.is_empty() {
-        eprintln!("lopdf 未提取到嵌入图片，尝试 easyyun API...");
-        match call_easyyun_extract_api(&pdf_path, &output_dir, &base_name).await {
-            Ok(api_images) => {
-                extracted_images.extend(api_images);
+        eprintln!("尝试 lopdf 本地提取...");
+        let pdf_bytes = fs::read(pdf_file_path)
+            .map_err(|e| format!("读取 PDF 文件失败: {}", e))?;
+
+        let lopdf_doc = lopdf::Document::load_mem(&pdf_bytes)
+            .map_err(|e| format!("解析 PDF 失败: {}", e))?;
+
+        let mut image_index: u32 = 0;
+
+        let pages = lopdf_doc.get_pages();
+        for (page_num, page_id) in pages.iter() {
+            match lopdf_doc.get_page_images(*page_id) {
+                Ok(pdf_images) => {
+                    for pdf_image in pdf_images {
+                        let width = pdf_image.width as u32;
+                        let height = pdf_image.height as u32;
+
+                        // Skip very small images (likely artifacts)
+                        if width < 10 || height < 10 {
+                            continue;
+                        }
+
+                        image_index += 1;
+
+                        let filter_str = pdf_image
+                            .filters
+                            .as_ref()
+                            .map(|f| f.join(","))
+                            .unwrap_or_default();
+
+                        let save_result = if filter_str.contains("DCTDecode") {
+                            save_jpeg(&pdf_image.content, &output_dir, &base_name, *page_num, image_index)
+                        } else if filter_str.contains("JPXDecode") {
+                            save_jpeg(&pdf_image.content, &output_dir, &base_name, *page_num, image_index)
+                        } else if filter_str.contains("FlateDecode") {
+                            save_raw_as_png(&pdf_image.content, width, height, pdf_image.color_space.as_deref(), &output_dir, &base_name, *page_num, image_index)
+                        } else {
+                            save_raw_as_png(&pdf_image.content, width, height, pdf_image.color_space.as_deref(), &output_dir, &base_name, *page_num, image_index)
+                        };
+
+                        if let Some(img) = save_result {
+                            extracted_images.push(img);
+                        }
+                    }
+                }
+                Err(_) => continue,
             }
-            Err(e) => {
-                eprintln!("easyyun API 调用失败: {}", e);
-                // Return empty result rather than failing
-            }
+        }
+
+        if !extracted_images.is_empty() {
+            eprintln!("lopdf 提取到 {} 张图片", extracted_images.len());
+        } else {
+            eprintln!("lopdf 也未提取到图片");
         }
     }
 
@@ -414,28 +419,30 @@ fn cmyk_to_rgb(cmyk_data: &[u8]) -> Vec<u8> {
 }
 
 /// Call the easyyun API to extract images from a PDF
-/// Supports both URL input and base64-encoded file input
+/// Uploads PDF to Qiniu S3, then uses public URL
 async fn call_easyyun_extract_api(
     pdf_path: &str,
     output_dir: &str,
     base_name: &str,
 ) -> Result<Vec<ExtractedImage>, String> {
+    dotenvy::dotenv().ok();
     let pdf_bytes = fs::read(pdf_path)
         .map_err(|e| format!("读取 PDF 失败: {}", e))?;
+
+    let s3_settings = load_qiniu_s3_settings()?;
+    let (object_key, public_url) = upload_pdf_to_qiniu_s3(&s3_settings, base_name, &pdf_bytes).await?;
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
         .build()
         .map_err(|e| format!("创建 HTTP 客户端失败: {}", e))?;
 
-    // Try base64 input first (works for local files)
-    let pdf_base64 = base64_encode(&pdf_bytes);
     let request_body = serde_json::json!({
         "app_key": "app_key_test",
-        "input": format!("data:application/pdf;base64,{}", pdf_base64)
+        "input": public_url
     });
 
-    eprintln!("调用 easyyun API (base64 模式), 文件大小: {} bytes", pdf_bytes.len());
+    eprintln!("调用 easyyun API (S3 URL), 文件大小: {} bytes", pdf_bytes.len());
 
     let response = client
         .post("https://pdf-api.pdfai.cn/v1/pdf/pdf_extract_image")
@@ -456,6 +463,7 @@ async fn call_easyyun_extract_api(
         let status = response.status();
         let error_text = response.text().await.unwrap_or_default();
         eprintln!("easyyun API 返回错误: {} - {}", status, error_text);
+        let _ = delete_qiniu_s3_object(&s3_settings, &object_key).await;
         return Err(format!("API 返回错误状态: {}", status));
     }
 
@@ -470,6 +478,7 @@ async fn call_easyyun_extract_api(
     if api_response["code"].as_u64() != Some(200) {
         let error_msg = api_response["code_msg"].as_str().unwrap_or("未知错误");
         eprintln!("easyyun API 返回错误: {}", error_msg);
+        let _ = delete_qiniu_s3_object(&s3_settings, &object_key).await;
         return Err(format!("API 返回错误: {}", error_msg));
     }
 
@@ -515,7 +524,136 @@ async fn call_easyyun_extract_api(
         }
     }
 
+    let _ = delete_qiniu_s3_object(&s3_settings, &object_key).await;
+
     Ok(images)
+}
+
+#[derive(Debug, Clone)]
+struct QiniuS3Settings {
+    access_key: String,
+    secret_key: String,
+    bucket: String,
+    region: String,
+    endpoint: String,
+    public_base: String,
+}
+
+fn load_qiniu_s3_settings() -> Result<QiniuS3Settings, String> {
+    let access_key = std::env::var("ONEDOCS_QINIU_S3_ACCESS_KEY")
+        .map_err(|_| "缺少 ONEDOCS_QINIU_S3_ACCESS_KEY".to_string())?;
+    let secret_key = std::env::var("ONEDOCS_QINIU_S3_SECRET_KEY")
+        .map_err(|_| "缺少 ONEDOCS_QINIU_S3_SECRET_KEY".to_string())?;
+    let bucket = std::env::var("ONEDOCS_QINIU_S3_BUCKET")
+        .map_err(|_| "缺少 ONEDOCS_QINIU_S3_BUCKET".to_string())?;
+    let region = std::env::var("ONEDOCS_QINIU_S3_REGION").unwrap_or_else(|_| "cn-north-1".to_string());
+    let endpoint = std::env::var("ONEDOCS_QINIU_S3_ENDPOINT")
+        .unwrap_or_else(|_| "https://s3.cn-north-1.qiniucs.com".to_string());
+    let public_base = std::env::var("ONEDOCS_QINIU_S3_PUBLIC_DOMAIN")
+        .map_err(|_| "缺少 ONEDOCS_QINIU_S3_PUBLIC_DOMAIN".to_string())?;
+
+    Ok(QiniuS3Settings {
+        access_key,
+        secret_key,
+        bucket,
+        region,
+        endpoint,
+        public_base,
+    })
+}
+
+async fn build_s3_client(settings: &QiniuS3Settings) -> Result<S3Client, String> {
+    let creds = Credentials::new(
+        settings.access_key.clone(),
+        settings.secret_key.clone(),
+        None,
+        None,
+        "onedocs-qiniu",
+    );
+
+    let region = aws_sdk_s3::config::Region::new(settings.region.clone());
+    let config = aws_sdk_s3::config::Builder::new()
+        .credentials_provider(creds)
+        .region(region)
+        .endpoint_url(settings.endpoint.clone())
+        .force_path_style(false)
+        .build();
+
+    Ok(S3Client::from_conf(config))
+}
+
+async fn upload_pdf_to_qiniu_s3(
+    settings: &QiniuS3Settings,
+    base_name: &str,
+    pdf_bytes: &[u8],
+) -> Result<(String, String), String> {
+    let client = build_s3_client(settings).await?;
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| "获取时间戳失败".to_string())?
+        .as_millis();
+    let object_key = format!("onedocs/{}/{}_{}.pdf", base_name, base_name, ts);
+    let body = ByteStream::from(pdf_bytes.to_vec());
+
+    client
+        .put_object()
+        .bucket(&settings.bucket)
+        .key(&object_key)
+        .content_type("application/pdf")
+        .body(body)
+        .send()
+        .await
+        .map_err(|e| format!("S3 上传失败: {}", e))?;
+
+    let base = settings.public_base.trim_end_matches('/');
+    let public_url = format!("{}/{}", base, object_key);
+    Ok((object_key, public_url))
+}
+
+async fn delete_qiniu_s3_object(
+    settings: &QiniuS3Settings,
+    object_key: &str,
+) -> Result<(), String> {
+    let client = build_s3_client(settings).await?;
+    client
+        .delete_object()
+        .bucket(&settings.bucket)
+        .key(object_key)
+        .send()
+        .await
+        .map_err(|e| format!("S3 删除失败: {}", e))?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::call_easyyun_extract_api;
+    use std::fs;
+    use std::path::PathBuf;
+
+    #[tokio::test]
+    async fn easyyun_extract_smoke() {
+        dotenvy::dotenv().ok();
+        let pdf_path = match std::env::var("ONEDOCS_EASYRUN_PDF_PATH") {
+            Ok(value) => value,
+            Err(_) => return,
+        };
+
+        let mut output_dir = std::env::temp_dir();
+        output_dir.push("onedocs_easyrun_test");
+        let _ = fs::create_dir_all(&output_dir);
+
+        let base_name = "onedocs_easyyun_test";
+        let images = call_easyyun_extract_api(
+            &pdf_path,
+            output_dir.to_string_lossy().as_ref(),
+            base_name,
+        )
+        .await
+        .expect("EasyYun extract failed");
+
+        assert!(!images.is_empty(), "EasyYun returned no images");
+    }
 }
 
 #[tauri::command]

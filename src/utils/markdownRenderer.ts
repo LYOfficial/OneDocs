@@ -107,15 +107,29 @@ export class MarkdownRenderer {
     });
   }
 
+  private static decodeHtmlEntities(str: string): string {
+    return str
+      .replace(/&#58;/g, ":")
+      .replace(/&#47;/g, "/")
+      .replace(/&#92;/g, "/")
+      .replace(/&#x3A;/gi, ":")
+      .replace(/&#x2F;/gi, "/")
+      .replace(/&#x5C;/gi, "/")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  }
+
   private static rewriteLocalImageSources(html: string): string {
     return html.replace(
       /<img([^>]*?)src=("|')(.*?)(\2)([^>]*?)>/g,
       (_match, before, quote, src, _closingQuote, after) => {
-        if (!this.isLocalImageSource(src)) {
+        const decodedSrc = this.decodeHtmlEntities(src);
+        if (!this.isLocalImageSource(decodedSrc)) {
           return `<img${before}src=${quote}${src}${quote}${after}>`;
         }
 
-        const normalized = src.replace(/\\/g, "/");
+        const normalized = decodedSrc.replace(/\\/g, "/");
         const converted = convertFileSrc(normalized);
         return `<img${before}src=${quote}${converted}${quote}${after}>`;
       },
@@ -123,7 +137,8 @@ export class MarkdownRenderer {
   }
 
   private static isLocalImageSource(src: string): boolean {
-    return /^(?:[a-zA-Z]:[\\/]|\/|file:\/\/)/.test(src);
+    return /^(?:[a-zA-Z]:[\\/]|\/|file:\/\/)/.test(src) ||
+           /^(?:[a-zA-Z]:&#47;|&#47;|file:&#47;&#47;)/.test(src);
   }
 
   /** Add target="_blank" rel="noopener noreferrer" to all <a> tags */

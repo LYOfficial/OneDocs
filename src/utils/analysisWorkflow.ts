@@ -1,3 +1,4 @@
+import { convertFileSrc } from '@tauri-apps/api/core';
 import type {
   AnalysisWorkflowPlan,
   ChunkPlan,
@@ -260,6 +261,7 @@ export const applyImagePlacements = (
   }
 
   let nextMarkdown = markdown;
+  const usedImageKeys = new Set<string>();
 
   for (const image of images) {
     const token = getImageToken(image.pageNumber);
@@ -271,18 +273,69 @@ export const applyImagePlacements = (
     const imageMarkdown = `![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})`;
     if (nextMarkdown.includes(token)) {
       nextMarkdown = nextMarkdown.split(token).join(imageMarkdown);
+      usedImageKeys.add(imageTarget);
     }
   }
 
-  if (nextMarkdown === markdown) {
-    const fallbackImages = images
-      .filter((image) => image.localPath || image.dataUrl)
-      .map((image) => `![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(image.localPath || image.dataUrl || "")})`)
-      .join("\n\n");
+  // Single unified pass: replace all placeholder patterns with extracted images
+  // Patterns handled (in priority order):
+  //   1. [[PAGE_IMAGE_NNN]] tokens
+  //   2. ![alt](placeholder) — markdown image with placeholder URL
+  //   3. [图片：xxx] — text-only placeholders
+  //   4. ![alt] — bare image without URL
+  const allRemainingImages = images.filter((image) => {
+    const target = image.localPath || image.dataUrl || "";
+    return target && !usedImageKeys.has(target);
+  });
 
-    if (fallbackImages) {
-      return `${markdown}\n\n## 附加图片素材\n\n${fallbackImages}`;
-    }
+  if (allRemainingImages.length > 0) {
+    let imageIndex = 0;
+
+    const getNextImage = (): string | null => {
+      while (imageIndex < allRemainingImages.length) {
+        const image = allRemainingImages[imageIndex];
+        imageIndex++;
+        const imageTarget = image.localPath || image.dataUrl || "";
+        if (!imageTarget) continue;
+        usedImageKeys.add(imageTarget);
+        return normalizeMarkdownPath(imageTarget);
+      }
+      return null;
+    };
+
+    // Pass 1: Replace ![alt](placeholder) patterns (must come before text-only)
+    // This prevents double-replacement where [图片：xxx] → ![图片：xxx](path) then ![图片：xxx](path) → !!![...]
+    const mdImageRegex = /!\[([^\]]*?)\]\(([^)]*)\)/g;
+    nextMarkdown = nextMarkdown.replace(mdImageRegex, (match, alt, url) => {
+      const trimmedUrl = url.trim();
+      const looksPlaceholder =
+        !trimmedUrl ||
+        /^placeholder$/i.test(trimmedUrl) ||
+        /^image_placeholder$/i.test(trimmedUrl) ||
+        /图片占位符/.test(trimmedUrl) ||
+        /^占位$/.test(trimmedUrl) ||
+        /^[a-z_]*placeholder[a-z_]*$/i.test(trimmedUrl) ||
+        /^image[_\-]?\d+\.[a-z]+$/i.test(trimmedUrl);
+      if (!looksPlaceholder) {
+        return match;
+      }
+      const imgPath = getNextImage();
+      return imgPath ? `![${alt.trim()}](${imgPath})` : match;
+    });
+
+    // Pass 2: Replace text-only placeholders like [图片：xxx]
+    const textPlaceholderRegex = /\[(图片|图|示意图|照片|插图)[:：\s][^\]]+\]/g;
+    nextMarkdown = nextMarkdown.replace(textPlaceholderRegex, (match) => {
+      const imgPath = getNextImage();
+      return imgPath ? `![${match.slice(1, -1)}](${imgPath})` : match;
+    });
+
+    // Pass 3: Replace bare ![alt] without URL
+    const bareImageRegex = /!\[([^\]]+)\](?!\()/g;
+    nextMarkdown = nextMarkdown.replace(bareImageRegex, (match, alt) => {
+      const imgPath = getNextImage();
+      return imgPath ? `![${alt.trim()}](${imgPath})` : match;
+    });
   }
 
   return nextMarkdown;
@@ -350,7 +403,16 @@ const inferPreferredSection = (text: string): string => {
 };
 
 const normalizeMarkdownPath = (pathValue: string): string => {
-  return pathValue.replace(/\\/g, "/");
+  const normalized = pathValue.replace(/\\/g, "/");
+  // Convert local file paths to Tauri asset protocol URLs for rendering
+  if (/^(?:[a-zA-Z]:[/]|\/)/.test(normalized)) {
+    try {
+      return convertFileSrc(normalized);
+    } catch {
+      return normalized;
+    }
+  }
+  return normalized;
 };
 
 const inferChunkFocus = (text: string): string => {

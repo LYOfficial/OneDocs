@@ -6,7 +6,6 @@ import { MODEL_PROVIDERS } from "@/config/providers";
 import { useToast } from "@/components/Toast";
 import {
   applyImagePlacements,
-  buildImageTokenList,
   stripLeadingMarkers,
   stripMarkdownFence,
 } from "@/utils/analysisWorkflow";
@@ -27,7 +26,7 @@ const SCIENCE_FORMAT_REVIEW_PROMPT = `你是中文学术排版审校助手，只
 - 二级标题按数字递增（如 ## 1. xxx、## 2. xxx），三级标题使用 1.1、1.2 依次递进。
 - 复杂公式使用单行 $$公式$$ 包裹，禁止跨行的 $\n公式\n$；行内简单变量用 $x$ 形式。
 - 重要概念需加粗，例题结论用 **【最终结论】结论内容** 高亮。
-- 保留图片占位符与本地图片路径，不要删除或改写图像引用。
+- 保留所有本地图片路径（如 ![描述](C:/...) 或 ![描述](/...)），不要删除或改写图像引用，不要将图片路径替换为占位符。
 - 保留原有内容顺序，仅修正格式；若内容已符合规范请原样返回。`;
 
 export const useAnalysis = () => {
@@ -64,6 +63,28 @@ export const useAnalysis = () => {
       message,
       payload,
     });
+  };
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  const stripLeadingSectionHeading = (text: string, header: string) => {
+    const lines = text.split("\n");
+    const headerRegex = new RegExp(`^#\\s*${escapeRegExp(header)}\\s*$`, "i");
+
+    while (lines.length > 0) {
+      const line = lines[0].trim();
+      if (!line) {
+        lines.shift();
+        continue;
+      }
+      if (headerRegex.test(line)) {
+        lines.shift();
+        continue;
+      }
+      break;
+    }
+
+    return lines.join("\n").trimStart();
   };
 
   /**
@@ -152,18 +173,10 @@ export const useAnalysis = () => {
         if (batch.length === 0) return;
 
         const batchText = batch.join("\n\n");
-        const imageTokens = includeImages
-          ? buildImageTokenList(analysisBundle.images)
-          : [];
-        const imageHint = includeImages && imageTokens.length > 0
-          ? `\n可用图片占位符：${imageTokens.join("、")}。请在合适位置保留。`
-          : "";
-
         const userPrompt = [
           `# 任务`,
           `输出部分：${sectionHeader}`,
           `要求：${task}`,
-          imageHint,
           ``,
           `# 文档内容（批次 ${batchIdx + 1}，共 ${batch.length} 片段）`,
           batchText.trim(),
@@ -190,7 +203,8 @@ export const useAnalysis = () => {
             allImagePaths.length > 0 ? allImagePaths.slice(0, 5) : undefined,
           );
 
-          const cleaned = stripLeadingMarkers(stripMarkdownFence(response)).trim();
+          const cleanedRaw = stripLeadingMarkers(stripMarkdownFence(response)).trim();
+          const cleaned = stripLeadingSectionHeading(cleanedRaw, sectionHeader).trim();
           if (cleaned) {
             chunkOutputs.push(cleaned);
           }
@@ -247,19 +261,32 @@ export const useAnalysis = () => {
     if (includeImages && analysisBundle.images.length > 0) {
       finalContent = applyImagePlacements(finalContent, analysisBundle.images);
 
-      // If no placeholders were replaced, append images at the end
+      // Log image replacement results
+      const placeholderPatterns = [
+        /\[\[PAGE_IMAGE_\d+\]\]/g,
+        /\[(图片|图|示意图|照片|插图)[:：\s][^\]]+\]/g,
+        /!\[([^\]]*?)\]\(([^)]*(?:图片占位符|placeholder|image_placeholder|占位)[^)]*)\)/gi,
+        /!\[([^\]]*?)\]\(\)/g,
+      ];
+      const remainingPlaceholders = placeholderPatterns.reduce((count, regex) => {
+        const matches = finalContent.match(regex);
+        return count + (matches?.length || 0);
+      }, 0);
+
       const hasImageRef = analysisBundle.images.some(
         (img) => finalContent.includes(img.localPath || img.dataUrl || "")
       );
-      if (!hasImageRef) {
-        const imageSection = analysisBundle.images
-          .filter((img) => img.localPath || img.dataUrl)
-          .map((img) => `![第 ${img.pageNumber} 页图片](${(img.localPath || img.dataUrl || "").replace(/\\/g, "/")})`)
-          .join("\n\n");
-        if (imageSection) {
-          finalContent += `\n\n## 附加图片素材\n\n${imageSection}`;
-        }
-      }
+
+      pushDevLog("info", "analysis", `图片替换完成: ${fileInfo.name}`, {
+        imageCount: analysisBundle.images.length,
+        hasImageRef,
+        remainingPlaceholders,
+        replacedCount: analysisBundle.images.filter(
+          (img) => finalContent.includes(img.localPath || img.dataUrl || "")
+        ).length,
+        samplePaths: analysisBundle.images.slice(0, 3).map((img) => img.localPath || img.dataUrl),
+      });
+      // No fallback image section — extracted images are already placed inline
     }
 
     pushDevLog("info", "analysis", `全量分段管道完成: ${fileInfo.name}`, {
@@ -395,7 +422,7 @@ export const useAnalysis = () => {
               message: `正在进行格式复查 ${i + 1}/${totalFiles}: ${fileInfo.name}...`,
             });
 
-            const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记、公式排版与图片引用格式：\n\n【格式要求】\n1. 一级标题仅为"# 基础知识""# 典型例题"\n2. 二级标题从1开始递增，格式"## 1. 标题"\n3. 三级标题为"### 1.1 小节"依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\n公式\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留图片占位符或本地图片路径，不要删除图像引用\n7. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${finalContent}`;
+            const formatReviewContent = `请根据理工速知的格式要求，审查并仅修正以下内容的标题层级、加粗标记、公式排版与图片引用格式：\n\n【格式要求】\n1. 一级标题仅为"# 基础知识""# 典型例题"\n2. 二级标题从1开始递增，格式"## 1. 标题"\n3. 三级标题为"### 1.1 小节"依次递进\n4. 复杂公式使用同一行的 $$公式$$，禁止换行的 $\n公式\n$；行内公式用 $x$ 形式\n5. 重要概念加粗，例题结论用 **【最终结论】结论内容** 标识\n6. 保留所有本地图片路径（如 ![描述](C:/...) 或 ![描述](/...)），不要删除或改写图像引用，不要将图片路径替换为占位符\n7. 保留内容顺序，不新增英文解释\n\n【待复查内容】\n${finalContent}`;
 
             try {
               const reviewResponse = await APIService.callAIWithProvider(
