@@ -1,9 +1,11 @@
 import { useAppStore } from "@/store/useAppStore";
+import { APIService } from "@/services/api";
 import type {
   AnalysisWorkflowPlan,
   ChunkPlan,
   DocumentAnalysisBundle,
   DocumentImageAsset,
+  PageImageMap,
   SupportedFileType,
 } from "@/types";
 
@@ -452,23 +454,27 @@ const normalizeMarkdownPath = (pathValue: string): string => {
 };
 
 /**
- * Insert images into markdown by page context.
- *
- * This is the primary image insertion strategy: since LLMs typically don't
- * generate image placeholders, we insert images based on their page numbers
- * into the appropriate sections of the document.
+ * Insert images into markdown using LLM-based image-text matching.
  *
  * Strategy:
  * 1. Find which images are already referenced in the markdown (skip those)
- * 2. For each unreferenced image, find the best insertion point:
- *    - Look for section headers (## or ###) that correspond to the image's page
- *    - If no matching header, insert after the first paragraph that mentions the page
- *    - As a last resort, append at the end of the document
+ * 2. Build a prompt with the markdown content and the page→image mapping
+ * 3. Ask the LLM to determine where each image should be inserted
+ * 4. Apply the LLM's placement decisions
+ *
+ * If LLM matching fails, fall back to page-context-based insertion.
  */
-export const insertImagesByPageContext = (
+export const insertImagesByPageContext = async (
   markdown: string,
   images: DocumentImageAsset[],
-): string => {
+  pageImageMap?: PageImageMap[],
+  llmContext?: {
+    provider: string;
+    apiKey: string;
+    baseUrl: string;
+    model: string;
+  },
+): Promise<string> => {
   if (!markdown || images.length === 0) {
     pushDevLog("info", "image-insert", "insertImagesByPageContext: 无图片需要插入或 Markdown 为空", {
       hasMarkdown: Boolean(markdown),
@@ -503,9 +509,215 @@ export const insertImagesByPageContext = (
     unreferencedImages: unreferencedImages.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
   });
 
-  // Split markdown into lines for insertion
+  // Try LLM-based matching if context is provided
+  if (llmContext && pageImageMap && pageImageMap.length > 0) {
+    try {
+      const llmResult = await matchImagesWithLLM(markdown, unreferencedImages, pageImageMap, llmContext);
+      if (llmResult) {
+        pushDevLog("info", "image-insert", `LLM 图文匹配成功，已插入 ${unreferencedImages.length} 张图片`);
+        return llmResult;
+      }
+    } catch (error: any) {
+      pushDevLog("warn", "image-insert", `LLM 图文匹配失败，回退到规则匹配: ${error?.message || String(error)}`);
+    }
+  }
+
+  // Fallback: page-context-based insertion (no LLM)
+  return insertImagesByPageContextFallback(markdown, unreferencedImages);
+};
+
+/**
+ * Use LLM to match images with their corresponding text sections.
+ *
+ * The LLM receives:
+ * - The current markdown content (with section headings)
+ * - A list of images with their page numbers and file names
+ * - The page→image mapping with text snippets
+ *
+ * The LLM returns a JSON mapping of image file names to section headings
+ * where each image should be inserted.
+ */
+async function matchImagesWithLLM(
+  markdown: string,
+  unreferencedImages: DocumentImageAsset[],
+  pageImageMap: PageImageMap[],
+  llmContext: {
+    provider: string;
+    apiKey: string;
+    baseUrl: string;
+    model: string;
+  },
+): Promise<string | null> {
+  // Build image info list for the prompt
+  const imageInfoList = unreferencedImages.map(img => {
+    const pageEntry = pageImageMap.find(p => p.pageNumber === img.pageNumber);
+    const snippet = pageEntry?.textSnippet || "";
+    return `- 文件: ${img.fileName} (第${img.pageNumber}页) 上下文: "${snippet.substring(0, 100)}"`;
+  }).join("\n");
+
+  // Build section headings list for the prompt
+  const headingRegex = /^(#{1,3})\s+(.+)/gm;
+  const sections: string[] = [];
+  let headingMatch;
+  while ((headingMatch = headingRegex.exec(markdown)) !== null) {
+    sections.push(`  - ${headingMatch[1]} ${headingMatch[2]}`);
+  }
+  const sectionList = sections.length > 0 ? sections.join("\n") : "  (无标题)";
+
+  // Build page-image mapping for context
+  const pageMapStr = pageImageMap
+    .filter(p => p.imageFileNames.length > 0)
+    .map(p => `第${p.pageNumber}页: ${p.imageFileNames.join(", ")} | 文本摘要: "${p.textSnippet.substring(0, 80)}"`)
+    .join("\n");
+
+  const prompt = `你是一个文档图文匹配助手。你需要根据图片所在页码和该页的文本上下文，将图片插入到文档中最合适的章节位置。
+
+## 文档章节结构
+${sectionList}
+
+## 待插入图片信息
+${imageInfoList}
+
+## 页码-图片-文本映射
+${pageMapStr}
+
+## 任务要求
+1. 根据图片所在页码的文本上下文，判断该图片最可能对应文档中的哪个章节
+2. 同一页的多张图片应插入到同一个章节
+3. 图片应插入到相关文字说明之后，而不是章节开头
+4. 返回JSON格式：{ "placements": [{ "fileName": "xxx.jpg", "afterText": "该图片应插入在此文本之后（取原文中一段独特的文字）" }] }
+5. afterText 必须是原文中实际存在的一段文字（10-50字），用于定位插入点
+6. 只返回JSON，不要返回其他内容`;
+
+  const response = await APIService.callAIWithProvider(
+    llmContext.provider,
+    "你是一个文档图文匹配助手，只返回JSON格式的匹配结果。",
+    prompt,
+    {
+      apiKey: llmContext.apiKey,
+      baseUrl: llmContext.baseUrl,
+      model: llmContext.model,
+    },
+  );
+
+  // Parse the LLM response
+  const cleaned = stripMarkdownFence(response).trim();
+  let placements: Array<{ fileName: string; afterText: string }>;
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    placements = parsed.placements || [];
+  } catch {
+    // Try to extract JSON from the response
+    const jsonMatch = cleaned.match(/\{[\s\S]*"placements"[\s\S]*\}/);
+    if (!jsonMatch) {
+      pushDevLog("warn", "image-insert", "LLM 返回的JSON无法解析");
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      placements = parsed.placements || [];
+    } catch {
+      pushDevLog("warn", "image-insert", "LLM 返回的JSON格式错误");
+      return null;
+    }
+  }
+
+  if (placements.length === 0) {
+    pushDevLog("warn", "image-insert", "LLM 未返回任何图片匹配结果");
+    return null;
+  }
+
+  // Apply placements
+  let result = markdown;
+  let insertedCount = 0;
+
+  for (const placement of placements) {
+    const image = unreferencedImages.find(img => img.fileName === placement.fileName);
+    if (!image) continue;
+
+    const imageTarget = image.localPath || image.dataUrl || "";
+    if (!imageTarget) continue;
+
+    const imageMarkdown = `\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n`;
+    const afterText = placement.afterText.trim();
+
+    if (afterText && result.includes(afterText)) {
+      // Insert after the specified text
+      const idx = result.indexOf(afterText);
+      const insertPos = idx + afterText.length;
+      result = result.substring(0, insertPos) + imageMarkdown + result.substring(insertPos);
+      insertedCount++;
+    } else {
+      // Fallback: try to find a partial match
+      const partialText = afterText.substring(0, Math.min(20, afterText.length));
+      if (partialText && result.includes(partialText)) {
+        const idx = result.indexOf(partialText);
+        const insertPos = idx + partialText.length;
+        result = result.substring(0, insertPos) + imageMarkdown + result.substring(insertPos);
+        insertedCount++;
+      }
+    }
+  }
+
+  pushDevLog("info", "image-insert", `LLM 图文匹配: 请求 ${placements.length} 处，成功插入 ${insertedCount} 处`, {
+    requestedPlacements: placements.length,
+    insertedCount,
+  });
+
+  return insertedCount > 0 ? result : null;
+}
+
+/**
+ * Fallback: Insert images by page context (rule-based, no LLM).
+ * Used when LLM matching is unavailable or fails.
+ */
+function insertImagesByPageContextFallback(
+  markdown: string,
+  unreferencedImages: DocumentImageAsset[],
+): string {
   const lines = markdown.split("\n");
-  const insertions: { lineIndex: number; imageMarkdown: string }[] = [];
+
+  // Build section boundaries
+  interface Section {
+    headingLine: number;
+    endLine: number;
+    level: number;
+    title: string;
+    pageHints: number[];
+  }
+
+  const sections: Section[] = [];
+  const headingRegex = /^(#{1,6})\s+(.+)/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].match(headingRegex);
+    if (match) {
+      sections.push({
+        headingLine: i,
+        endLine: lines.length,
+        level: match[1].length,
+        title: match[2],
+        pageHints: [],
+      });
+    }
+  }
+
+  for (let i = 0; i < sections.length; i++) {
+    sections[i].endLine = i + 1 < sections.length ? sections[i + 1].headingLine : lines.length;
+  }
+
+  // Scan each section for page number references
+  for (const section of sections) {
+    const sectionText = lines.slice(section.headingLine, section.endLine).join(" ");
+    const pageRefRegex = /第\s*(\d+)\s*页/g;
+    let pageRefMatch;
+    while ((pageRefMatch = pageRefRegex.exec(sectionText)) !== null) {
+      section.pageHints.push(parseInt(pageRefMatch[1], 10));
+    }
+  }
+
+  const insertions: { lineIndex: number; imageMarkdown: string; pageNum: number }[] = [];
 
   for (const image of unreferencedImages) {
     const imageTarget = image.localPath || image.dataUrl || "";
@@ -514,73 +726,59 @@ export const insertImagesByPageContext = (
     const imageMarkdown = `\n![第 ${image.pageNumber} 页图片](${normalizeMarkdownPath(imageTarget)})\n`;
     const pageNum = image.pageNumber;
 
-    // Strategy 1: Find a heading that mentions this page number
     let insertAt = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      // Match headings like "## 1. xxx" or "### 1.1 xxx" or lines mentioning "第N页"
-      if (/^#{1,3}\s/.test(line)) {
-        // Check if subsequent content relates to this page
-        // Look ahead a few lines for page references
-        const lookAhead = lines.slice(i + 1, Math.min(i + 5, lines.length)).join(" ");
-        if (lookAhead.includes(`第 ${pageNum} 页`) || lookAhead.includes(`第${pageNum}页`)) {
-          insertAt = i + 1;
+
+    // Strategy 1: Find a section that explicitly mentions this page number
+    for (const section of sections) {
+      if (section.pageHints.includes(pageNum)) {
+        insertAt = section.endLine;
+        break;
+      }
+    }
+
+    // Strategy 2: Find the section whose page range covers this image's page
+    if (insertAt === -1 && sections.length > 0) {
+      const allPageHints = sections.flatMap(s => s.pageHints.map(p => ({ page: p, sectionIdx: sections.indexOf(s) })));
+      allPageHints.sort((a, b) => a.page - b.page);
+
+      for (const hint of allPageHints) {
+        if (hint.page <= pageNum) {
+          insertAt = sections[hint.sectionIdx].endLine;
+        } else {
           break;
         }
       }
     }
 
-    // Strategy 2: Find any line mentioning this page number
-    if (insertAt === -1) {
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes(`第 ${pageNum} 页`) || lines[i].includes(`第${pageNum}页`)) {
-          // Insert after this line (or after the paragraph block)
-          insertAt = i + 1;
-          // Skip to end of current paragraph
-          while (insertAt < lines.length && lines[insertAt].trim() !== "") {
-            insertAt++;
-          }
-          break;
-        }
-      }
+    // Strategy 3: Distribute proportionally
+    if (insertAt === -1 && sections.length > 0) {
+      const maxPage = Math.max(...unreferencedImages.map(img => img.pageNumber), 1);
+      const targetSectionIdx = Math.min(
+        Math.floor((pageNum / maxPage) * sections.length),
+        sections.length - 1,
+      );
+      insertAt = sections[targetSectionIdx].endLine;
     }
 
-    // Strategy 3: For images from early pages, insert after the first ## heading
-    if (insertAt === -1) {
-      for (let i = 0; i < lines.length; i++) {
-        if (/^##\s/.test(lines[i])) {
-          insertAt = i + 1;
-          break;
-        }
-      }
-    }
-
-    // Strategy 4: Append at end
     if (insertAt === -1) {
       insertAt = lines.length;
     }
 
-    insertions.push({ lineIndex: insertAt, imageMarkdown });
+    insertions.push({ lineIndex: insertAt, imageMarkdown, pageNum });
   }
 
-  // Sort insertions by line index in reverse order so we insert from bottom to top
-  // This prevents line indices from shifting
   insertions.sort((a, b) => b.lineIndex - a.lineIndex);
 
   for (const { lineIndex, imageMarkdown } of insertions) {
     lines.splice(lineIndex, 0, imageMarkdown);
   }
 
-  pushDevLog("info", "image-insert", `insertImagesByPageContext 完成: 插入了 ${insertions.length} 张图片`, {
+  pushDevLog("info", "image-insert", `规则匹配插入完成: ${insertions.length} 张图片`, {
     insertedCount: insertions.length,
-    insertions: insertions.map((ins, idx) => ({
-      lineIndex: ins.lineIndex,
-      preview: ins.imageMarkdown.substring(0, 120),
-    })),
   });
 
   return lines.join("\n");
-};
+}
 
 const inferChunkFocus = (text: string): string => {
   if (/例题|例 题|习题/.test(text)) {

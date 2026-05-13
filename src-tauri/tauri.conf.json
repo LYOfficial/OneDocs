@@ -22,8 +22,14 @@
       }
     ],
     "security": {
-      "csp": null,
-      "capabilities": ["default"]
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; connect-src ipc: http://ipc.localhost https://*",
+      "capabilities": ["default"],
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": ["**"]
+        }
+      }
     }
   },
   "bundle": {

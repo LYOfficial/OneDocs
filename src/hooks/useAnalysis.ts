@@ -475,7 +475,18 @@ export const useAnalysis = () => {
           finalContent = applyImagePlacements(finalContent, analysisBundle.images);
 
           // Then insert remaining images by page context (for images not matched by placeholders)
-          finalContent = insertImagesByPageContext(finalContent, analysisBundle.images);
+          // Uses LLM-based matching when available, falls back to rule-based matching
+          finalContent = await insertImagesByPageContext(
+            finalContent,
+            analysisBundle.images,
+            analysisBundle.pageImageMap,
+            {
+              provider: currentProvider,
+              apiKey: settings.apiKey,
+              baseUrl: settings.baseUrl,
+              model: settings.model,
+            },
+          );
 
           pushDevLog("info", "analysis", `图片插入完成，最终内容长度: ${finalContent.length}`, {
             contentLength: finalContent.length,
@@ -505,7 +516,17 @@ export const useAnalysis = () => {
               const reviewedContent = stripLeadingMarkers(stripMarkdownFence(reviewResponse)).trim();
               if (reviewedContent) {
                 finalContent = applyImagePlacements(reviewedContent, analysisBundle.images);
-                finalContent = insertImagesByPageContext(finalContent, analysisBundle.images);
+                finalContent = await insertImagesByPageContext(
+                  finalContent,
+                  analysisBundle.images,
+                  analysisBundle.pageImageMap,
+                  {
+                    provider: currentProvider,
+                    apiKey: settings.apiKey,
+                    baseUrl: settings.baseUrl,
+                    model: settings.model,
+                  },
+                );
               }
             } catch (reviewError: any) {
               console.error(`文件 ${fileInfo.name} 格式复查失败:`, reviewError);

@@ -106,10 +106,21 @@ export interface DocumentImageAsset {
   dataUrl?: string;
 }
 
+/** Mapping of page number to the images found on that page */
+export interface PageImageMap {
+  pageNumber: number;
+  /** Snippet of text content on this page (for context matching) */
+  textSnippet: string;
+  /** Image file names found on this page */
+  imageFileNames: string[];
+}
+
 export interface DocumentAnalysisBundle {
   text: string;
   pageTexts: string[];
   images: DocumentImageAsset[];
+  /** Mapping of page numbers to their images and text snippets */
+  pageImageMap: PageImageMap[];
   pageCount: number;
   /** Short hash-based directory name for this document's assets */
   hashDir: string;

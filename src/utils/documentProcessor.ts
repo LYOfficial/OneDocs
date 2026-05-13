@@ -7,6 +7,7 @@ import { useAppStore } from "@/store/useAppStore";
 import type {
   DocumentAnalysisBundle,
   DocumentImageAsset,
+  PageImageMap,
   SupportedFileType,
 } from "@/types";
 
@@ -155,12 +156,28 @@ export class DocumentProcessor {
       }
 
       // Note: No page-render fallback — we only want actual embedded images,
-      // not full-page screenshots. The Rust backend (EasyYun + lopdf) handles extraction.
+      // not full-page screenshots. The Rust backend (lopdf) handles extraction.
+
+      // Build pageImageMap: for each page, record which images and a text snippet
+      const pageImageMap: PageImageMap[] = [];
+      for (let i = 0; i < pageTexts.length; i++) {
+        const pageNum = i + 1;
+        const pageImages = imageAssets.filter(img => img.pageNumber === pageNum);
+        const textSnippet = (pageTexts[i] || "").substring(0, 200).trim();
+        if (pageImages.length > 0 || textSnippet) {
+          pageImageMap.push({
+            pageNumber: pageNum,
+            textSnippet,
+            imageFileNames: pageImages.map(img => img.fileName),
+          });
+        }
+      }
 
       return {
         text: fullText.trim(),
         pageTexts,
         images: imageAssets,
+        pageImageMap,
         pageCount: pdf.numPages,
         hashDir,
       };
