@@ -83,8 +83,14 @@ export class DocumentProcessor {
     }
 
     try {
-      // Step 1: Extract text using pdfjs
+      // Step 1: Read the file into an ArrayBuffer.
+      // IMPORTANT: pdfjsLib.getDocument() transfers ownership of the underlying
+      // ArrayBuffer to the Web Worker, which detaches it. We must create a copy
+      // for the file-saving step BEFORE passing it to pdfjs.
       const arrayBuffer = await file.arrayBuffer();
+      const arrayBufferForSave = arrayBuffer.slice(0);  // copy before pdfjs consumes it
+
+      // Step 2: Extract text using pdfjs
       const pdf = await this.loadPdfDocument(arrayBuffer);
       const pageTexts: string[] = [];
       let fullText = "";
@@ -105,7 +111,7 @@ export class DocumentProcessor {
         throw new Error("PDF文件中未检测到文本内容，可能是图片扫描版PDF");
       }
 
-      // Step 2: Save PDF to data directory and extract images via Rust
+      // Step 3: Save PDF to data directory and extract images via Rust
       let imageAssets: DocumentImageAsset[] = [];
       const baseDir = outputRoot
         ? this.normalizePath(outputRoot)
@@ -117,13 +123,14 @@ export class DocumentProcessor {
         await mkdir(imageDir, { recursive: true });
 
         // Save PDF file to data directory for Rust processing
+        // Use the pre-copied buffer since the original may have been detached by pdfjs
         const pdfPath = `${baseDir}/${baseName}_input.pdf`;
-        await writeFile(pdfPath, new Uint8Array(arrayBuffer));
+        await writeFile(pdfPath, new Uint8Array(arrayBufferForSave));
 
         pushDevLog("info", "document-processor", "PDF 已保存到数据目录，准备提取图片", {
           pdfPath,
           imageDir,
-          fileSize: arrayBuffer.byteLength,
+          fileSize: arrayBufferForSave.byteLength,
         });
 
         // Step 3: Call Rust to extract images (lopdf + easyyun API fallback)

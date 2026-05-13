@@ -573,6 +573,7 @@ async fn build_s3_client(settings: &QiniuS3Settings) -> Result<S3Client, String>
 
     let region = aws_sdk_s3::config::Region::new(settings.region.clone());
     let config = aws_sdk_s3::config::Builder::new()
+        .behavior_version_latest()
         .credentials_provider(creds)
         .region(region)
         .endpoint_url(settings.endpoint.clone())
