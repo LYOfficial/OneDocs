@@ -116,30 +116,34 @@ export class DocumentProcessor {
       const baseDir = outputRoot
         ? this.normalizePath(outputRoot)
         : this.normalizePath(await appDataDir());
-      const baseName = this.sanitizeFileStem(file.name) || "OneDocs";
-      const imageDir = `${baseDir}/${baseName}_pdf_assets`;
+
+      // Use a short hash of the file content to avoid folder name collisions
+      const hashDir = await this.computeShortHash(arrayBufferForSave);
+      const imageDir = `${baseDir}/${hashDir}_pdf_assets`;
 
       try {
         await mkdir(imageDir, { recursive: true });
 
         // Save PDF file to data directory for Rust processing
         // Use the pre-copied buffer since the original may have been detached by pdfjs
-        const pdfPath = `${baseDir}/${baseName}_input.pdf`;
+        const pdfPath = `${baseDir}/${hashDir}_input.pdf`;
         await writeFile(pdfPath, new Uint8Array(arrayBufferForSave));
 
         pushDevLog("info", "document-processor", "PDF 已保存到数据目录，准备提取图片", {
           pdfPath,
           imageDir,
+          hashDir,
           fileSize: arrayBufferForSave.byteLength,
         });
 
         // Step 3: Call Rust to extract images (lopdf + easyyun API fallback)
-        imageAssets = await extractPdfImages(pdfPath, imageDir, baseName);
+        imageAssets = await extractPdfImages(pdfPath, imageDir, hashDir);
         console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`,
           imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })));
 
         pushDevLog("info", "document-processor", `图片提取完成: ${imageAssets.length} 张`, {
           imageCount: imageAssets.length,
+          hashDir,
           images: imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
         });
       } catch (imageError: any) {
@@ -158,6 +162,7 @@ export class DocumentProcessor {
         pageTexts,
         images: imageAssets,
         pageCount: pdf.numPages,
+        hashDir,
       };
     } catch (error: any) {
       console.error("PDF解析错误:", error);
@@ -214,8 +219,18 @@ export class DocumentProcessor {
     }
   }
 
-  private static sanitizeFileStem(fileName: string): string {
-    return fileName.replace(/\.[^./\\]+$/, "").replace(/[\\/:*?"<>|]+/g, "_").trim();
+  /**
+   * Compute a short 12-character hex hash from an ArrayBuffer using SubtleCrypto.
+   * This provides a unique, collision-resistant directory name for each document.
+   */
+  private static async computeShortHash(buffer: ArrayBuffer): Promise<string> {
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+    const hashArray = new Uint8Array(hashBuffer);
+    // Take first 6 bytes (12 hex chars) — sufficient for uniqueness
+    const hex = Array.from(hashArray.slice(0, 6))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hex;
   }
 
   private static normalizePath(pathValue: string): string {

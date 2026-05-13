@@ -111,6 +111,8 @@ export interface DocumentAnalysisBundle {
   pageTexts: string[];
   images: DocumentImageAsset[];
   pageCount: number;
+  /** Short hash-based directory name for this document's assets */
+  hashDir: string;
 }
 
 export interface ChunkPlan {

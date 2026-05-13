@@ -130,6 +130,15 @@ export class MarkdownRenderer {
 
       html = this.rewriteLocalImageSources(html);
 
+      // Add lazy loading to all images to prevent UI freeze when many images load at once
+      html = html.replace(
+        /<img([^>]*?)>/g,
+        (match, attrs) => {
+          if (/loading\s*=/.test(attrs)) return match; // already has loading attr
+          return `<img${attrs} loading="lazy">`;
+        },
+      );
+
       // Add target="_blank" to external links so they open in default browser
       html = this.addTargetBlankToLinks(html);
 

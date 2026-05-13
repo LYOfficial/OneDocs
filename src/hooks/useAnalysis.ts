@@ -19,7 +19,7 @@ import {
   isEmbeddingAvailable,
 } from "@/services/rag/embeddingService";
 import type { AIProvider, DocumentAnalysisBundle } from "@/types";
-import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { writeTextFile, mkdir } from "@tauri-apps/plugin-fs";
 
 const SCIENCE_FORMAT_REVIEW_PROMPT = `你是中文学术排版审校助手，只负责在不改变含义的前提下修正格式。必须遵循：
 - 仅处理理工速知的输出内容，保持全中文。
@@ -300,6 +300,7 @@ export const useAnalysis = () => {
   const autoSaveIfNeeded = async (
     content: string,
     originalFileName: string,
+    hashDir?: string,
   ) => {
     if (!autoSaveAnalysisResult) return;
 
@@ -313,11 +314,46 @@ export const useAnalysis = () => {
     const baseName = originalFileName.replace(/\.[^./\\]+$/, "") || "OneDocs";
     const now = new Date();
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-    const fileName = `${baseName}_OneDocs_分析结果_${dateStr}.md`;
-    const fullPath = `${normalizedDir}/${fileName}`;
+
+    // Save to hash-based directory if available, otherwise flat
+    const saveDir = hashDir
+      ? `${normalizedDir}/${hashDir}`
+      : normalizedDir;
+    const mdFileName = `${baseName}_OneDocs_分析结果_${dateStr}.md`;
+    const pdfFileName = `${baseName}_OneDocs_分析结果_${dateStr}.pdf`;
+    const mdFullPath = `${saveDir}/${mdFileName}`;
+    const pdfFullPath = `${saveDir}/${pdfFileName}`;
 
     try {
-      await writeTextFile(fullPath, content);
+      // Ensure the directory exists
+      await mkdir(saveDir, { recursive: true });
+
+      // Save Markdown file
+      await writeTextFile(mdFullPath, content);
+      pushDevLog("info", "analysis", `分析结果已自动保存 (MD): ${mdFullPath}`, {
+        path: mdFullPath,
+        hashDir,
+      });
+
+      // Save PDF file via Rust backend
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke<string>("save_markdown_as_pdf", {
+          markdownContent: content,
+          outputPath: pdfFullPath,
+          title: baseName,
+        });
+        pushDevLog("info", "analysis", `分析结果已自动保存 (PDF): ${pdfFullPath}`, {
+          path: pdfFullPath,
+          hashDir,
+        });
+      } catch (pdfError: any) {
+        // PDF save is best-effort — don't block on failure
+        pushDevLog("warn", "analysis", `PDF 自动保存失败，MD 已保存`, {
+          error: pdfError?.message || String(pdfError),
+          pdfPath: pdfFullPath,
+        });
+      }
     } catch (error: any) {
       console.error("自动保存析文结果失败", error);
       toast.show(error?.message || "自动保存失败，请检查数据目录权限", 5000);
@@ -364,6 +400,7 @@ export const useAnalysis = () => {
         fileId: string;
         result: { content: string; timestamp: number; fileId: string };
         fileName: string;
+        hashDir: string;
       }[] = [];
 
       for (let i = 0; i < totalFiles; i++) {
@@ -483,9 +520,10 @@ export const useAnalysis = () => {
           };
 
           setMultiFileAnalysisResult(fileId, analysisResult);
-          processedResults.push({ fileId, result: analysisResult, fileName: fileInfo.name });
+          processedResults.push({ fileId, result: analysisResult, fileName: fileInfo.name, hashDir: analysisBundle.hashDir });
           pushDevLog("info", "analysis", `文件分析完成: ${fileInfo.name}`, {
             fileId,
+            hashDir: analysisBundle.hashDir,
           });
         } catch (error: any) {
           console.error(`文件 ${fileInfo.name} 分析失败:`, error);
@@ -515,7 +553,7 @@ export const useAnalysis = () => {
       setAnalysisResult(last);
 
       for (const item of processedResults) {
-        await autoSaveIfNeeded(item.result.content, item.fileName);
+        await autoSaveIfNeeded(item.result.content, item.fileName, item.hashDir);
       }
 
       toast.show(`成功分析 ${processedResults.length} 个文件！`);

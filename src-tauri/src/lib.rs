@@ -694,6 +694,137 @@ async fn test_model_connection_rust(
     Ok(true)
 }
 
+/// Save a Markdown text as a simple PDF file.
+/// Uses printpdf to generate a basic PDF with the text content.
+/// For rich rendering (formulas, images), users should use the frontend export button.
+#[tauri::command]
+async fn save_markdown_as_pdf(
+    markdown_content: String,
+    output_path: String,
+    title: String,
+) -> Result<String, String> {
+    use printpdf::*;
+
+    let page_width = Mm(210.0);  // A4
+    let page_height = Mm(297.0);
+    let margin_left = Mm(20.0);
+    let margin_top = Mm(20.0);
+    let margin_right = Mm(20.0);
+    let margin_bottom = Mm(20.0);
+    let font_size = 10.0;
+    let line_height = 14.0;
+    let usable_width = page_width - margin_left - margin_right;
+    let usable_height = page_height - margin_top - margin_bottom;
+
+    let (doc, page1, layer1) = PdfDocument::new(
+        &title,
+        page_width,
+        page_height,
+        "Layer 1",
+    );
+    let current_layer = doc.get_page(page1).get_layer(layer1);
+
+    // Use built-in Helvetica font (ASCII only — CJK will show as blanks)
+    let font = doc.add_builtin_font(BuiltinFont::Helvetica)
+        .map_err(|e| format!("添加字体失败: {}", e))?;
+
+    // Split content into lines that fit within the page width
+    let lines: Vec<String> = markdown_content
+        .lines()
+        .flat_map(|line| {
+            // Rough estimate: ~2.5mm per character at 10pt Helvetica
+            let max_chars = (usable_width.0 / 2.5) as usize;
+            if line.is_empty() {
+                vec![String::new()]
+            } else if line.len() <= max_chars {
+                vec![line.to_string()]
+            } else {
+                // Word-wrap long lines
+                let mut wrapped = Vec::new();
+                let mut remaining: &str = line;
+                while remaining.len() > max_chars {
+                    // Find a good break point
+                    let mut break_at = max_chars;
+                    for (i, c) in remaining.char_indices().take(max_chars) {
+                        if c == ' ' || c == ',' || c == '，' || c == '、' {
+                            break_at = i + 1;
+                        }
+                    }
+                    wrapped.push(remaining[..break_at].to_string());
+                    remaining = &remaining[break_at..];
+                }
+                if !remaining.is_empty() {
+                    wrapped.push(remaining.to_string());
+                }
+                wrapped
+            }
+        })
+        .collect();
+
+    // Calculate how many lines fit per page
+    let lines_per_page = (usable_height.0 / line_height) as usize;
+
+    // Render lines onto pages
+    let mut line_idx = 0;
+    let mut page_count = 1;
+
+    while line_idx < lines.len() {
+        let layer = if page_count == 1 {
+            &current_layer
+        } else {
+            // Add new page
+            let (new_page, new_layer) = doc.add_page(page_width, page_height, "Layer 1");
+            &doc.get_page(new_page).get_layer(new_layer)
+        };
+
+        let page_lines = lines.len().min(line_idx + lines_per_page);
+        for (i, line) in lines[line_idx..page_lines].iter().enumerate() {
+            let y_pos = page_height - margin_top - Mm(line_height * (i as f32 + 1.0));
+
+            // Determine font style based on markdown markers
+            let (display_line, font_size_adj) = if line.starts_with("# ") {
+                (line.trim_start_matches("# "), 16.0)
+            } else if line.starts_with("## ") {
+                (line.trim_start_matches("## "), 14.0)
+            } else if line.starts_with("### ") {
+                (line.trim_start_matches("### "), 12.0)
+            } else {
+                (line.as_str(), font_size)
+            };
+
+            // Strip markdown formatting for plain text output
+            let clean_line = display_line
+                .replace("**", "")
+                .replace("__", "")
+                .replace("*", "")
+                .replace("_", "")
+                .replace("`", "")
+                .replace("$$", "  ")
+                .replace("$", "");
+
+            layer.use_text(
+                clean_line,
+                font_size_adj,
+                margin_left,
+                y_pos,
+                &font,
+            );
+        }
+
+        line_idx = page_lines;
+        page_count += 1;
+    }
+
+    // Save the PDF
+    let bytes = doc.save_to_bytes()
+        .map_err(|e| format!("保存 PDF 失败: {}", e))?;
+    fs::write(&output_path, &bytes)
+        .map_err(|e| format!("写入 PDF 文件失败: {}", e))?;
+
+    eprintln!("PDF 已保存: {}", output_path);
+    Ok(output_path)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -704,6 +835,7 @@ pub fn run() {
             analyze_content_rust,
             extract_pdf_images,
             test_model_connection_rust,
+            save_markdown_as_pdf,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { MarkdownRenderer } from "@/utils/markdownRenderer";
 import { useToast } from "./Toast";
@@ -146,11 +146,14 @@ export const ResultDisplay: React.FC = () => {
     }
   };
 
-  const renderedContent = displayResult
-    ? viewMode === "render"
-      ? MarkdownRenderer.render(displayResult.content)
-      : displayResult.content
-    : "";
+  // Memoize rendered HTML to avoid re-computing on every render (prevents UI freeze)
+  const renderedContent = useMemo(() => {
+    if (!displayResult) return "";
+    if (viewMode === "render") {
+      return MarkdownRenderer.render(displayResult.content);
+    }
+    return displayResult.content;
+  }, [displayResult, viewMode]);
 
   // Intercept link clicks to open external URLs in the default browser
   const handleContentClick = useCallback((e: React.MouseEvent) => {
