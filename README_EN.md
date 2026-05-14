@@ -193,11 +193,57 @@ Provider configuration is in config/providers.ts and supports hosted APIs and lo
 
 > You can also add a custom provider and custom model name in Settings.
 
+### Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19 + TypeScript |
+| Desktop | Tauri v2 (Rust) |
+| Build Tool | Vite 7 |
+| State Management | Zustand 5 |
+| PDF Parsing | pdfjs-dist v5 (frontend text extraction) + lopdf (Rust image extraction) |
+| Rendering | marked (Markdown) + KaTeX (LaTeX) |
+| i18n | i18next + react-i18next |
+
 ### Document Parsing and Limits
 
 - Supported: PDF
 - Max file size: 30 MB (FILE_SIZE_LIMIT)
-- Parsing in utils/documentProcessor.ts (pdfjs), image extraction in Rust (lopdf + easyyun API)
+- Parsing in utils/documentProcessor.ts (pdfjs), image extraction in Rust (lopdf)
+
+## Contributing
+
+We warmly welcome contributions from every developer!
+
+- Before starting, make sure you've read the [Development](#development) section for requirements and version notes.
+- Feel free to share your ideas and improvements via [Pull Request](https://github.com/LYOfficial/OneDocs/pulls) or [GitHub Issues](https://github.com/LYOfficial/OneDocs/issues).
+- When submitting a PR, please include: a summary of changes, verification steps, and screenshots or recordings for UI changes.
+- Keep commit messages concise; you may use prefixes like `feat:` / `fix:` / `docs:`.
+
+## License
+
+Copyright © 2024-2026 LYOfficial.
+
+This project is licensed under the [GNU General Public License v3.0](https://github.com/LYOfficial/OneDocs/blob/main/LICENSE).
+
+## Acknowledgments
+
+We sincerely thank the following open-source projects — OneDocs would not be possible without them:
+
+- [Tauri](https://github.com/tauri-apps/tauri) — Cross-platform desktop application framework
+- [lopdf](https://github.com/J-F-Liu/lopdf) — Rust PDF processing library for image extraction
+- [pdfjs-dist](https://github.com/nicbarker/pdfjs-dist) — PDF text parsing
+- [React](https://github.com/facebook/react) — UI building library
+- [marked](https://github.com/markedjs/marked) — Markdown parser
+- [KaTeX](https://github.com/KaTeX/KaTeX) — LaTeX math formula rendering
+- [Zustand](https://github.com/pmndrs/zustand) — Lightweight state management
+- [i18next](https://github.com/i18next/i18next) — Internationalization framework
+
+## Contact
+
+- Email: coldregion@qq.com
+- GitHub Issues: [Submit an issue](https://github.com/LYOfficial/OneDocs/issues)
+- Wiki: [OneDocs Wiki](https://github.com/LYOfficial/OneDocs/wiki)
 
 ### Environment Variables (Optional)
 

@@ -193,11 +193,57 @@ npm run tauri:build
 
 > 也可在设置中添加自定义模型（Custom Provider + 自定义模型名）。
 
+### 技术栈
+
+| 层级 | 技术 |
+|------|------|
+| 前端框架 | React 19 + TypeScript |
+| 桌面端 | Tauri v2（Rust） |
+| 构建工具 | Vite 7 |
+| 状态管理 | Zustand 5 |
+| PDF 解析 | pdfjs-dist v5（前端文本提取）+ lopdf（Rust 端图片提取） |
+| 渲染 | marked（Markdown）+ KaTeX（LaTeX） |
+| 国际化 | i18next + react-i18next |
+
 ### 文档解析与限制
 
 - 支持：PDF
 - 最大文件体积：30 MB（FILE_SIZE_LIMIT）
-- 解析位于 utils/documentProcessor.ts（基于 pdfjs），图片提取位于 Rust 端（lopdf + easyyun API）
+- 解析位于 utils/documentProcessor.ts（基于 pdfjs），图片提取位于 Rust 端（lopdf）
+
+## 贡献指南
+
+我们热烈欢迎每一位开发者的贡献！
+
+- 在开始前，请确保已阅读 [开发](#开发) 部分的环境要求与版本说明。
+- 欢迎通过 [Pull Request](https://github.com/LYOfficial/OneDocs/pulls) 或 [GitHub Issues](https://github.com/LYOfficial/OneDocs/issues) 分享您的想法与改进。
+- 提交 PR 时，请包含：变更摘要、验证步骤、UI 变更的截图或录屏。
+- Commit 信息请保持简明扼要，可使用 `feat:` / `fix:` / `docs:` 等前缀。
+
+## 版权声明
+
+版权所有 © 2024-2026 LYOfficial。
+
+本项目基于 [GNU 通用公共许可证 v3.0](https://github.com/LYOfficial/OneDocs/blob/main/LICENSE) 发布。
+
+## 鸣谢
+
+衷心感谢以下开源项目，OneDocs 的开发离不开它们：
+
+- [Tauri](https://github.com/tauri-apps/tauri) — 跨平台桌面应用框架
+- [lopdf](https://github.com/J-F-Liu/lopdf) — Rust PDF 处理库，用于图片提取
+- [pdfjs-dist](https://github.com/nicbarker/pdfjs-dist) — PDF 文本解析
+- [React](https://github.com/facebook/react) — 用户界面构建库
+- [marked](https://github.com/markedjs/marked) — Markdown 解析器
+- [KaTeX](https://github.com/KaTeX/KaTeX) — LaTeX 数学公式渲染
+- [Zustand](https://github.com/pmndrs/zustand) — 轻量状态管理
+- [i18next](https://github.com/i18next/i18next) — 国际化框架
+
+## 联系我们
+
+- 邮箱：coldregion@qq.com
+- GitHub Issues：[提交问题](https://github.com/LYOfficial/OneDocs/issues)
+- Wiki：[OneDocs Wiki](https://github.com/LYOfficial/OneDocs/wiki)
 
 ### 环境变量（可选）
 

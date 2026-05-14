@@ -687,6 +687,47 @@ body {
     letter-spacing: 0.05em;
 }
 
+.acknowledgments-section {
+    padding: 4rem 0;
+    background: var(--surface-color);
+}
+
+.ack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.ack-card {
+    display: block;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-decoration: none;
+    color: var(--primary-color);
+    transition: var(--transition);
+}
+
+.ack-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-medium);
+    border-color: var(--accent-color);
+}
+
+.ack-card h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
+    color: var(--accent-color);
+}
+
+.ack-card p {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    margin: 0;
+}
+
 
 .footer {
     background: var(--primary-color);

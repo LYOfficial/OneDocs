@@ -15,6 +15,7 @@ jobs:
     env:
       VITE_ONEDOCS_API_URL: ${{ secrets.ONEDOCS_API_URL }}
       VITE_ONEDOCS_API_KEY: ${{ secrets.ONEDOCS_API_KEY }}
+      VITE_SILICONFLOW_TOKEN: ${{ secrets.SILICONFLOW_TOKEN }}
 
     steps:
       - name: Checkout repository
