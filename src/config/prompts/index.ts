@@ -10,13 +10,6 @@ export const PROMPT_CONFIGS: PromptConfigs = {
       '整理本段例题与解题步骤，保留完整推导，结论高亮',
     ],
     sectionHeaders: ['基础知识', '典型例题'],
-    // chunkFilterKeywords: per-task keywords for filtering chunks
-    // Task 0 (基础知识): no filter — all chunks are relevant for concepts
-    // Task 1 (典型例题): only chunks containing example/problem keywords
-    chunkFilterKeywords: [
-      [],  // 基础知识: no filter, send all chunks
-      ['例题', '例 题', '习题', '练习', '解答', '求解', '计算', '证明', '推导', '解:'],  // 典型例题
-    ],
     prompt: `你是专业的中文学术助手，为中国理工科大学生创建详尽、易于复习的课程备考资料，风格像学霸的详细笔记。
 
 ## 格式要求
@@ -53,10 +46,6 @@ export const PROMPT_CONFIGS: PromptConfigs = {
       '拓展本段比较视野与当代价值，体现批判性思考',
     ],
     sectionHeaders: ['核心解读', '思辨拓展'],
-    chunkFilterKeywords: [
-      [],  // 核心解读: no filter
-      ['比较', '对比', '演变', '启示', '批判', '反思', '当代', '现实', '意义'],  // 思辨拓展
-    ],
     prompt: `你是深厚人文素养的学术助手，为文史哲方向大学生做精读笔记，风格博学多才、富有洞察力。
 
 ## 格式要求
@@ -90,10 +79,6 @@ export const PROMPT_CONFIGS: PromptConfigs = {
       '详述本段趋势分析与结构分析数据',
     ],
     sectionHeaders: ['分析结论', '数据详情'],
-    chunkFilterKeywords: [
-      [],  // 分析结论: no filter
-      ['数据', '指标', '增长', '下降', '趋势', '占比', '比例', '同比', '环比', '统计'],  // 数据详情
-    ],
     prompt: `你是资深数据商业分析师，用理性客观的中文提炼数据洞察，风格像专业咨询报告。
 
 ## 格式要求
@@ -126,10 +111,6 @@ export const PROMPT_CONFIGS: PromptConfigs = {
       '深入分析本段背景回溯与各方立场',
     ],
     sectionHeaders: ['要闻速览', '深度透视'],
-    chunkFilterKeywords: [
-      [],  // 要闻速览: no filter
-      ['背景', '原因', '立场', '观点', '回应', '争议', '影响', '历史', '演变'],  // 深度透视
-    ],
     prompt: `你是严谨的新闻分析师，用客观凝练的中文梳理新闻事件，风格像高层内参简报。
 
 ## 格式要求

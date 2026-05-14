@@ -85,12 +85,6 @@ export interface PromptConfig {
   chunkTasks: string[];
   sectionHeaders: string[];
   prompt: string;
-  /**
-   * Optional keywords for filtering chunks per task.
-   * If provided, only chunks containing at least one keyword are sent to that task.
-   * If not provided or empty array, all chunks are sent (no filtering).
-   */
-  chunkFilterKeywords?: string[][];
 }
 
 export type PromptConfigs = Record<PromptType, PromptConfig>;

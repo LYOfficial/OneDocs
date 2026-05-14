@@ -103,7 +103,7 @@ export const useAnalysis = () => {
     progressStart: number = 20,
     progressEnd: number = 85,
   ): Promise<string> => {
-    const { coreSystemPrompt, chunkTasks, sectionHeaders, chunkFilterKeywords } = promptConfig;
+    const { coreSystemPrompt, chunkTasks, sectionHeaders } = promptConfig;
 
     // Chunk the entire document in page order (no RAG retrieval)
     const allChunks = chunkText(analysisBundle.text, analysisBundle.pageTexts, {
@@ -172,7 +172,7 @@ export const useAnalysis = () => {
       });
 
       // Process ALL chunks in batches for this section task
-      const MAX_CHARS_PER_BATCH = 4000;
+      const MAX_CHARS_PER_BATCH = 8000;
       const chunkOutputs: string[] = [];
       let batchChunks: string[] = [];
       let batchLen = 0;
@@ -182,27 +182,21 @@ export const useAnalysis = () => {
 
         const batchText = batch.join("\n\n");
 
-        // Build image tag context for this batch
-        // Find which pages are referenced in this batch and include their image tags
+        // Build image tag context for this batch — ONLY include image tags for pages
+        // that appear in this batch, to reduce token waste (was injecting ALL 19 tags per batch)
         const imageTagLines: string[] = [];
         if (analysisBundle.pageImageMap.length > 0) {
           const pagesInBatch = new Set<number>();
-          const pageRefRegex = /第\s*(\d+)\s*页/g;
-          let pageRefMatch;
-          while ((pageRefMatch = pageRefRegex.exec(batchText)) !== null) {
-            pagesInBatch.add(parseInt(pageRefMatch[1], 10));
-          }
-          // Also add pages from chunk sourcePage markers
+          // Extract page numbers from chunk sourcePage markers like [片段1（第2页）]
           const chunkPageRegex = /片段\d+（第(\d+)页）/g;
           let chunkPageMatch;
           while ((chunkPageMatch = chunkPageRegex.exec(batchText)) !== null) {
             pagesInBatch.add(parseInt(chunkPageMatch[1], 10));
           }
 
+          // Only include image tags for pages that appear in this batch
           for (const pageEntry of analysisBundle.pageImageMap) {
-            if (pageEntry.imageTags.length > 0) {
-              // Include all pages with images, not just those referenced in this batch
-              // This ensures the LLM knows about ALL available images
+            if (pageEntry.imageTags.length > 0 && pagesInBatch.has(pageEntry.pageNumber)) {
               imageTagLines.push(
                 `第${pageEntry.pageNumber}页: ${pageEntry.imageTags.join(", ")} (上下文: "${pageEntry.textSnippet.substring(0, 80)}")`,
               );
@@ -266,26 +260,13 @@ export const useAnalysis = () => {
         }
       };
 
-      // Filter chunks for this task based on chunkFilterKeywords
-      const filterKeywords = chunkFilterKeywords?.[taskIdx];
-      const filteredChunks = (filterKeywords && filterKeywords.length > 0)
-        ? allChunks.filter(chunk =>
-            filterKeywords.some(kw => chunk.content.includes(kw))
-          )
-        : allChunks;
+      // All chunks are sent to every task (no keyword filtering)
+      const effectiveChunks = allChunks;
 
-      // If filtering yields too few chunks (less than 20% of total), fall back to all chunks
-      // to avoid missing important content
-      const effectiveChunks = (filteredChunks.length > 0 && filteredChunks.length >= allChunks.length * 0.2)
-        ? filteredChunks
-        : (filteredChunks.length === 0 ? allChunks : filteredChunks);
-
-      pushDevLog("info", "analysis", `Task "${sectionHeader}" chunk过滤: ${allChunks.length} → ${effectiveChunks.length}`, {
+      pushDevLog("info", "analysis", `Task "${sectionHeader}" 使用全部 ${allChunks.length} 个片段`, {
         taskIdx,
         sectionHeader,
         totalChunks: allChunks.length,
-        filteredChunks: effectiveChunks.length,
-        filterKeywords: filterKeywords || [],
       });
 
       // Pre-count total batches for progress reporting
