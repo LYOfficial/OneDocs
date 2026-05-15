@@ -2,11 +2,18 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
-const buildTarget = process.env.VITE_BUILD_TARGET
-  ? process.env.VITE_BUILD_TARGET.includes(",")
-    ? process.env.VITE_BUILD_TARGET.split(",").map((item) => item.trim()).filter(Boolean)
-    : process.env.VITE_BUILD_TARGET.trim()
-  : ["es2021", "chrome100", "safari13"];
+const buildTargetEnv = process.env.VITE_BUILD_TARGET?.trim();
+const buildTarget = (() => {
+  if (!buildTargetEnv) {
+    return ["es2021", "chrome100", "safari13"];
+  }
+
+  if (!buildTargetEnv.includes(",")) {
+    return buildTargetEnv;
+  }
+
+  return buildTargetEnv.split(",").map((item) => item.trim()).filter(Boolean);
+})();
 
 export default defineConfig({
   plugins: [react()],
