@@ -3,7 +3,9 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
 const buildTarget = process.env.VITE_BUILD_TARGET
-  ? process.env.VITE_BUILD_TARGET.split(",").map((item) => item.trim()).filter(Boolean)
+  ? process.env.VITE_BUILD_TARGET.includes(",")
+    ? process.env.VITE_BUILD_TARGET.split(",").map((item) => item.trim()).filter(Boolean)
+    : process.env.VITE_BUILD_TARGET.trim()
   : ["es2021", "chrome100", "safari13"];
 
 export default defineConfig({
