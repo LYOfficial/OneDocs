@@ -26,7 +26,7 @@ export default defineConfig({
     exclude: ["pdfjs-dist"],
   },
   build: {
-    target: buildTarget.length === 1 ? buildTarget[0] : buildTarget,
+    target: buildTarget,
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_DEBUG,
     outDir: "dist",
