@@ -16,6 +16,7 @@ jobs:
       VITE_ONEDOCS_API_URL: ${{ secrets.ONEDOCS_API_URL }}
       VITE_ONEDOCS_API_KEY: ${{ secrets.ONEDOCS_API_KEY }}
       VITE_SILICONFLOW_TOKEN: ${{ secrets.SILICONFLOW_TOKEN }}
+      VITE_BUILD_TARGET: esnext
 
     steps:
       - name: Checkout repository
@@ -38,7 +39,7 @@ jobs:
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build the app
         run: npm run tauri build

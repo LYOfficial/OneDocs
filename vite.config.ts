@@ -2,6 +2,19 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
+const buildTargetEnv = process.env.VITE_BUILD_TARGET?.trim();
+const buildTarget = (() => {
+  if (!buildTargetEnv) {
+    return ["es2021", "chrome100", "safari13"];
+  }
+
+  if (!buildTargetEnv.includes(",")) {
+    return buildTargetEnv;
+  }
+
+  return buildTargetEnv.split(",").map((item) => item.trim()).filter(Boolean);
+})();
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -22,7 +35,7 @@ export default defineConfig({
     exclude: ["pdfjs-dist"],
   },
   build: {
-    target: ["es2021", "chrome100", "safari13"],
+    target: buildTarget,
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     sourcemap: !!process.env.TAURI_DEBUG,
     outDir: "dist",
