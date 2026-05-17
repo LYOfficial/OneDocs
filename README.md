@@ -41,9 +41,9 @@ OneDocs者，一文亦闻也，乃集诸多智能提示之力，助君速览文�
 
 ## 软件截图
 
-<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs1.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs2.png" alt="OneDocs" height="320"/>
-<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs3.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs4.png" alt="OneDocs" height="320"/>
-<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs5.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs6.png" alt="OneDocs" height="320"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p1.png?raw=true" alt="OneDocs" height="320"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p2.png?raw=true" alt="OneDocs" height="320"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p3.png?raw=true" alt="OneDocs" height="320"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p4.png?raw=true" alt="OneDocs" height="320"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p5.png?raw=true" alt="OneDocs" height="320"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p6.png?raw=true" alt="OneDocs" height="320"/>
 
 
 ## 使用方法
@@ -133,12 +133,27 @@ npm run tauri:dev
 构建发行版：
 
 ```bash
-# Web 前端
+# 仅构建 Web 前端
 npm run build
 
-# Desktop（Tauri）
+# 构建所有桌面端安装包（NSIS + MSI）
 npm run tauri:build
+
+# 仅构建 NSIS 安装包（推荐，速度快）
+npx tauri build --bundles nsis
+
+# 仅构建 MSI 安装包
+npx tauri build --bundles msi
 ```
+
+> ⚠️ `npm run tauri:build` 会同时构建 NSIS 和 MSI，其中 MSI 依赖 WiX 工具包下载，可能较慢或卡住。如只需 NSIS 安装包，请使用 `npx tauri build --bundles nsis`。
+
+构建产物位于 `src-tauri/target/release/bundle/`：
+
+| 格式 | 路径 |
+|------|------|
+| NSIS | `nsis/onedocs_{version}_x64-setup.exe` |
+| MSI | `msi/onedocs_{version}_x64_en-US.msi` |
 
 ### 项目结构（核心）
 

@@ -42,9 +42,9 @@ The analyzed results can be previewed, Markdown source code copied, and exported
 
 ## Screenshots
 
-<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs1.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs2.png" alt="OneDocs" height="320"/>
-<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs3.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs4.png" alt="OneDocs" height="320"/>
-<img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs5.png" alt="OneDocs" height="320"/><img src="http://oss.1n.hk/lyofficial/images/onedocs/onedocs6.png" alt="OneDocs" height="320"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p1.png?raw=true" alt="OneDocs" height="320"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p2.png?raw=true" alt="OneDocs" height="320"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p3.png?raw=true" alt="OneDocs" height="320"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p4.png?raw=true" alt="OneDocs" height="320"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p5.png?raw=true" alt="OneDocs" height="320"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p6.png?raw=true" alt="OneDocs" height="320"/>
 
 
 ## Usage
@@ -133,12 +133,27 @@ npm run tauri:dev
 Build releases:
 
 ```bash
-# Web
+# Web only
 npm run build
 
-# Desktop (Tauri)
+# All desktop installers (NSIS + MSI)
 npm run tauri:build
+
+# NSIS installer only (recommended, faster)
+npx tauri build --bundles nsis
+
+# MSI installer only
+npx tauri build --bundles msi
 ```
+
+> ⚠️ `npm run tauri:build` builds both NSIS and MSI. MSI depends on the WiX toolset download, which can be slow or hang. If you only need the NSIS installer, use `npx tauri build --bundles nsis`.
+
+Build outputs are located in `src-tauri/target/release/bundle/`:
+
+| Format | Path |
+|--------|------|
+| NSIS | `nsis/onedocs_{version}_x64-setup.exe` |
+| MSI | `msi/onedocs_{version}_x64_en-US.msi` |
 
 ### Project Structure (Core)
 

@@ -5,7 +5,7 @@ import { resolve } from "path";
 const buildTargetEnv = process.env.VITE_BUILD_TARGET?.trim();
 const buildTarget = (() => {
   if (!buildTargetEnv) {
-    return ["es2021", "chrome100", "safari13"];
+    return ["esnext", "chrome120", "safari17"];
   }
 
   if (!buildTargetEnv.includes(",")) {
