@@ -1,6 +1,52 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { AIProvider } from "@/types";
 import { MODEL_PROVIDERS } from "@/config/providers";
+import { useAppStore } from "@/store/useAppStore";
+
+const REQUEST_TIMEOUT_MS = 120000;
+
+const createLogEntry = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => ({
+  id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  timestamp: Date.now(),
+  level,
+  scope,
+  message,
+  payload,
+});
+
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog(createLogEntry(level, scope, message, payload));
+  }
+};
+
+const invokeWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number) => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error("请求超时"));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 interface CallAIParams {
   systemPrompt: string;
@@ -9,6 +55,8 @@ interface CallAIParams {
   apiKey: string;
   baseUrl?: string;
   model?: string;
+  /** Optional image URLs (file paths, data URLs, or HTTP URLs) for multimodal */
+  images?: string[];
 }
 
 interface CallCustomAIParams {
@@ -17,17 +65,17 @@ interface CallCustomAIParams {
   apiKey: string;
   baseUrl: string;
   model: string;
+  /** Optional image URLs for multimodal */
+  images?: string[];
 }
 
 export class APIService {
-  /**
-   * 通用调用方法，支持内置和自定义提供商
-   */
   static async callAIWithProvider(
     provider: string,
     systemPrompt: string,
     content: string,
-    settings: { apiKey: string; baseUrl: string; model: string }
+    settings: { apiKey: string; baseUrl: string; model: string },
+    images?: string[],
   ): Promise<string> {
     if (provider.startsWith('custom_')) {
       return this.callCustomAI({
@@ -36,6 +84,7 @@ export class APIService {
         apiKey: settings.apiKey,
         baseUrl: settings.baseUrl,
         model: settings.model,
+        images,
       });
     } else {
       return this.callAI({
@@ -45,13 +94,11 @@ export class APIService {
         apiKey: settings.apiKey,
         baseUrl: settings.baseUrl,
         model: settings.model,
+        images,
       });
     }
   }
 
-  /**
-   * 调用 AI API 进行文档分析
-   */
   static async callAI({
     systemPrompt,
     content,
@@ -59,6 +106,7 @@ export class APIService {
     apiKey,
     baseUrl,
     model,
+    images,
   }: CallAIParams): Promise<string> {
     const config = MODEL_PROVIDERS[provider];
     if (!config) {
@@ -67,65 +115,117 @@ export class APIService {
 
     const finalModel = model || config.defaultModel;
     const finalBaseUrl = baseUrl || config.baseUrl;
+    const finalApiKey = apiKey || config.defaultApiKey || "";
+
+    if (config.requiresApiKey !== false && !finalApiKey) {
+      throw new Error("请先配置 API Key");
+    }
+
+    if (!finalBaseUrl) {
+      throw new Error("未检测到有效的 Base URL 配置");
+    }
 
     console.log(`调用 ${config.name} API`, {
       provider,
       model: finalModel,
       baseUrl: finalBaseUrl,
+      hasManagedKey: Boolean(config.defaultApiKey),
+      hasImages: Boolean(images && images.length > 0),
+    });
+
+    pushDevLog("info", "api", `准备调用 ${config.name} 模型`, {
+      provider,
+      model: finalModel,
+      baseUrl: finalBaseUrl,
+      systemPrompt,
+      content,
+      imageCount: images?.length || 0,
     });
 
     try {
-      // 通过 Tauri 后端调用 API
-      const result = await invoke<string>("analyze_content_rust", {
-        apiKey,
+      const result = await invokeWithTimeout(
+        invoke<string>("analyze_content_rust", {
+        apiKey: finalApiKey,
         apiBaseUrl: finalBaseUrl,
         systemPrompt,
-        textContent: `请分析以下文档内容：\n\n${content}`,
+        textContent: content,
         model: finalModel,
+        images: images && images.length > 0 ? images : undefined,
+        }),
+        REQUEST_TIMEOUT_MS,
+      );
+
+      pushDevLog("info", "api", `模型响应成功 (${config.name})`, {
+        provider,
+        model: finalModel,
+        response: result,
       });
 
       return result;
     } catch (error: any) {
       console.error("API 调用失败:", error);
+      pushDevLog("error", "api", `模型响应失败 (${config.name})`, {
+        provider,
+        model: finalModel,
+        error: error?.message || String(error),
+      });
       throw this.handleAPIError(error, provider);
     }
   }
 
-  /**
-   * 调用自定义 AI API 进行文档分析
-   */
   static async callCustomAI({
     systemPrompt,
     content,
     apiKey,
     baseUrl,
     model,
+    images,
   }: CallCustomAIParams): Promise<string> {
     console.log(`调用自定义 API`, {
       model,
       baseUrl,
+      hasImages: Boolean(images && images.length > 0),
+    });
+
+    pushDevLog("info", "api", "准备调用自定义模型", {
+      model,
+      baseUrl,
+      systemPrompt,
+      content,
+      imageCount: images?.length || 0,
     });
 
     try {
-      // 通过 Tauri 后端调用 API
-      const result = await invoke<string>("analyze_content_rust", {
+      const result = await invokeWithTimeout(
+        invoke<string>("analyze_content_rust", {
         apiKey,
         apiBaseUrl: baseUrl,
         systemPrompt,
-        textContent: `请分析以下文档内容：\n\n${content}`,
+        textContent: content,
         model,
+        images: images && images.length > 0 ? images : undefined,
+        }),
+        REQUEST_TIMEOUT_MS,
+      );
+
+      pushDevLog("info", "api", "自定义模型响应成功", {
+        model,
+        baseUrl,
+        response: result,
       });
 
       return result;
     } catch (error: any) {
       console.error("自定义 API 调用失败:", error);
+      pushDevLog("error", "api", "自定义模型响应失败", {
+        model,
+        baseUrl,
+        error: error?.message || String(error),
+      });
       throw this.handleCustomAPIError(error);
     }
   }
 
-  /**
-   * 测试 API 连接
-   */
   static async testConnection(
     provider: AIProvider,
     apiKey: string,
@@ -133,21 +233,34 @@ export class APIService {
     model?: string,
   ): Promise<boolean> {
     try {
-      await this.callAI({
-        systemPrompt: "You are a helpful assistant.",
-        content: "Hello, this is a connection test.",
-        provider,
-        apiKey,
-        baseUrl,
-        model,
+      const finalModel = model || MODEL_PROVIDERS[provider]?.defaultModel || '';
+      const finalBaseUrl = baseUrl || MODEL_PROVIDERS[provider]?.baseUrl || '';
+      const finalApiKey = apiKey || MODEL_PROVIDERS[provider]?.defaultApiKey || '';
+
+      if (!finalBaseUrl) {
+        throw new Error('未检测到有效的 Base URL 配置');
+      }
+
+      const result = await invoke<boolean>('test_model_connection_rust', {
+        apiKey: finalApiKey,
+        apiBaseUrl: finalBaseUrl,
+        model: finalModel,
       });
-      return true;
+
+      if (result) {
+        return true;
+      }
+
+      throw new Error(`模型可用性检测失败：${finalModel}`);
     } catch (error: any) {
-      // 检查是否是余额不足错误 - 这种情况下连接是正常的，只是余额问题
-      if ((error as any).isBalanceError) {
+      const handledError = this.handleAPIError(
+        error instanceof Error ? error : new Error(String(error)),
+        provider
+      );
+
+      if ((handledError as any).isBalanceError) {
         let rechargeMessage = "";
         
-        // 根据不同提供商给出相应的充值提示
         switch (provider) {
           case 'deepseek':
             rechargeMessage = "请前往 DeepSeek 官网充值后使用";
@@ -162,55 +275,51 @@ export class APIService {
             rechargeMessage = "请前往相应官网充值后使用";
         }
         
-        // 余额不足时抛出一个特殊的"成功但有警告"的错误
         const warningError = new Error("BALANCE_WARNING");
         (warningError as any).isWarning = true;
         (warningError as any).originalMessage = `连接正常，但账户余额不足\n\n${rechargeMessage}`;
         throw warningError;
       }
       
-      // 其他错误照常抛出
-      throw error;
+      throw handledError;
     }
   }
 
-  /**
-   * 测试自定义 API 连接
-   */
   static async testCustomConnection(
     apiKey: string,
     baseUrl: string,
     model: string,
   ): Promise<boolean> {
     try {
-      await this.callCustomAI({
-        systemPrompt: "You are a helpful assistant.",
-        content: "Hello, this is a connection test.",
+      const result = await invoke<boolean>('test_model_connection_rust', {
         apiKey,
-        baseUrl,
+        apiBaseUrl: baseUrl,
         model,
       });
-      return true;
+
+      if (result) {
+        return true;
+      }
+
+      throw new Error('模型不可用');
     } catch (error: any) {
-      // 检查是否是余额不足错误 - 这种情况下连接是正常的，只是余额问题
-      if ((error as any).isBalanceError) {
+      const handledError = this.handleCustomAPIError(
+        error instanceof Error ? error : new Error(String(error))
+      );
+
+      if ((handledError as any).isBalanceError) {
         const rechargeMessage = "请检查账户余额是否充足";
-        
-        // 余额不足时抛出一个特殊的"成功但有警告"的错误
+
         const warningError = new Error("BALANCE_WARNING");
         (warningError as any).isWarning = true;
         (warningError as any).originalMessage = `连接正常，但账户余额不足\n\n${rechargeMessage}`;
         throw warningError;
       }
-      
-      // 其他错误照常抛出
-      throw error;
+
+      throw handledError;
     }
   }
 
-  /**
-   * 处理自定义 API 错误
-   */
   private static handleCustomAPIError(error: any): Error {
     let errorMessage = `自定义模型 API 调用失败`;
 
@@ -220,10 +329,9 @@ export class APIService {
       errorMessage += `: ${error.message}`;
     }
 
-    // 提供针对性的错误提示
     if (
       errorMessage.includes("InsufficientBalance") ||
-      errorMessage.includes("InsuffcientBalance") || // API返回的拼写错误
+      errorMessage.includes("InsuffcientBalance") ||
       errorMessage.includes("insufficient_balance") ||
       errorMessage.includes("PaymentRequired") ||
       errorMessage.includes("402") ||
@@ -231,7 +339,6 @@ export class APIService {
     ) {
       const providerSpecificMessage = `账户余额不足\n\n解决方案：\n1. 检查账户余额是否充足\n2. 确认账户状态是否正常\n3. 联系服务商确认账户问题`;
       
-      // 创建特殊的余额不足错误，带有标记
       const balanceError = new Error(providerSpecificMessage);
       (balanceError as any).isBalanceError = true;
       return balanceError;
@@ -255,7 +362,8 @@ export class APIService {
       errorMessage = `请求频率过高\n\n建议：\n1. 稍后再试\n2. 检查账户限额\n3. 考虑升级服务计划`;
     } else if (
       errorMessage.includes("timeout") ||
-      errorMessage.includes("ETIMEDOUT")
+      errorMessage.includes("ETIMEDOUT") ||
+      errorMessage.includes("请求超时")
     ) {
       errorMessage = `请求超时\n\n可能原因：\n1. 网络连接不稳定\n2. 服务器响应缓慢\n3. 文档内容过长`;
     } else if (
@@ -268,9 +376,6 @@ export class APIService {
     return new Error(errorMessage);
   }
 
-  /**
-   * 处理 API 错误
-   */
   private static handleAPIError(error: any, provider: AIProvider): Error {
     const providerName = MODEL_PROVIDERS[provider]?.name || provider;
 
@@ -282,16 +387,14 @@ export class APIService {
       errorMessage += `: ${error.message}`;
     }
 
-    // 提供针对性的错误提示
     if (
       errorMessage.includes("InsufficientBalance") ||
-      errorMessage.includes("InsuffcientBalance") || // API返回的拼写错误
+      errorMessage.includes("InsuffcientBalance") ||
       errorMessage.includes("insufficient_balance") ||
       errorMessage.includes("PaymentRequired") ||
       errorMessage.includes("402") ||
       errorMessage.includes("余额不足")
     ) {
-      // 根据提供商生成相应的充值提示
       let providerSpecificMessage = "";
       let websiteName = "";
       
@@ -311,7 +414,6 @@ export class APIService {
       
       providerSpecificMessage = `账户余额不足\n\n解决方案：\n1. 前往 ${websiteName} 官网充值账户\n2. 检查当前账户余额是否充足\n3. 确认账户状态是否正常\n4. 联系 ${websiteName} 客服确认账户问题`;
       
-      // 创建特殊的余额不足错误，带有标记
       const balanceError = new Error(providerSpecificMessage);
       (balanceError as any).isBalanceError = true;
       return balanceError;
@@ -335,7 +437,8 @@ export class APIService {
       errorMessage = `请求频率过高\n\n建议：\n1. 稍后再试\n2. 检查账户限额\n3. 考虑升级服务计划`;
     } else if (
       errorMessage.includes("timeout") ||
-      errorMessage.includes("ETIMEDOUT")
+      errorMessage.includes("ETIMEDOUT") ||
+      errorMessage.includes("请求超时")
     ) {
       errorMessage = `请求超时\n\n可能原因：\n1. 网络连接不稳定\n2. 服务器响应缓慢\n3. 文档内容过长`;
     } else if (

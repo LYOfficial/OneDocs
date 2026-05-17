@@ -7,21 +7,21 @@
     <meta name="description" content="OneDocs - 一文亦闻，集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。">
     <meta name="keywords" content="OneDocs, 一文亦闻, 文档分析, 智能分析, AI文档处理, 文档总结">
     
-    <!-- Favicon -->
+    
     <link rel="icon" type="image/png" href="icon.png">>
     
-    <!-- Google Fonts -->
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- 导航栏 -->
+    
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
@@ -42,9 +42,9 @@
         </div>
     </nav>
 
-    <!-- 主页面 -->
+    
     <main id="home" class="main-container">
-        <!-- 头部区域 -->
+        
         <header class="header">
             <div class="hero-background"></div>
             <div class="hero-content">
@@ -81,7 +81,7 @@
             </div>
         </header>
 
-        <!-- 功能预览区域 -->
+        
         <section id="features" class="features-section">
             <div class="section-container">
                 <h2 class="section-title">核心功能</h2>
@@ -123,7 +123,7 @@
             </div>
         </section>
 
-        <!-- 支持格式区域 -->
+        
         <section class="formats-section">
             <div class="section-container">
                 <h2 class="section-title">支持格式</h2>
@@ -134,37 +134,34 @@
                         <i class="fas fa-file-pdf"></i>
                         <span>PDF</span>
                     </div>
-                    <div class="format-item">
-                        <i class="fas fa-file-word"></i>
-                        <span>Word</span>
-                    </div>
-                    <div class="format-item">
-                        <i class="fas fa-file-powerpoint"></i>
-                        <span>PPT</span>
-                    </div>
-                    <div class="format-item">
-                        <i class="fas fa-file-alt"></i>
-                        <span>TXT</span>
-                    </div>
                 </div>
                 
                 <div class="format-note">
                     <i class="fas fa-info-circle"></i>
-                    <span>支持最大 50MB 文件大小</span>
+                    <span>支持最大 30MB 文件大小</span>
                 </div>
             </div>
         </section>
 
-        <!-- 下载区域 -->
+        
         <section id="download" class="download-section">
             <div class="section-container">
                 <h2 class="section-title">立即下载</h2>
                 <p class="section-description">选择适合您操作系统的版本</p>
                 
-                <!-- 下载提示 -->
+                
                 <div class="download-notice">
                     <i class="fas fa-info-circle"></i>
                     <span>如果下载被浏览器拦截，请点击"保留"继续下载</span>
+                </div>
+
+                
+                <div class="download-options">
+                    <label class="source-toggle">
+                        <input type="checkbox" id="useProxy" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">使用加速镜像下载 (推荐中国大陆用户开启)</span>
+                    </label>
                 </div>
                 
                 <div class="download-grid">
@@ -174,13 +171,18 @@
                         </div>
                         <h3>Windows</h3>
                         <p>适用于 Windows 10 及以上版本</p>
-                        <button class="download-btn" onclick="downloadApp('windows')">
-                            <i class="fas fa-download"></i>
-                            下载 Windows 版
-                        </button>
+                        <div class="button-group">
+                            <button class="download-btn" onclick="downloadApp('windows', 'exe')">
+                                <i class="fas fa-download"></i>
+                                下载 .exe
+                            </button>
+                            <button class="download-btn secondary" onclick="downloadApp('windows', 'msi')">
+                                下载 .msi
+                            </button>
+                        </div>
                         <div class="download-info">
-                            <span>版本: 1.1.0</span>
-                            <span>大小: 12.2 MB</span>
+                            <span>版本: 1.4.0</span>
+                            <span>大小: ~4 MB</span>
                         </div>
                     </div>
                     
@@ -190,13 +192,13 @@
                         </div>
                         <h3>macOS</h3>
                         <p>适用于 macOS 10.15 及以上版本</p>
-                        <button class="download-btn" onclick="downloadApp('macos')">
+                        <button class="download-btn" onclick="downloadApp('macos', 'dmg')">
                             <i class="fas fa-download"></i>
                             下载 macOS 版
                         </button>
                         <div class="download-info">
-                            <span>版本: 1.1.0</span>
-                            <span>大小: 5.59 MB</span>
+                            <span>版本: 1.4.0</span>
+                            <span>大小: ~6 MB</span>
                         </div>
                     </div>
                     
@@ -206,13 +208,18 @@
                         </div>
                         <h3>Linux</h3>
                         <p>适用于主流 Linux 发行版</p>
-                        <button class="download-btn disabled" disabled>
-                            <i class="fas fa-clock"></i>
-                            敬请期待
-                        </button>
+                        <div class="button-group">
+                            <button class="download-btn" onclick="downloadApp('linux', 'appimage')">
+                                <i class="fas fa-download"></i>
+                                下载 .AppImage
+                            </button>
+                            <button class="download-btn secondary" onclick="downloadApp('linux', 'deb')">
+                                下载 .deb
+                            </button>
+                        </div>
                         <div class="download-info">
-                            <span>版本: 1.0.0</span>
-                            <span>即将发布</span>
+                            <span>版本: 1.4.0</span>
+                            <span>大小: ~80 MB</span>
                         </div>
                     </div>
                 </div>
@@ -226,7 +233,7 @@
             </div>
         </section>
 
-        <!-- 关于区域 -->
+        
         <section id="about" class="about-section">
             <div class="section-container">
                 <h2 class="section-title">关于 OneDocs</h2>
@@ -267,7 +274,7 @@
                     
                     <div class="about-stats">
                         <div class="stat-item">
-                            <div class="stat-number" data-target="50">0</div>
+                            <div class="stat-number" data-target="30">0</div>
                             <div class="stat-label">MB 最大文件</div>
                         </div>
                         <div class="stat-item">
@@ -275,7 +282,7 @@
                             <div class="stat-label">种分析模式</div>
                         </div>
                         <div class="stat-item">
-                            <div class="stat-number" data-target="10">0</div>
+                            <div class="stat-number" data-target="40">0</div>
                             <div class="stat-label">+ AI 模型</div>
                         </div>
                     </div>
@@ -283,7 +290,50 @@
             </div>
         </section>
 
-        <!-- 页脚 -->
+        
+        <section class="acknowledgments-section">
+            <div class="section-container">
+                <h2 class="section-title">鸣谢</h2>
+                <p class="section-description">衷心感谢以下开源项目</p>
+                
+                <div class="ack-grid">
+                    <a class="ack-card" href="https://github.com/tauri-apps/tauri" target="_blank">
+                        <h4>Tauri</h4>
+                        <p>跨平台桌面应用框架</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/J-F-Liu/lopdf" target="_blank">
+                        <h4>lopdf</h4>
+                        <p>Rust PDF 处理库</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/nicbarker/pdfjs-dist" target="_blank">
+                        <h4>pdfjs-dist</h4>
+                        <p>PDF 文本解析</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/facebook/react" target="_blank">
+                        <h4>React</h4>
+                        <p>用户界面构建库</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/markedjs/marked" target="_blank">
+                        <h4>marked</h4>
+                        <p>Markdown 解析器</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/KaTeX/KaTeX" target="_blank">
+                        <h4>KaTeX</h4>
+                        <p>LaTeX 数学公式渲染</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/pmndrs/zustand" target="_blank">
+                        <h4>Zustand</h4>
+                        <p>轻量状态管理</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/i18next/i18next" target="_blank">
+                        <h4>i18next</h4>
+                        <p>国际化框架</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        
         <footer class="footer">
             <div class="footer-container">
                 <div class="footer-content">
@@ -321,7 +371,7 @@
                 </div>
                 
                 <div class="footer-bottom">
-                    <p>&copy; 2025 OneDocs - 一文亦闻. All rights reserved.</p>
+                    <p>&copy; 2024-2026 OneDocs - 一文亦闻. Licensed under GPLv3.</p>
                     <div class="footer-social">
                         <a href="https://github.com/LYOfficial/OneDocs" target="_blank">
                             <i class="fab fa-github"></i>
@@ -332,12 +382,12 @@
         </footer>
     </main>
 
-    <!-- 返回顶部按钮 -->
+    
     <button class="back-to-top" id="backToTop">
         <i class="fas fa-chevron-up"></i>
     </button>
 
-    <!-- 加载脚本 -->
+    
     <script src="script.js"></script>
 </body>
 </html>

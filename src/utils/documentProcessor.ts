@@ -1,77 +1,222 @@
-import * as pdfjsLib from "pdfjs-dist";
-import mammoth from "mammoth";
-import JSZip from "jszip";
-import type { SupportedFileType } from "@/types";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
+import { appDataDir } from "@tauri-apps/api/path";
+import { mkdir, writeFile } from "@tauri-apps/plugin-fs";
+import { extractPdfImages } from "@/services/pdfImageExtractor";
+import { useAppStore } from "@/store/useAppStore";
+import type {
+  DocumentAnalysisBundle,
+  DocumentImageAsset,
+  PageImageMap,
+  SupportedFileType,
+} from "@/types";
 
-// 设置 PDF.js worker - 使用 CDN 以确保稳定性
+const pushDevLog = (
+  level: "info" | "warn" | "error",
+  scope: string,
+  message: string,
+  payload?: unknown,
+) => {
+  const { addLog } = useAppStore.getState();
+  if (addLog) {
+    addLog({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      timestamp: Date.now(),
+      level,
+      scope,
+      message,
+      payload,
+    });
+  }
+};
+
 if (typeof window !== "undefined") {
-  // 使用与安装版本 4.10.38 匹配的 worker
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
 export class DocumentProcessor {
-  /**
-   * 提取文件内容
-   */
-  static async extractContent(file: File): Promise<string> {
-    const fileType = file.type as SupportedFileType;
-
-    switch (fileType) {
-      case "text/plain":
-        return await this.extractTextFile(file);
-
-      case "application/pdf":
-        return await this.extractPDFText(file);
-
-      case "application/msword":
-      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        return await this.extractWordText(file);
-
-      case "application/vnd.ms-powerpoint":
-      case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        return await this.extractPowerPointText(file);
-
-      default:
-        throw new Error(`不支持的文件格式: ${fileType}`);
+  private static async loadPdfDocument(arrayBuffer: ArrayBuffer) {
+    const data = new Uint8Array(arrayBuffer);
+    try {
+      return await pdfjsLib.getDocument({
+        data,
+        useSystemFonts: true,
+        disableAutoFetch: true,
+      }).promise;
+    } catch (error) {
+      console.warn("PDF 解析失败，改用主线程模式", error);
+      try {
+        return await pdfjsLib.getDocument({
+          data,
+          disableWorker: true,
+          useSystemFonts: true,
+          disableAutoFetch: true,
+        }).promise;
+      } catch (fallbackError) {
+        console.warn("主线程解析失败，改用字节数组模式", fallbackError);
+        return await pdfjsLib.getDocument({
+          data,
+          disableWorker: true,
+          isEvalSupported: false,
+          useSystemFonts: true,
+        }).promise;
+      }
     }
   }
 
   /**
-   * 提取纯文本文件
+   * Extract a complete analysis bundle from a PDF file.
+   *
+   * Pipeline:
+   * 1. Extract text using pdfjs
+   * 2. Save PDF to data directory
+   * 3. Call Rust extract_pdf_images to extract embedded images (lopdf + easyyun API fallback)
+   * 4. Return combined bundle
    */
-  private static async extractTextFile(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+  static async extractAnalysisBundle(
+    file: File,
+    outputRoot?: string,
+  ): Promise<DocumentAnalysisBundle> {
+    const fileType = file.type as SupportedFileType;
 
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        if (!content || content.trim().length === 0) {
-          reject(new Error("文本文件内容为空"));
-        } else {
-          resolve(content);
+    if (fileType !== "application/pdf") {
+      throw new Error(`不支持的文件格式: ${fileType}，仅支持 PDF 文件`);
+    }
+
+    try {
+      // Step 1: Read the file into an ArrayBuffer.
+      // IMPORTANT: pdfjsLib.getDocument() transfers ownership of the underlying
+      // ArrayBuffer to the Web Worker, which detaches it. We must create a copy
+      // for the file-saving step BEFORE passing it to pdfjs.
+      const arrayBuffer = await file.arrayBuffer();
+      const arrayBufferForSave = arrayBuffer.slice(0);  // copy before pdfjs consumes it
+
+      // Step 2: Extract text using pdfjs
+      const pdf = await this.loadPdfDocument(arrayBuffer);
+      const pageTexts: string[] = [];
+      let fullText = "";
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(" ")
+          .trim();
+
+        pageTexts.push(pageText);
+        fullText += `\n=== 第 ${pageNum} 页 ===\n${pageText}\n`;
+      }
+
+      if (fullText.trim().length === 0) {
+        throw new Error("PDF文件中未检测到文本内容，可能是图片扫描版PDF");
+      }
+
+      // Step 3: Save PDF to data directory and extract images via Rust
+      let imageAssets: DocumentImageAsset[] = [];
+      const baseDir = outputRoot
+        ? this.normalizePath(outputRoot)
+        : this.normalizePath(await appDataDir());
+
+      // Use a short hash of the file content to avoid folder name collisions
+      const hashDir = await this.computeShortHash(arrayBufferForSave);
+      const imageDir = `${baseDir}/${hashDir}_pdf_assets`;
+
+      try {
+        await mkdir(imageDir, { recursive: true });
+
+        // Save PDF file to data directory for Rust processing
+        // Use the pre-copied buffer since the original may have been detached by pdfjs
+        const pdfPath = `${baseDir}/${hashDir}_input.pdf`;
+        await writeFile(pdfPath, new Uint8Array(arrayBufferForSave));
+
+        pushDevLog("info", "document-processor", "PDF 已保存到数据目录，准备提取图片", {
+          pdfPath,
+          imageDir,
+          hashDir,
+          fileSize: arrayBufferForSave.byteLength,
+        });
+
+        // Step 3: Call Rust to extract images (lopdf)
+        imageAssets = await extractPdfImages(pdfPath, imageDir, hashDir);
+        console.log(`[DocumentProcessor] 图片提取完成: ${imageAssets.length} 张图片`,
+          imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })));
+
+        pushDevLog("info", "document-processor", `图片提取完成: ${imageAssets.length} 张`, {
+          imageCount: imageAssets.length,
+          hashDir,
+          images: imageAssets.map(img => ({ page: img.pageNumber, name: img.fileName, path: img.localPath })),
+        });
+      } catch (imageError: any) {
+        console.warn("PDF 图片提取失败，继续无图片分析:", imageError);
+        pushDevLog("warn", "document-processor", "PDF 图片提取失败，继续无图片分析", {
+          error: imageError?.message || String(imageError),
+        });
+        // Images are optional - continue without them
+      }
+
+      // Note: No page-render fallback — we only want actual embedded images,
+      // not full-page screenshots. The Rust backend (lopdf) handles extraction.
+      // Build pageImageMap: for each page, record which images and a text snippet
+      // Also generate unique insertion tags (e.g. [[IMG_P3_001]]) for each image
+      const pageImageMap: PageImageMap[] = [];
+      for (let i = 0; i < pageTexts.length; i++) {
+        const pageNum = i + 1;
+        const pageImages = imageAssets.filter(img => img.pageNumber === pageNum);
+        const textSnippet = (pageTexts[i] || "").substring(0, 300).trim();
+        const imageTags = pageImages.map((_, imgIdx) =>
+          `[[IMG_P${pageNum}_${String(imgIdx + 1).padStart(3, "0")}]]`
+        );
+        if (pageImages.length > 0 || textSnippet) {
+          pageImageMap.push({
+            pageNumber: pageNum,
+            textSnippet,
+            imageFileNames: pageImages.map(img => img.fileName),
+            imageTags,
+          });
         }
-      };
+      }
 
-      reader.onerror = () => reject(new Error("文件读取失败"));
-      reader.readAsText(file, "UTF-8");
-    });
+      return {
+        text: fullText.trim(),
+        pageTexts,
+        images: imageAssets,
+        pageImageMap,
+        pageCount: pdf.numPages,
+        hashDir,
+      };
+    } catch (error: any) {
+      console.error("PDF解析错误:", error);
+      const message = error?.message || String(error) || "未知错误";
+      if (message.includes("图片扫描版")) {
+        throw error;
+      }
+      throw new Error(
+        `PDF文件解析失败：${message}，请确认文件格式正确`,
+      );
+    }
   }
 
-  /**
-   * 提取 PDF 文本
-   */
+  static async extractContent(file: File): Promise<string> {
+    const fileType = file.type as SupportedFileType;
+
+    if (fileType !== "application/pdf") {
+      throw new Error(`不支持的文件格式: ${fileType}，仅支持 PDF 文件`);
+    }
+
+    return await this.extractPDFText(file);
+  }
+
   private static async extractPDFText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await this.loadPdfDocument(arrayBuffer);
       let fullText = "";
 
-      // 遍历所有页面
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
 
-        // 提取文本内容
         const pageText = textContent.items
           .map((item: any) => item.str)
           .join(" ");
@@ -89,119 +234,47 @@ export class DocumentProcessor {
       if (error.message?.includes("图片扫描版")) {
         throw error;
       }
-      throw new Error("PDF文件解析失败，请确认文件格式正确或尝试转换为TXT格式");
-    }
-  }
-
-  /**
-   * 提取 Word 文档文本
-   */
-  private static async extractWordText(file: File): Promise<string> {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-
-      if (!result.value || result.value.trim().length === 0) {
-        throw new Error("Word文档中未检测到文本内容");
-      }
-
-      // 记录警告信息
-      if (result.messages && result.messages.length > 0) {
-        console.warn("Word文档解析警告:", result.messages);
-      }
-
-      return result.value.trim();
-    } catch (error: any) {
-      console.error("Word文档解析错误:", error);
-      throw new Error(`Word文档解析失败：${error.message}`);
-    }
-  }
-
-  /**
-   * 提取 PowerPoint 文本
-   */
-  private static async extractPowerPointText(file: File): Promise<string> {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const zip = await JSZip.loadAsync(arrayBuffer);
-      let fullText = "";
-
-      // PPTX 文件中的幻灯片存储在 ppt/slides/ 目录下
-      const slideFiles = Object.keys(zip.files).filter(
-        (filename) =>
-          filename.startsWith("ppt/slides/slide") && filename.endsWith(".xml"),
-      );
-
-      // 按幻灯片编号排序
-      slideFiles.sort((a, b) => {
-        const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || "0");
-        const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || "0");
-        return numA - numB;
-      });
-
-      // 提取每个幻灯片的文本
-      for (const filename of slideFiles) {
-        const content = await zip.files[filename].async("string");
-
-        // 从 XML 中提取文本内容（a:t 标签内的文本）
-        const textMatches = content.match(/<a:t[^>]*>([^<]+)<\/a:t>/g);
-
-        if (textMatches) {
-          const slideNumber = filename.match(/slide(\d+)\.xml/)?.[1];
-          fullText += `\n\n--- 幻灯片 ${slideNumber} ---\n`;
-
-          textMatches.forEach((match) => {
-            const text = match.replace(/<a:t[^>]*>([^<]+)<\/a:t>/, "$1");
-            fullText += text + "\n";
-          });
-        }
-      }
-
-      if (!fullText || fullText.trim().length === 0) {
-        throw new Error("PowerPoint文档中未检测到文本内容");
-      }
-
-      console.log(`成功解析 ${slideFiles.length} 张幻灯片`);
-      return fullText.trim();
-    } catch (error: any) {
-      console.error("PowerPoint文档解析错误:", error);
-      if (error.message?.includes("处理库未加载")) {
-        throw error;
-      }
       throw new Error(
-        "PowerPoint文档解析失败，请确认文件格式正确或尝试转换为TXT格式",
+        `PDF文件解析失败：${error?.message || "未知错误"}，请确认文件格式正确`,
       );
     }
   }
 
   /**
-   * 验证文件类型
+   * Compute a short hash from an ArrayBuffer + timestamp using SubtleCrypto.
+   * Each analysis gets a unique hash (even for the same file) by including
+   * a timestamp, ensuring a fresh directory every time.
    */
+  private static async computeShortHash(buffer: ArrayBuffer): Promise<string> {
+    // Include timestamp so same file analyzed multiple times gets different hashes
+    const timestamp = Date.now().toString(36);
+    const timestampBytes = new TextEncoder().encode(timestamp);
+    const combined = new Uint8Array(buffer.byteLength + timestampBytes.length);
+    combined.set(new Uint8Array(buffer), 0);
+    combined.set(timestampBytes, buffer.byteLength);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", combined);
+    const hashArray = new Uint8Array(hashBuffer);
+    // Take first 6 bytes (12 hex chars) — sufficient for uniqueness
+    const hex = Array.from(hashArray.slice(0, 6))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return hex;
+  }
+
+  private static normalizePath(pathValue: string): string {
+    return pathValue.replace(/[\\/]+$/, "").replace(/\\/g, "/");
+  }
+
   static isValidFileType(type: string): type is SupportedFileType {
     const supportedTypes: SupportedFileType[] = [
       "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "text/plain",
     ];
     return supportedTypes.includes(type as SupportedFileType);
   }
 
-  /**
-   * 获取文件类型友好提示
-   */
   static getFileTypeHint(type: SupportedFileType): string {
     const hints: Record<SupportedFileType, string> = {
       "application/pdf": "已选择PDF文件，正在准备解析...",
-      "application/msword": "已选择Word文档，正在准备解析...",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        "已选择Word文档，正在准备解析...",
-      "application/vnd.ms-powerpoint": "已选择PowerPoint文档，正在准备解析...",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        "已选择PowerPoint文档，正在准备解析...",
-      "text/plain": "已选择TXT文件，解析速度最快",
     };
     return hints[type] || "已选择文件";
   }

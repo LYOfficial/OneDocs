@@ -1,15 +1,17 @@
-import React from 'react';
-import { useAppStore } from '@/store/useAppStore';
+import React from "react";
+import { useAppStore } from "@/store/useAppStore";
+import { useTranslation } from "react-i18next";
 
 export const ProgressBar: React.FC = () => {
   const { analysisProgress } = useAppStore();
+  const { t } = useTranslation();
 
   if (!analysisProgress) return null;
 
   return (
     <div className="progress-section">
       <div className="progress-header">
-        <h3>正在分析文档...</h3>
+        <h3>{t("analysis.progress.title")}</h3>
         <p className="progress-text">{analysisProgress.message}</p>
       </div>
       <div className="progress-container">
@@ -19,7 +21,9 @@ export const ProgressBar: React.FC = () => {
             style={{ width: `${analysisProgress.percentage}%` }}
           />
         </div>
-        <span className="progress-percentage">{analysisProgress.percentage}%</span>
+        <span className="progress-percentage">
+          {analysisProgress.percentage}%
+        </span>
       </div>
     </div>
   );

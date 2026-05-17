@@ -1,0 +1,152 @@
+{
+  "app": {
+    "titleBar": {
+      "tabs": {
+        "landing": "首页",
+        "analysis": "分析",
+        "analysisResult": "分析结果",
+        "settings": "设置"
+      },
+      "theme": {
+        "light": "浅色模式",
+        "dark": "深色模式",
+        "system": "跟随系统"
+      }
+    },
+    "language": {
+      "english": "English",
+      "chinese": "中文",
+      "short": {
+        "en": "EN",
+        "zh": "中文"
+      },
+      "switchTo": "切换到{{language}}"
+    }
+  },
+  "landing": {
+    "title": "文章千卷，一览而知",
+    "subtitle": "智慧之器，助君析文明理",
+    "description": "OneDocs者，一文亦闻也，乃集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。",
+    "start": "始于一文",
+    "footer": "© 2025 OneDocs - 一文亦闻"
+  },
+  "function": {
+    "news": {
+      "name": "要闻概览",
+      "description": "新闻要点梳理"
+    },
+    "data": {
+      "name": "罗森析数",
+      "description": "数据内容分析"
+    },
+    "science": {
+      "name": "理工速知",
+      "description": "理工课件整理"
+    },
+    "liberal": {
+      "name": "文采丰呈",
+      "description": "文科课件整理"
+    }
+  },
+  "functionSelector": {
+    "title": "功能选择",
+    "toastSelected": "已选择功能: {{name}}"
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "集中管理模型与数据策略",
+    "sections": {
+      "analysis": {
+        "label": "析文设置",
+        "desc": "控制析文偏好"
+      },
+      "model": {
+        "label": "模型选择",
+        "desc": "管理模型供应商"
+      },
+      "data": {
+        "label": "数据管理",
+        "desc": "配置数据目录"
+      },
+      "about": {
+        "label": "关于",
+        "desc": "查看版本与入口"
+      },
+      "developer": {
+        "label": "开发者模式",
+        "desc": "查看内部日志"
+      }
+    }
+  },
+  "analysis": {
+    "formatNotice": {
+      "title": "📋 格式说明：",
+      "body": "仅支持 .pdf 格式文件"
+    },
+    "resultHint": {
+      "title": "分析结果已生成",
+      "body": "请通过顶部菜单切换到「分析结果」页面查看、复制或导出内容。"
+    },
+    "progress": {
+      "title": "正在分析文档..."
+    }
+  },
+  "upload": {
+    "select": "点击选择文档（支持多选）",
+    "hint": "仅支持 PDF 格式，单个文件不超过30MB",
+    "analyze": {
+      "start": "开始析文",
+      "new": "新建析文"
+    },
+    "files": {
+      "header": "已上传文件 ({{count}})",
+      "reorderHint": "点击箭头调整顺序"
+    },
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "remove": "删除",
+    "toast": {
+      "unsupported": "文件 {{name}} 格式不支持 ({{type}})，已跳过",
+      "tooLarge": "文件 {{name}} 过大（超过30MB），已跳过",
+      "added": "成功添加 {{count}} 个文件"
+    }
+  },
+  "analysisResult": {
+    "empty": {
+      "title": "暂无分析结果",
+      "body": "请先在“分析”页面上传文档并完成析文，结果会在此处展示。"
+    }
+  },
+  "result": {
+    "title": {
+      "single": "析文成果",
+      "merged": "合并结果"
+    },
+    "merge": {
+      "button": "一键合并",
+      "loading": "合并中..."
+    },
+    "back": "返回预览",
+    "view": {
+      "render": "渲染",
+      "markdown": "源码"
+    },
+    "copy": "复制",
+    "export": "导出",
+    "exportFileSuffix": "分析结果",
+    "empty": "请先分析文档以查看结果",
+    "fileNotAnalyzed": "{{name}} (未分析)",
+    "toast": {
+      "copied": "已复制Markdown源码到剪贴板",
+      "copyFail": "复制失败，请手动选择复制",
+      "saved": "文件已保存到: {{path}}",
+      "exported": "文件已导出到下载文件夹",
+      "exportFail": "导出失败，请尝试复制内容后手动保存",
+      "mergeNeedTwo": "至少需要2个文件才能合并",
+      "mergeNeedTwoAnalyzed": "至少需要2个已分析的文件才能合并",
+      "mergeSuccess": "成功合并 {{count}} 个文件！",
+      "unknownError": "未知错误",
+      "mergeFail": "合并失败: {{message}}"
+    }
+  }
+}

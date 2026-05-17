@@ -4,6 +4,28 @@
   "description": "Capability for the main window",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-toggle-maximize",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-write-text-file",
+    "fs:scope-home-recursive",
+    "fs:scope-desktop-recursive",
+    "fs:scope-document-recursive",
+    "fs:scope-download-recursive",
+    "fs:allow-mkdir",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-temp-write-recursive",
+    "fs:allow-resource-write-recursive",
+    "fs:allow-resource-read-recursive",
+    "fs:allow-read",
+    "fs:allow-read-file",
+    "fs:allow-exists",
+    "opener:default"
   ]
 }

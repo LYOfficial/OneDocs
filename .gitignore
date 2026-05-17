@@ -25,3 +25,4 @@ dist-ssr
 package-lock.json
 src-tauri/Cargo.toml
 src-tauri/Cargo.toml
+.env

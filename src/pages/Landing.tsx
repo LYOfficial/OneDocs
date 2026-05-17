@@ -1,5 +1,6 @@
 import React from "react";
 import { FUNCTION_INFO } from "@/config/providers";
+import { useTranslation } from "react-i18next";
 import type { PromptType } from "@/types";
 
 interface LandingProps {
@@ -7,6 +8,8 @@ interface LandingProps {
 }
 
 export const Landing: React.FC<LandingProps> = ({ onStart }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="main-container">
       <header className="header">
@@ -19,31 +22,31 @@ export const Landing: React.FC<LandingProps> = ({ onStart }) => {
       <main className="hero-section">
         <div className="hero-content">
           <div className="title-section">
-            <h3 className="main-title">文章千卷，一览而知</h3>
-            <p className="subtitle">智慧之器，助君析文明理</p>
+            <h3 className="main-title">{t("landing.title")}</h3>
+            <p className="subtitle">{t("landing.subtitle")}</p>
           </div>
 
           <div className="description">
-            <p>
-              OneDocs者，一文亦闻也，乃集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。
-            </p>
+            <p>{t("landing.description")}</p>
           </div>
 
           <div className="features-preview">
             {(Object.keys(FUNCTION_INFO) as PromptType[]).map((key) => {
               const info = FUNCTION_INFO[key];
+              const name = t(info.nameKey);
+              const description = t(info.descriptionKey);
               return (
                 <div key={key} className="feature-card">
                   <div className="feature-icon">{info.icon}</div>
-                  <div className="feature-name">{info.name}</div>
-                  <div className="feature-desc">{info.description}</div>
+                  <div className="feature-name">{name}</div>
+                  <div className="feature-desc">{description}</div>
                 </div>
               );
             })}
           </div>
 
           <button className="start-button" onClick={onStart}>
-            <span className="button-text">始于一文</span>
+            <span className="button-text">{t("landing.start")}</span>
             <span className="button-arrow">
               <i className="fas fa-arrow-right"></i>
             </span>
@@ -52,7 +55,7 @@ export const Landing: React.FC<LandingProps> = ({ onStart }) => {
       </main>
 
       <footer className="footer">
-        <p>© 2025 OneDocs - 一文亦闻</p>
+        <p>{t("landing.footer")}</p>
       </footer>
     </div>
   );

@@ -8,82 +8,108 @@ import type {
   AnalysisProgress,
   AnalysisResult,
   MultiFileAnalysisResult,
+  DeveloperLogEntry,
   ViewMode,
   ProviderSettings,
   CustomProviderSettings,
+  ModelOption,
 } from '@/types';
 import { MODEL_PROVIDERS, createCustomProvider } from '@/config/providers';
 
+const MAX_DEV_LOGS = 500;
+
 interface AppState {
-  // File state - 支持多文件
   files: FileInfo[];
-  currentFileId: string | null; // 当前选中的文件ID
+  currentFileId: string | null;
   setFiles: (files: FileInfo[]) => void;
   addFile: (file: FileInfo) => void;
   removeFile: (fileId: string) => void;
   reorderFiles: (fileIds: string[]) => void;
   setCurrentFileId: (fileId: string | null) => void;
-  // 向后兼容
+  
   currentFile: FileInfo | null;
   setCurrentFile: (file: FileInfo | null) => void;
 
-  // Function selection
   selectedFunction: PromptType;
   setSelectedFunction: (func: PromptType) => void;
 
-  // Analysis state - 支持多文件分析结果
   isAnalyzing: boolean;
   analysisProgress: AnalysisProgress | null;
-  analysisResult: AnalysisResult | null; // 当前选中文件的结果（向后兼容）
-  multiFileAnalysisResults: MultiFileAnalysisResult; // 所有文件的分析结果
-  mergedResult: AnalysisResult | null; // 合并后的结果
+  analysisResult: AnalysisResult | null;
+  multiFileAnalysisResults: MultiFileAnalysisResult;
+  mergedResult: AnalysisResult | null;
   setIsAnalyzing: (isAnalyzing: boolean) => void;
   setAnalysisProgress: (progress: AnalysisProgress | null) => void;
   setAnalysisResult: (result: AnalysisResult | null) => void;
   setMultiFileAnalysisResult: (fileId: string, result: AnalysisResult) => void;
   setMergedResult: (result: AnalysisResult | null) => void;
 
-  // View mode
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
 
-  // Settings
+  enableFormatReview: boolean;
+  setEnableFormatReview: (enabled: boolean) => void;
+  autoSaveAnalysisResult: boolean;
+  setAutoSaveAnalysisResult: (enabled: boolean) => void;
+
   currentProvider: AllProviders;
   providerSettings: Record<AIProvider, ProviderSettings>;
+  providerCustomModels: Record<AIProvider, ModelOption[]>;
   customProviders: Record<string, CustomProviderSettings>;
   setCurrentProvider: (provider: AllProviders) => void;
   updateProviderSettings: (provider: AIProvider, settings: Partial<ProviderSettings>) => void;
+  addProviderCustomModel: (provider: AIProvider, model: ModelOption) => void;
+  removeProviderCustomModel: (provider: AIProvider, modelValue: string) => void;
   addCustomProvider: (name: string, baseUrl: string, model: string, apiKey: string) => string;
   updateCustomProvider: (id: string, settings: Partial<CustomProviderSettings>) => void;
   deleteCustomProvider: (id: string) => void;
   getCurrentSettings: () => ProviderSettings | CustomProviderSettings;
 
-  // UI state
+  theme: 'light' | 'dark' | 'system';
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
   isSidebarCollapsed: boolean;
-  isSettingsOpen: boolean;
   showFormatNotice: boolean;
   toggleSidebar: () => void;
-  setSettingsOpen: (open: boolean) => void;
   setShowFormatNotice: (show: boolean) => void;
 
-  // Reset
+  dataDirectory: string;
+  setDataDirectory: (dir: string) => void;
+
+  devMode: boolean;
+  setDevMode: (enabled: boolean) => void;
+  developerLogs: DeveloperLogEntry[];
+  addLog: (entry: DeveloperLogEntry) => void;
+  clearLogs: () => void;
+
   resetAnalysis: () => void;
   resetAll: () => void;
+  clearAllCache: () => void;
 }
 
 const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
   const config = MODEL_PROVIDERS[provider];
   return {
-    apiKey: '',
+    apiKey: config.defaultApiKey ?? '',
     baseUrl: config.baseUrl,
     model: config.defaultModel,
+  };
+};
+
+const withProviderDefaults = (
+  provider: AIProvider,
+  settings?: Partial<ProviderSettings>
+): ProviderSettings => {
+  const defaults = getDefaultSettings(provider);
+  return {
+    apiKey: settings?.apiKey || defaults.apiKey,
+    baseUrl: settings?.baseUrl || defaults.baseUrl,
+    model: settings?.model || defaults.model,
   };
 };
 
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      // File state - 多文件支持
       files: [],
       currentFileId: null,
       setFiles: (files) => set({ files }),
@@ -93,7 +119,7 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           files: [...state.files, fileWithId],
           currentFileId: fileId,
-          currentFile: fileWithId, // 向后兼容
+          currentFile: fileWithId,
         }));
       },
       removeFile: (fileId) => {
@@ -104,12 +130,11 @@ export const useAppStore = create<AppState>()(
               ? (newFiles.length > 0 ? newFiles[0].id || null : null)
               : state.currentFileId;
           const newCurrentFile = newFiles.find((f) => f.id === newCurrentFileId) || null;
-          // 清理对应的分析结果
           const { [fileId]: removed, ...restResults } = state.multiFileAnalysisResults;
           return {
             files: newFiles,
             currentFileId: newCurrentFileId,
-            currentFile: newCurrentFile, // 向后兼容
+            currentFile: newCurrentFile,
             analysisResult: newCurrentFile ? restResults[newCurrentFileId || ''] || null : null,
             multiFileAnalysisResults: restResults,
           };
@@ -128,12 +153,11 @@ export const useAppStore = create<AppState>()(
           const result = fileId ? state.multiFileAnalysisResults[fileId] || null : null;
           return {
             currentFileId: fileId,
-            currentFile: file, // 向后兼容
-            analysisResult: result, // 向后兼容
+            currentFile: file,
+            analysisResult: result,
           };
         });
       },
-      // 向后兼容
       currentFile: null,
       setCurrentFile: (file) => {
         if (file) {
@@ -152,11 +176,9 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      // Function selection
       selectedFunction: 'science',
       setSelectedFunction: (func) => set({ selectedFunction: func }),
 
-      // Analysis state
       isAnalyzing: false,
       analysisProgress: null,
       analysisResult: null,
@@ -171,7 +193,6 @@ export const useAppStore = create<AppState>()(
             ...state.multiFileAnalysisResults,
             [fileId]: result,
           };
-          // 如果当前文件ID匹配，也更新analysisResult（向后兼容）
           const newAnalysisResult = state.currentFileId === fileId ? result : state.analysisResult;
           return {
             multiFileAnalysisResults: newResults,
@@ -181,16 +202,56 @@ export const useAppStore = create<AppState>()(
       },
       setMergedResult: (result) => set({ mergedResult: result }),
 
-      // View mode
       viewMode: 'render',
       setViewMode: (mode) => set({ viewMode: mode }),
 
-      // Settings
+      enableFormatReview: false,
+      setEnableFormatReview: (enabled) => set({ enableFormatReview: enabled }),
+      autoSaveAnalysisResult: false,
+      setAutoSaveAnalysisResult: (enabled) => set({ autoSaveAnalysisResult: enabled }),
+
       currentProvider: 'openai',
       providerSettings: {
+        onedocs: getDefaultSettings('onedocs'),
         openai: getDefaultSettings('openai'),
-        deepseek: getDefaultSettings('deepseek'),
+        anthropic: getDefaultSettings('anthropic'),
+        gemini: getDefaultSettings('gemini'),
+        openrouter: getDefaultSettings('openrouter'),
+        moonshot: getDefaultSettings('moonshot'),
         glm: getDefaultSettings('glm'),
+        deepseek: getDefaultSettings('deepseek'),
+        ollama: getDefaultSettings('ollama'),
+        lmstudio: getDefaultSettings('lmstudio'),
+        comp_share: getDefaultSettings('comp_share'),
+        '302_ai': getDefaultSettings('302_ai'),
+        pony: getDefaultSettings('pony'),
+        siliconflow: getDefaultSettings('siliconflow'),
+        xinghe: getDefaultSettings('xinghe'),
+        ppio: getDefaultSettings('ppio'),
+        modelscope: getDefaultSettings('modelscope'),
+        newapi: getDefaultSettings('newapi'),
+        oneapi: getDefaultSettings('oneapi'),
+      },
+      providerCustomModels: {
+        onedocs: [],
+        openai: [],
+        anthropic: [],
+        gemini: [],
+        openrouter: [],
+        moonshot: [],
+        glm: [],
+        deepseek: [],
+        ollama: [],
+        lmstudio: [],
+        comp_share: [],
+        '302_ai': [],
+        pony: [],
+        siliconflow: [],
+        xinghe: [],
+        ppio: [],
+        modelscope: [],
+        newapi: [],
+        oneapi: [],
       },
       customProviders: {},
       setCurrentProvider: (provider) => set({ currentProvider: provider }),
@@ -198,10 +259,26 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           providerSettings: {
             ...state.providerSettings,
-            [provider]: {
+            [provider]: withProviderDefaults(provider, {
               ...state.providerSettings[provider],
               ...settings,
-            },
+            }),
+          },
+        })),
+      addProviderCustomModel: (provider, model) =>
+        set((state) => ({
+          providerCustomModels: {
+            ...state.providerCustomModels,
+            [provider]: [...(state.providerCustomModels[provider] || []), model],
+          },
+        })),
+      removeProviderCustomModel: (provider, modelValue) =>
+        set((state) => ({
+          providerCustomModels: {
+            ...state.providerCustomModels,
+            [provider]: (state.providerCustomModels[provider] || []).filter(
+              (m) => m.value !== modelValue
+            ),
           },
         })),
       addCustomProvider: (name, baseUrl, model, apiKey) => {
@@ -241,23 +318,46 @@ export const useAppStore = create<AppState>()(
         }),
       getCurrentSettings: () => {
         const state = get();
-        // 如果是自定义提供商
         if (typeof state.currentProvider === 'string' && state.currentProvider.startsWith('custom_')) {
-          return state.customProviders[state.currentProvider];
+          return (
+            state.customProviders[state.currentProvider] || {
+              apiKey: '',
+              baseUrl: '',
+              model: '',
+              name: 'custom-provider',
+            }
+          );
         }
-        // 如果是内置提供商
-        return state.providerSettings[state.currentProvider as AIProvider];
+
+        const provider = state.currentProvider as AIProvider;
+        return withProviderDefaults(provider, state.providerSettings[provider]);
       },
 
-      // UI state
+      theme: 'system',
+      setTheme: (theme) => set({ theme }),
       isSidebarCollapsed: false,
-      isSettingsOpen: false,
       showFormatNotice: true,
       toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
-      setSettingsOpen: (open) => set({ isSettingsOpen: open }),
       setShowFormatNotice: (show) => set({ showFormatNotice: show }),
 
-      // Reset
+      dataDirectory: '',
+      setDataDirectory: (dir) => set({ dataDirectory: dir }),
+
+      devMode: false,
+      setDevMode: (enabled) => set({ devMode: enabled }),
+      developerLogs: [],
+      addLog: (entry) =>
+        set((state) => {
+          const nextLogs = [...state.developerLogs, entry];
+          return {
+            developerLogs:
+              nextLogs.length > MAX_DEV_LOGS
+                ? nextLogs.slice(nextLogs.length - MAX_DEV_LOGS)
+                : nextLogs,
+          };
+        }),
+      clearLogs: () => set({ developerLogs: [] }),
+
       resetAnalysis: () =>
         set({
           analysisProgress: null,
@@ -277,6 +377,52 @@ export const useAppStore = create<AppState>()(
           mergedResult: null,
           isAnalyzing: false,
         }),
+      clearAllCache: () =>
+        set({
+          providerSettings: {
+            onedocs: getDefaultSettings('onedocs'),
+            openai: getDefaultSettings('openai'),
+            anthropic: getDefaultSettings('anthropic'),
+            gemini: getDefaultSettings('gemini'),
+            openrouter: getDefaultSettings('openrouter'),
+            moonshot: getDefaultSettings('moonshot'),
+            glm: getDefaultSettings('glm'),
+            deepseek: getDefaultSettings('deepseek'),
+            ollama: getDefaultSettings('ollama'),
+            lmstudio: getDefaultSettings('lmstudio'),
+            comp_share: getDefaultSettings('comp_share'),
+            '302_ai': getDefaultSettings('302_ai'),
+            pony: getDefaultSettings('pony'),
+            siliconflow: getDefaultSettings('siliconflow'),
+            xinghe: getDefaultSettings('xinghe'),
+            ppio: getDefaultSettings('ppio'),
+            modelscope: getDefaultSettings('modelscope'),
+            newapi: getDefaultSettings('newapi'),
+            oneapi: getDefaultSettings('oneapi'),
+          },
+          providerCustomModels: {
+            onedocs: [],
+            openai: [],
+            anthropic: [],
+            gemini: [],
+            openrouter: [],
+            moonshot: [],
+            glm: [],
+            deepseek: [],
+            ollama: [],
+            lmstudio: [],
+            comp_share: [],
+            '302_ai': [],
+            pony: [],
+            siliconflow: [],
+            xinghe: [],
+            ppio: [],
+            modelscope: [],
+            newapi: [],
+            oneapi: [],
+          },
+          customProviders: {},
+        }),
     }),
     {
       name: 'onedocs-storage',
@@ -287,6 +433,10 @@ export const useAppStore = create<AppState>()(
         customProviders: state.customProviders,
         isSidebarCollapsed: state.isSidebarCollapsed,
         showFormatNotice: state.showFormatNotice,
+        dataDirectory: state.dataDirectory,
+        enableFormatReview: state.enableFormatReview,
+        autoSaveAnalysisResult: state.autoSaveAnalysisResult,
+        devMode: state.devMode,
       }),
     }
   )

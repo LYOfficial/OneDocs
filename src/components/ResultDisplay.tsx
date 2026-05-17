@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { MarkdownRenderer } from "@/utils/markdownRenderer";
 import { useToast } from "./Toast";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeTextFile } from "@tauri-apps/plugin-fs";
+import { useTranslation } from "react-i18next";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import "katex/dist/katex.min.css";
 
 export const ResultDisplay: React.FC = () => {
@@ -19,34 +21,43 @@ export const ResultDisplay: React.FC = () => {
     setCurrentFileId,
   } = useAppStore();
   const toast = useToast();
+  const { t } = useTranslation();
   const [isCopying, setIsCopying] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
 
-  // 确定要显示的结果
   const displayResult = mergedResult || analysisResult;
-  if (!displayResult && Object.keys(multiFileAnalysisResults).length === 0) return null;
+  if (!displayResult && Object.keys(multiFileAnalysisResults).length === 0)
+    return null;
 
   const handleCopyResult = async () => {
     if (!displayResult) return;
     try {
       setIsCopying(true);
       await navigator.clipboard.writeText(displayResult.content);
-      toast.show("已复制Markdown源码到剪贴板");
+      toast.show(t("result.toast.copied"));
       setTimeout(() => {
         setIsCopying(false);
       }, 1500);
     } catch (error) {
       setIsCopying(false);
-      toast.show("复制失败，请手动选择复制");
+      toast.show(t("result.toast.copyFail"));
     }
   };
 
   const handleExport = async () => {
     if (!displayResult) return;
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+    const currentFile = files.find((f) => f.id === currentFileId) || files[0];
+    const fileNameBase = mergedResult
+      ? t("result.title.merged")
+      : currentFile
+        ? currentFile.name.replace(/\.[^./\\]+$/, "")
+        : "OneDocs";
+    const defaultFileName = `${fileNameBase}_OneDocs_${t("result.exportFileSuffix")}_${dateStr}.md`;
     try {
-      // 尝试使用 Tauri 对话框
       const filePath = await save({
-        defaultPath: `OneDocs_分析结果_${new Date().getTime()}.md`,
+        defaultPath: defaultFileName,
         filters: [
           {
             name: "Markdown",
@@ -56,14 +67,12 @@ export const ResultDisplay: React.FC = () => {
       });
 
       if (filePath) {
-        // 写入文件
         await writeTextFile(filePath, displayResult.content);
-        toast.show(`文件已保存到: ${filePath}`);
+        toast.show(t("result.toast.saved", { path: filePath }));
       }
     } catch (error: any) {
       console.error("Tauri 导出失败，尝试使用浏览器下载:", error);
 
-      // 备用方案：使用浏览器的下载方式
       try {
         const blob = new Blob([displayResult.content], {
           type: "text/markdown;charset=utf-8",
@@ -71,22 +80,22 @@ export const ResultDisplay: React.FC = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `OneDocs_分析结果_${new Date().getTime()}.md`;
+        a.download = defaultFileName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        toast.show("文件已导出到下载文件夹");
+        toast.show(t("result.toast.exported"));
       } catch (fallbackError) {
         console.error("导出失败:", fallbackError);
-        toast.show("导出失败，请尝试复制内容后手动保存");
+        toast.show(t("result.toast.exportFail"));
       }
     }
   };
 
   const handleMerge = () => {
     if (files.length < 2) {
-      toast.show("至少需要2个文件才能合并");
+      toast.show(t("result.toast.mergeNeedTwo"));
       return;
     }
 
@@ -96,23 +105,30 @@ export const ResultDisplay: React.FC = () => {
         const result = multiFileAnalysisResults[fileId];
         return result ? { file, result } : null;
       })
-      .filter((item): item is { file: typeof files[0]; result: typeof multiFileAnalysisResults[string] } => item !== null);
+      .filter(
+        (
+          item,
+        ): item is {
+          file: (typeof files)[0];
+          result: (typeof multiFileAnalysisResults)[string];
+        } => item !== null,
+      );
 
     if (results.length < 2) {
-      toast.show("至少需要2个已分析的文件才能合并");
+      toast.show(t("result.toast.mergeNeedTwoAnalyzed"));
       return;
     }
 
     setIsMerging(true);
     try {
-      // 合并所有结果，每个文件的标题降级
       const mergedContent = results
         .map(({ file, result }) => {
-          const downgradedContent = MarkdownRenderer.downgradeHeadings(result.content);
-          // 添加文件名的注释（可选）
+          const downgradedContent = MarkdownRenderer.downgradeHeadings(
+            result.content,
+          );
           return `<!-- 文件: ${file.name} -->\n\n${downgradedContent}`;
         })
-        .join("\n\n---\n\n"); // 用分隔线分隔不同文件
+        .join("\n\n---\n\n");
 
       const merged: typeof mergedResult = {
         content: mergedContent,
@@ -120,20 +136,42 @@ export const ResultDisplay: React.FC = () => {
       };
 
       setMergedResult(merged);
-      toast.show(`成功合并 ${results.length} 个文件！`);
+      toast.show(t("result.toast.mergeSuccess", { count: results.length }));
     } catch (error: any) {
       console.error("合并失败:", error);
-      toast.show("合并失败: " + (error.message || "未知错误"));
+      const message = error.message || t("result.toast.unknownError");
+      toast.show(t("result.toast.mergeFail", { message }));
     } finally {
       setIsMerging(false);
     }
   };
 
-  const renderedContent = displayResult
-    ? viewMode === "render"
-      ? MarkdownRenderer.render(displayResult.content)
-      : displayResult.content
-    : "";
+  // Memoize rendered HTML to avoid re-computing on every render (prevents UI freeze)
+  const renderedContent = useMemo(() => {
+    if (!displayResult) return "";
+    if (viewMode === "render") {
+      return MarkdownRenderer.render(displayResult.content);
+    }
+    return displayResult.content;
+  }, [displayResult, viewMode]);
+
+  // Intercept link clicks to open external URLs in the default browser
+  const handleContentClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest("a") as HTMLAnchorElement | null;
+    if (!anchor) return;
+    const href = anchor.getAttribute("href") || "";
+    // Skip internal/anchor links
+    if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // Open external links in default browser
+    openUrl(href).catch((err: any) => {
+      console.error("打开链接失败:", err);
+      // Fallback: try window.open
+      window.open(href, "_blank");
+    });
+  }, []);
 
   const hasMultipleFiles = files.length > 1;
   const hasMultipleResults = Object.keys(multiFileAnalysisResults).length > 1;
@@ -145,7 +183,9 @@ export const ResultDisplay: React.FC = () => {
         <div className="result-title-section">
           <div className="result-header-row">
             <h3 className="result-title">
-              {mergedResult ? "合并结果" : "析文成果"}
+              {mergedResult
+                ? t("result.title.merged")
+                : t("result.title.single")}
             </h3>
             <div className="result-controls">
               {canMerge && !mergedResult && (
@@ -154,7 +194,9 @@ export const ResultDisplay: React.FC = () => {
                   onClick={handleMerge}
                   disabled={isMerging}
                 >
-                  {isMerging ? "合并中..." : "一键合并"}
+                  {isMerging
+                    ? t("result.merge.loading")
+                    : t("result.merge.button")}
                 </button>
               )}
               {mergedResult && (
@@ -162,7 +204,7 @@ export const ResultDisplay: React.FC = () => {
                   className="back-button-small"
                   onClick={() => setMergedResult(null)}
                 >
-                  返回预览
+                  {t("result.back")}
                 </button>
               )}
               <div className="view-toggle">
@@ -170,28 +212,28 @@ export const ResultDisplay: React.FC = () => {
                   className={`toggle-btn ${viewMode === "render" ? "active" : ""}`}
                   onClick={() => setViewMode("render")}
                 >
-                  渲染
+                  {t("result.view.render")}
                 </button>
                 <button
                   className={`toggle-btn ${viewMode === "markdown" ? "active" : ""}`}
                   onClick={() => setViewMode("markdown")}
                 >
-                  源码
+                  {t("result.view.markdown")}
                 </button>
               </div>
-              <button 
-                className={`copy-button ${isCopying ? 'copying' : ''}`} 
+              <button
+                className={`copy-button ${isCopying ? "copying" : ""}`}
                 onClick={handleCopyResult}
                 disabled={isCopying || !displayResult}
               >
-                复制
+                {t("result.copy")}
               </button>
-              <button 
-                className="copy-button" 
+              <button
+                className="copy-button"
                 onClick={handleExport}
                 disabled={!displayResult}
               >
-                导出
+                {t("result.export")}
               </button>
             </div>
           </div>
@@ -210,9 +252,15 @@ export const ResultDisplay: React.FC = () => {
                         setCurrentFileId(fileId);
                       }
                     }}
-                    title={hasResult ? file.name : `${file.name} (未分析)`}
+                    title={
+                      hasResult
+                        ? file.name
+                        : t("result.fileNotAnalyzed", { name: file.name })
+                    }
                   >
-                    {file.name.length > 15 ? `${file.name.substring(0, 15)}...` : file.name}
+                    {file.name.length > 15
+                      ? `${file.name.substring(0, 15)}...`
+                      : file.name}
                   </button>
                 );
               })}
@@ -225,6 +273,7 @@ export const ResultDisplay: React.FC = () => {
           viewMode === "render" ? (
             <div
               className="result-content"
+              onClick={handleContentClick}
               dangerouslySetInnerHTML={{ __html: renderedContent }}
             />
           ) : (
@@ -232,7 +281,7 @@ export const ResultDisplay: React.FC = () => {
           )
         ) : (
           <div className="result-empty">
-            <p>请先分析文档以查看结果</p>
+            <p>{t("result.empty")}</p>
           </div>
         )}
       </div>

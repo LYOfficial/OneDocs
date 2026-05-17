@@ -1,0 +1,152 @@
+{
+  "app": {
+    "titleBar": {
+      "tabs": {
+        "landing": "Home",
+        "analysis": "Analyze",
+        "analysisResult": "Results",
+        "settings": "Settings"
+      },
+      "theme": {
+        "light": "Light mode",
+        "dark": "Dark mode",
+        "system": "System"
+      }
+    },
+    "language": {
+      "english": "English",
+      "chinese": "中文",
+      "short": {
+        "en": "EN",
+        "zh": "中文"
+      },
+      "switchTo": "Switch to {{language}}"
+    }
+  },
+  "landing": {
+    "title": "Thousands of articles, known at a glance",
+    "subtitle": "A tool of wisdom to help you analyze and understand",
+    "description": "OneDocs brings together intelligent prompts to help you grasp document essentials quickly. Whether it is news, data analysis, or academic highlights, everything becomes clear with one click.",
+    "start": "Start with One Text",
+    "footer": "© 2025 OneDocs - 一文亦闻"
+  },
+  "function": {
+    "news": {
+      "name": "News Overview",
+      "description": "Summary of news highlights"
+    },
+    "data": {
+      "name": "Data Analysis",
+      "description": "Analysis of data content"
+    },
+    "science": {
+      "name": "STEM Quick Know",
+      "description": "Organization of STEM courseware"
+    },
+    "liberal": {
+      "name": "Liberal Arts Richness",
+      "description": "Organization of Liberal Arts courseware"
+    }
+  },
+  "functionSelector": {
+    "title": "Function Selection",
+    "toastSelected": "Selected function: {{name}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Centralize model and data strategy",
+    "sections": {
+      "analysis": {
+        "label": "Analysis",
+        "desc": "Control analysis preferences"
+      },
+      "model": {
+        "label": "Models",
+        "desc": "Manage model providers"
+      },
+      "data": {
+        "label": "Data",
+        "desc": "Configure data directory"
+      },
+      "about": {
+        "label": "About",
+        "desc": "Version and links"
+      },
+      "developer": {
+        "label": "Developer",
+        "desc": "Internal logs"
+      }
+    }
+  },
+  "analysis": {
+    "formatNotice": {
+      "title": "📋 Format Notice:",
+      "body": "Only .pdf format is supported"
+    },
+    "resultHint": {
+      "title": "Analysis results are ready",
+      "body": "Use the top menu to switch to “Results” to view, copy, or export."
+    },
+    "progress": {
+      "title": "Analyzing document..."
+    }
+  },
+  "upload": {
+    "select": "Click to select documents (multi-select supported)",
+    "hint": "Only PDF format. Max 30MB per file.",
+    "analyze": {
+      "start": "Start analysis",
+      "new": "New analysis"
+    },
+    "files": {
+      "header": "Uploaded files ({{count}})",
+      "reorderHint": "Use arrows to reorder"
+    },
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "remove": "Delete",
+    "toast": {
+      "unsupported": "File {{name}} is not supported ({{type}}). Skipped.",
+      "tooLarge": "File {{name}} is too large (over 30MB). Skipped.",
+      "added": "Added {{count}} file(s) successfully."
+    }
+  },
+  "analysisResult": {
+    "empty": {
+      "title": "No analysis results yet",
+      "body": "Upload documents on the “Analyze” page and run analysis to see results here."
+    }
+  },
+  "result": {
+    "title": {
+      "single": "Analysis Results",
+      "merged": "Merged Results"
+    },
+    "merge": {
+      "button": "Merge All",
+      "loading": "Merging..."
+    },
+    "back": "Back to preview",
+    "view": {
+      "render": "Render",
+      "markdown": "Source"
+    },
+    "copy": "Copy",
+    "export": "Export",
+    "exportFileSuffix": "Analysis_Result",
+    "empty": "Analyze a document to see results",
+    "fileNotAnalyzed": "{{name}} (not analyzed)",
+    "toast": {
+      "copied": "Markdown copied to clipboard",
+      "copyFail": "Copy failed. Please select and copy manually.",
+      "saved": "File saved to: {{path}}",
+      "exported": "File exported to downloads folder",
+      "exportFail": "Export failed. Please copy the content and save manually.",
+      "mergeNeedTwo": "At least 2 files are required to merge.",
+      "mergeNeedTwoAnalyzed": "At least 2 analyzed files are required to merge.",
+      "mergeSuccess": "Merged {{count}} files successfully!",
+      "unknownError": "Unknown error",
+      "mergeFail": "Merge failed: {{message}}"
+    }
+  }
+}
