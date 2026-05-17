@@ -9,6 +9,7 @@ import {
   insertImagesByPageContext,
   stripLeadingMarkers,
   stripMarkdownFence,
+  stripThinkTags,
 } from "@/utils/analysisWorkflow";
 import { chunkText } from "@/services/rag/textChunking";
 import {
@@ -18,7 +19,7 @@ import {
   hasUserEmbeddingToken,
   isEmbeddingAvailable,
 } from "@/services/rag/embeddingService";
-import type { AIProvider, DocumentAnalysisBundle } from "@/types";
+import type { AIProvider, DocumentAnalysisBundle, ArchiveFileResult } from "@/types";
 import { writeTextFile, mkdir } from "@tauri-apps/plugin-fs";
 
 const SCIENCE_FORMAT_REVIEW_PROMPT = `你是中文学术排版审校助手，只负责在不改变含义的前提下修正格式。必须遵循：
@@ -41,6 +42,8 @@ export const useAnalysis = () => {
     autoSaveAnalysisResult,
     dataDirectory,
     addLog,
+    addArchiveEntry,
+    updateArchiveEntryFiles,
     setIsAnalyzing,
     setAnalysisProgress,
     setAnalysisResult,
@@ -248,10 +251,51 @@ export const useAnalysis = () => {
             undefined, // Don't send images to LLM
           );
 
-          const cleanedRaw = stripLeadingMarkers(stripMarkdownFence(response)).trim();
+          const cleanedRaw = stripLeadingMarkers(stripMarkdownFence(stripThinkTags(response))).trim();
           const cleaned = stripLeadingSectionHeading(cleanedRaw, sectionHeader).trim();
           if (cleaned) {
             chunkOutputs.push(cleaned);
+          } else {
+            // Model returned empty content — retry once with a more explicit prompt
+            pushDevLog("warn", "analysis", `模型返回空内容，正在重试: ${sectionHeader} 批次${batchIdx + 1}`, {
+              sectionHeader,
+              batchIdx,
+            });
+
+            const retryPrompt = [
+              `请根据以下文档内容，输出"${sectionHeader}"部分。`,
+              `要求：${task}`,
+              `注意：你必须输出可见的文本内容，不要只输出思考过程。`,
+              ``,
+              `# 文档内容`,
+              batchText.trim(),
+              ``,
+              `请直接输出Markdown格式的分析结果，不要留空。`,
+            ].join("\n");
+
+            try {
+              const retryResponse = await APIService.callAIWithProvider(
+                currentProvider,
+                "你是一个文档分析助手，请直接输出分析结果，不要输出思考过程。",
+                retryPrompt,
+                {
+                  apiKey: settings.apiKey,
+                  baseUrl: settings.baseUrl,
+                  model: settings.model,
+                },
+                undefined,
+              );
+              const retryCleaned = stripLeadingMarkers(stripMarkdownFence(stripThinkTags(retryResponse))).trim();
+              if (retryCleaned) {
+                chunkOutputs.push(retryCleaned);
+              } else {
+                pushDevLog("warn", "analysis", `重试仍返回空内容: ${sectionHeader} 批次${batchIdx + 1}`);
+              }
+            } catch (retryErr: any) {
+              pushDevLog("warn", "analysis", `重试失败: ${sectionHeader} 批次${batchIdx + 1}`, {
+                error: retryErr?.message || String(retryErr),
+              });
+            }
           }
         } catch (err: any) {
           pushDevLog("warn", "analysis", `批次处理失败: ${sectionHeader} 批次${batchIdx + 1}`, {
@@ -423,6 +467,9 @@ export const useAnalysis = () => {
         hashDir: string;
       }[] = [];
 
+      // Archive entry ID — created when first file completes, updated as more files finish
+      let archiveId: string | null = null;
+
       for (let i = 0; i < totalFiles; i++) {
         const fileInfo = filesToAnalyze[i];
         const fileId = fileInfo.id || `file_${i}`;
@@ -533,7 +580,7 @@ export const useAnalysis = () => {
                 },
               );
 
-              const reviewedContent = stripLeadingMarkers(stripMarkdownFence(reviewResponse)).trim();
+              const reviewedContent = stripLeadingMarkers(stripMarkdownFence(stripThinkTags(reviewResponse))).trim();
               if (reviewedContent) {
                 finalContent = applyImagePlacements(reviewedContent, analysisBundle.images);
                 finalContent = await insertImagesByPageContext(
@@ -566,6 +613,43 @@ export const useAnalysis = () => {
             fileId,
             hashDir: analysisBundle.hashDir,
           });
+
+          // Add to archive incrementally: first file creates entry, subsequent files update it
+          const archiveFile: ArchiveFileResult = {
+            id: fileId,
+            name: fileInfo.name,
+            content: analysisResult.content,
+            timestamp: analysisResult.timestamp,
+          };
+          if (!archiveId) {
+            // First file completed — create archive entry
+            const baseTitle = filesToAnalyze[0]?.name
+              ? filesToAnalyze[0].name.replace(/\.[^./\\]+$/, "")
+              : "OneDocs";
+            const archiveTitle =
+              filesToAnalyze.length > 1
+                ? `${baseTitle} +${filesToAnalyze.length - 1}`
+                : baseTitle;
+            archiveId = `archive_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+            addArchiveEntry({
+              id: archiveId,
+              title: archiveTitle,
+              createdAt: Date.now(),
+              functionType: selectedFunction,
+              provider: currentProvider,
+              files: [archiveFile],
+            });
+          } else {
+            // Subsequent file — update existing archive entry
+            updateArchiveEntryFiles(archiveId, [
+              ...processedResults.map((item) => ({
+                id: item.fileId,
+                name: item.fileName,
+                content: item.result.content,
+                timestamp: item.result.timestamp,
+              })),
+            ]);
+          }
         } catch (error: any) {
           console.error(`文件 ${fileInfo.name} 分析失败:`, error);
           pushDevLog("error", "analysis", `文件分析失败: ${fileInfo.name}`, {

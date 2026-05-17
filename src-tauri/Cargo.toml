@@ -1,9 +1,9 @@
 [package]
 name = "onedocs"
-version = "1.4.0"
+version = "2.0.0"
 description = "A Single Text, All is Known."
 authors = ["LYOfficial"]
-edition = "2024"
+edition = "2026"
 
 [lib]
 name = "onedocs_lib"

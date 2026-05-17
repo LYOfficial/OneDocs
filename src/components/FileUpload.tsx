@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { DocumentProcessor } from "@/utils/documentProcessor";
 import { FILE_SIZE_LIMIT } from "@/config/providers";
@@ -30,6 +30,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const { t } = useTranslation();
+
+  // Pointer-based drag state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+  const isDragging = useRef(false);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -86,121 +92,162 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     setCurrentFileId(fileId);
   };
 
-  const handleMoveUp = (e: React.MouseEvent, index: number) => {
-    e.stopPropagation();
-    if (index === 0) return;
+  // Pointer-based drag handlers for reliable reordering
+  const handlePointerDown = useCallback((_fileId: string) => (e: React.PointerEvent) => {
+    // Only respond to primary button (left click)
+    if (e.button !== 0) return;
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    isDragging.current = false;
+    // Capture pointer to receive events outside the element
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
 
-    const newFiles = [...files];
-    [newFiles[index - 1], newFiles[index]] = [
-      newFiles[index],
-      newFiles[index - 1],
-    ];
-    setFiles(newFiles);
+  const handlePointerMove = useCallback((fileId: string) => (e: React.PointerEvent) => {
+    if (!dragStartPos.current) return;
+    const dx = Math.abs(e.clientX - dragStartPos.current.x);
+    const dy = Math.abs(e.clientY - dragStartPos.current.y);
+
+    // Start dragging after moving 5px (distinguish from click)
+    if (!isDragging.current && (dx > 5 || dy > 5)) {
+      isDragging.current = true;
+      setDraggingId(fileId);
+    }
+
+    if (isDragging.current) {
+      // Find which chip the pointer is over
+      const elements = document.querySelectorAll(".chat-file-chip");
+      let newOverId: string | null = null;
+      elements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom
+        ) {
+          newOverId = el.getAttribute("data-file-id");
+        }
+      });
+      setDragOverId(newOverId);
+    }
+  }, []);
+
+  const handlePointerUp = useCallback((fileId: string) => (e: React.PointerEvent) => {
+    if (isDragging.current && dragOverId && dragOverId !== fileId) {
+      // Perform reorder
+      const draggedIndex = files.findIndex((f) => f.id === fileId);
+      const targetIndex = files.findIndex((f) => f.id === dragOverId);
+      if (draggedIndex >= 0 && targetIndex >= 0 && draggedIndex !== targetIndex) {
+        const nextFiles = [...files];
+        const [moved] = nextFiles.splice(draggedIndex, 1);
+        nextFiles.splice(targetIndex, 0, moved);
+        setFiles(nextFiles);
+      }
+    }
+
+    // If not dragging, treat as click
+    if (!isDragging.current) {
+      handleFileClick(fileId);
+    }
+
+    // Reset state
+    dragStartPos.current = null;
+    isDragging.current = false;
+    setDraggingId(null);
+    setDragOverId(null);
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture was already released
+    }
+  }, [files, dragOverId, setFiles]);
+
+  const handlePointerCancel = useCallback(() => {
+    dragStartPos.current = null;
+    isDragging.current = false;
+    setDraggingId(null);
+    setDragOverId(null);
+  }, []);
+
+  // Drag-and-drop upload state
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
   };
 
-  const handleMoveDown = (e: React.MouseEvent, index: number) => {
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    if (index === files.length - 1) return;
+    setIsDragOver(false);
+  };
 
-    const newFiles = [...files];
-    [newFiles[index], newFiles[index + 1]] = [
-      newFiles[index + 1],
-      newFiles[index],
-    ];
-    setFiles(newFiles);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) {
+      processFiles(droppedFiles);
+    }
   };
 
   return (
-    <>
-      <div className="upload-section">
-        <div style={{ display: "flex", gap: "16px", alignItems: "stretch" }}>
-          <div
-            className="upload-area"
-            id="uploadArea"
-            onClick={handleUploadAreaClick}
-            style={{ flex: 1 }}
-          >
-            <div className="upload-content">
-              <div className="upload-icon">📁</div>
-              <p className="upload-text">{t("upload.select")}</p>
-              <p className="upload-hint">{t("upload.hint")}</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                multiple
-                style={{ display: "none" }}
-                onChange={handleFileSelect}
-              />
-            </div>
-          </div>
-
-          {onAnalyze && (
-            <button
-              className="analyze-button-mini"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAnalyze();
-              }}
-              disabled={!hasAnalysisResults && !canAnalyze}
-            >
-              <span className="button-text">
-                {hasAnalysisResults
-                  ? t("upload.analyze.new")
-                  : t("upload.analyze.start")}
-              </span>
-              <i className="fas fa-play button-icon" aria-hidden="true"></i>
-              {isAnalyzing && <div className="button-loader"></div>}
-            </button>
-          )}
+    <div
+      className={`chat-upload${isDragOver ? " drag-over" : ""}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div
+        className="chat-upload-area"
+        onClick={handleUploadAreaClick}
+      >
+        <div className="chat-upload-text">
+          <p>{t("upload.select")}</p>
+          <span>{t("upload.hint")}</span>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf"
+          multiple
+          style={{ display: "none" }}
+          onChange={handleFileSelect}
+        />
       </div>
 
       {files.length > 0 && (
-        <div className="files-list">
-          <div className="files-list-header">
+        <div className="chat-files">
+          <div className="chat-files-header">
             <span>{t("upload.files.header", { count: files.length })}</span>
             <span className="files-hint">{t("upload.files.reorderHint")}</span>
           </div>
-          <div className="files-items">
-            {files.map((fileInfo, index) => {
+          <div className="chat-files-row">
+            {files.map((fileInfo) => {
               const fileId = fileInfo.id || "";
               const isActive = currentFileId === fileId;
-              const isFirst = index === 0;
-              const isLast = index === files.length - 1;
-
+              const isFileDragging = draggingId === fileId;
+              const isFileDragOver = dragOverId === fileId && draggingId !== fileId;
               return (
                 <div
                   key={fileId}
-                  className={`file-item ${isActive ? "active" : ""}`}
-                  onClick={() => handleFileClick(fileId)}
+                  data-file-id={fileId}
+                  className={`chat-file-chip ${isActive ? "active" : ""} ${isFileDragging ? "dragging" : ""} ${isFileDragOver ? "drag-over" : ""}`}
+                  onPointerDown={handlePointerDown(fileId)}
+                  onPointerMove={handlePointerMove(fileId)}
+                  onPointerUp={handlePointerUp(fileId)}
+                  onPointerCancel={handlePointerCancel}
+                  style={{ touchAction: "none" }}
                 >
-                  <div className="file-item-controls">
-                    <button
-                      className="file-item-arrow file-item-arrow-up"
-                      onClick={(e) => handleMoveUp(e, index)}
-                      disabled={isFirst}
-                      title={t("upload.moveUp")}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="file-item-arrow file-item-arrow-down"
-                      onClick={(e) => handleMoveDown(e, index)}
-                      disabled={isLast}
-                      title={t("upload.moveDown")}
-                    >
-                      ↓
-                    </button>
-                  </div>
-                  <div className="file-item-info">
-                    <span className="file-item-name">{fileInfo.name}</span>
-                    <span className="file-item-size">
-                      {(fileInfo.size / 1024 / 1024).toFixed(2)} MB
-                    </span>
+                  <div className="chat-file-name">{fileInfo.name}</div>
+                  <div className="chat-file-size">
+                    {(fileInfo.size / 1024 / 1024).toFixed(2)} MB
                   </div>
                   <button
-                    className="file-item-remove"
+                    className="chat-file-remove"
                     onClick={(e) => handleRemoveFile(e, fileId)}
                     title={t("upload.remove")}
                   >
@@ -212,6 +259,27 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           </div>
         </div>
       )}
-    </>
+
+      {onAnalyze && (
+        <div className="chat-upload-actions">
+          <button
+            className="chat-send-button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAnalyze();
+            }}
+            disabled={!hasAnalysisResults && !canAnalyze}
+          >
+            <span className="button-text">
+              {hasAnalysisResults
+                ? t("upload.analyze.new")
+                : t("upload.send")}
+            </span>
+            <i className="fas fa-paper-plane button-icon" aria-hidden="true"></i>
+            {isAnalyzing && <div className="button-loader"></div>}
+          </button>
+        </div>
+      )}
+    </div>
   );
 };

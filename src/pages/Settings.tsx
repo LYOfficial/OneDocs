@@ -2,60 +2,42 @@ import React, { useMemo, useState } from "react";
 import { AnalysisSettingsPanel } from "@/components/AnalysisSettingsPanel";
 import { ModelSelectionPanel } from "@/components/ModelSelectionPanel";
 import { DataManagementPanel } from "@/components/DataManagementPanel";
-import { AboutPanel } from "@/components/AboutPanel";
 import { DeveloperModePanel } from "@/components/DeveloperModePanel";
+import { AppearanceSettingsPanel } from "@/components/AppearanceSettingsPanel";
+import { LanguageSettingsPanel } from "@/components/LanguageSettingsPanel";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/useAppStore";
+import { SETTINGS_ICONS } from "@/config/uiIcons";
 
-type SectionId = "analysis" | "model" | "data" | "about" | "developer";
+type SectionId = "general" | "appearance" | "model";
 
 export const Settings: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<SectionId>("model");
+  const [activeSection, setActiveSection] = useState<SectionId>("general");
   const { t } = useTranslation();
   const { devMode } = useAppStore();
 
   const settingSections = useMemo(() => {
-    const baseSections = [
+    return [
       {
-        id: "analysis",
-        labelKey: "settings.sections.analysis.label",
-        descKey: "settings.sections.analysis.desc",
-        icon: "fas fa-sliders-h",
+        id: "general",
+        labelKey: "settings.sections.general.label",
+        descKey: "settings.sections.general.desc",
+        icon: SETTINGS_ICONS.general,
+      },
+      {
+        id: "appearance",
+        labelKey: "settings.sections.appearance.label",
+        descKey: "settings.sections.appearance.desc",
+        icon: SETTINGS_ICONS.appearance,
       },
       {
         id: "model",
         labelKey: "settings.sections.model.label",
         descKey: "settings.sections.model.desc",
-        icon: "fas fa-brain",
-      },
-      {
-        id: "data",
-        labelKey: "settings.sections.data.label",
-        descKey: "settings.sections.data.desc",
-        icon: "fas fa-database",
-      },
-      {
-        id: "about",
-        labelKey: "settings.sections.about.label",
-        descKey: "settings.sections.about.desc",
-        icon: "fas fa-info-circle",
+        icon: SETTINGS_ICONS.model,
       },
     ] as const;
-
-    if (devMode) {
-      return [
-        ...baseSections,
-        {
-          id: "developer",
-          labelKey: "settings.sections.developer.label",
-          descKey: "settings.sections.developer.desc",
-          icon: "fas fa-code",
-        },
-      ] as const;
-    }
-
-    return baseSections;
-  }, [devMode]);
+  }, []);
 
   return (
     <div className="tools-container">
@@ -72,7 +54,7 @@ export const Settings: React.FC = () => {
               onClick={() => setActiveSection(section.id)}
             >
               <div className="tools-nav-icon">
-                <i className={section.icon} aria-hidden="true"></i>
+                <img src={section.icon} alt="" />
               </div>
               <div className="tools-nav-meta">
                 <span>{t(section.labelKey)}</span>
@@ -84,11 +66,16 @@ export const Settings: React.FC = () => {
       </aside>
 
       <section className="tools-content">
-        {activeSection === "analysis" && <AnalysisSettingsPanel />}
+        {activeSection === "general" && (
+          <div className="settings-stack">
+            <LanguageSettingsPanel />
+            <AnalysisSettingsPanel />
+            <DataManagementPanel />
+            {devMode && <DeveloperModePanel />}
+          </div>
+        )}
+        {activeSection === "appearance" && <AppearanceSettingsPanel />}
         {activeSection === "model" && <ModelSelectionPanel />}
-        {activeSection === "data" && <DataManagementPanel />}
-        {activeSection === "about" && <AboutPanel />}
-        {activeSection === "developer" && devMode && <DeveloperModePanel />}
       </section>
     </div>
   );

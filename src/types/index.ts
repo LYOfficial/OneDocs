@@ -165,6 +165,22 @@ export interface MultiFileAnalysisResult {
   [fileId: string]: AnalysisResult;
 }
 
+export interface ArchiveFileResult {
+  id: string;
+  name: string;
+  content: string;
+  timestamp: number;
+}
+
+export interface ArchiveEntry {
+  id: string;
+  title: string;
+  createdAt: number;
+  functionType: PromptType;
+  provider: string;
+  files: ArchiveFileResult[];
+}
+
 export interface ProviderSettings {
   apiKey: string;
   baseUrl: string;

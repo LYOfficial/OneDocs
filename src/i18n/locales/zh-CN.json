@@ -1,10 +1,14 @@
 {
   "app": {
+    "brand": {
+      "chinese": "一文亦闻"
+    },
     "titleBar": {
       "tabs": {
-        "landing": "首页",
         "analysis": "分析",
-        "analysisResult": "分析结果",
+        "archive": "存档",
+        "about": "关于",
+        "discover": "发现",
         "settings": "设置"
       },
       "theme": {
@@ -54,27 +58,53 @@
   },
   "settings": {
     "title": "设置",
-    "subtitle": "集中管理模型与数据策略",
+    "subtitle": "集中管理应用与模型策略",
     "sections": {
-      "analysis": {
-        "label": "析文设置",
-        "desc": "控制析文偏好"
+      "general": {
+        "label": "通用",
+        "desc": "语言与析文设置"
+      },
+      "appearance": {
+        "label": "外观",
+        "desc": "主题与背景"
       },
       "model": {
-        "label": "模型选择",
+        "label": "模型",
         "desc": "管理模型供应商"
+      }
+    },
+    "general": {
+      "language": {
+        "title": "语言 (Language)",
+        "desc": "切换应用显示语言",
+        "zh": "简体中文",
+        "en": "English"
+      }
+    },
+    "appearance": {
+      "theme": {
+        "title": "主题模式",
+        "desc": "切换浅色、深色或跟随系统",
+        "light": "浅色",
+        "dark": "深色",
+        "system": "跟随系统"
       },
-      "data": {
-        "label": "数据管理",
-        "desc": "配置数据目录"
+      "font": {
+        "title": "字体",
+        "desc": "调整显示字体与字号",
+        "serif": "宋体风格",
+        "sans": "黑体风格",
+        "system": "系统默认",
+        "scale": "{{scale}}x"
       },
-      "about": {
-        "label": "关于",
-        "desc": "查看版本与入口"
-      },
-      "developer": {
-        "label": "开发者模式",
-        "desc": "查看内部日志"
+      "background": {
+        "title": "背景",
+        "desc": "设置背景颜色或自定义背景图片",
+        "color": "背景颜色",
+        "upload": "上传背景图",
+        "clear": "清除背景图",
+        "imageInvalid": "请选择图片格式文件",
+        "imageApplied": "背景图片已更新"
       }
     }
   },
@@ -98,9 +128,10 @@
       "start": "开始析文",
       "new": "新建析文"
     },
+    "send": "发送",
     "files": {
       "header": "已上传文件 ({{count}})",
-      "reorderHint": "点击箭头调整顺序"
+      "reorderHint": "拖拽排序"
     },
     "moveUp": "上移",
     "moveDown": "下移",
@@ -115,6 +146,59 @@
     "empty": {
       "title": "暂无分析结果",
       "body": "请先在“分析”页面上传文档并完成析文，结果会在此处展示。"
+    }
+  },
+  "archive": {
+    "title": "存档",
+    "subtitle": "历史分析记录",
+    "list": {
+      "empty": "暂无历史存档",
+      "files": "{{count}} 个文件"
+    },
+    "result": {
+      "emptyTitle": "请选择一个存档",
+      "emptyBody": "点击左侧历史记录查看分析结果",
+      "empty": "该存档没有可显示的结果"
+    }
+  },
+  "discover": {
+    "title": "发现",
+    "subtitle": "版本更新与发布记录",
+    "loading": "加载中...",
+    "fetchError": "获取更新信息失败",
+    "noReleases": "暂无版本记录",
+    "emptyTitle": "选择一个版本",
+    "emptyBody": "点击左侧版本标签查看更新内容"
+  },
+  "about": {
+    "title": "关于",
+    "sections": {
+      "version": "版本",
+      "versionDesc": "当前版本与项目信息",
+      "intro": "简介",
+      "introDesc": "了解 OneDocs",
+      "features": "功能",
+      "featuresDesc": "四大智能分析模式"
+    },
+    "version": {
+      "title": "版本信息",
+      "desc": "当前版本与项目入口",
+      "current": "当前版本",
+      "website": "官网入口",
+      "repo": "开源仓库",
+      "license": "开源协议",
+      "tech": "技术栈"
+    },
+    "intro": {
+      "title": "关于 OneDocs",
+      "desc": "一文亦闻，智慧析文",
+      "paragraph1": "OneDocs（一文亦闻）是一款基于 AI 的智能文档分析工具，旨在帮助用户快速从 PDF 文档中提取关键信息、梳理知识脉络。无论是新闻要览、数据解析，还是学科要点整理，OneDocs 都能一键生成结构化的分析结果。",
+      "paragraph2": "OneDocs 采用 Tauri v2 桌面框架，结合 React 19 前端技术，提供轻量、流畅的本地化体验。所有文档处理均在本地完成，您的数据不会上传至任何第三方服务器，确保隐私安全。",
+      "paragraph3": "通过集成多种 AI 模型供应商，OneDocs 支持灵活切换模型策略，适配不同场景需求。四大专业分析模式——要闻概览、罗森析数、理工速知、文采丰呈——覆盖了从新闻到学术的多种文档类型。"
+    },
+    "features": {
+      "title": "核心功能",
+      "desc": "四大智能分析模式"
     }
   },
   "result": {

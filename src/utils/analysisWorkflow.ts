@@ -48,6 +48,33 @@ export const stripMarkdownFence = (text: string): string => {
   return current;
 };
 
+/**
+ * Strip <think/> or <thinking/> tags from model output.
+ * Some models (e.g., Qwen3.5) wrap their reasoning in these tags,
+ * and the actual output appears after the closing tag.
+ * If the entire response is wrapped in think tags, return empty string.
+ */
+export const stripThinkTags = (text: string): string => {
+  let result = text;
+
+  // Remove <think ...>...</think > blocks (with optional attributes and whitespace)
+  result = result.replace(/<think(?:\s[^>]*)?>[\s\S]*?<\/think\s*>/gi, "");
+
+  // Remove <thinking ...>...</thinking> blocks
+  result = result.replace(/<thinking(?:\s[^>]*)?>[\s\S]*?<\/thinking\s*>/gi, "");
+
+  // Handle unclosed <think/> tags — if the response starts with <think but has no closing tag,
+  // the entire response is reasoning with no visible output
+  if (/^<think(?:\s[^>]*)?>[\s\S]*$/i.test(result.trim()) && !/<\/think\s*>/i.test(result)) {
+    result = "";
+  }
+  if (/^<thinking(?:\s[^>]*)?>[\s\S]*$/i.test(result.trim()) && !/<\/thinking\s*>/i.test(result)) {
+    result = "";
+  }
+
+  return result.trim();
+};
+
 export const stripLeadingMarkers = (text: string): string => {
   const trimmed = text.trimStart();
   return trimmed.replace(/^【?格式修正内容】?/i, "").trimStart();
@@ -722,6 +749,12 @@ ${pageMapStr}
 /**
  * Fallback: Insert images by page context (rule-based, no LLM).
  * Used when LLM matching is unavailable or fails.
+ *
+ * Improved strategy: instead of inserting images only at section boundaries,
+ * we try to place images near text paragraphs that reference the same page number.
+ * If no page reference is found, we distribute images proportionally across
+ * text paragraphs (not just section headers) to avoid clustering all images
+ * together without surrounding text.
  */
 function insertImagesByPageContextFallback(
   markdown: string,
@@ -768,6 +801,15 @@ function insertImagesByPageContextFallback(
     }
   }
 
+  // Build a list of text paragraphs (non-empty, non-heading lines) for proportional distribution
+  const textParagraphs: { lineIndex: number; text: string }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line && !headingRegex.test(line) && !line.startsWith("![") && line.length > 10) {
+      textParagraphs.push({ lineIndex: i, text: line });
+    }
+  }
+
   const insertions: { lineIndex: number; imageMarkdown: string; pageNum: number }[] = [];
 
   for (const image of unreferencedImages) {
@@ -779,29 +821,39 @@ function insertImagesByPageContextFallback(
 
     let insertAt = -1;
 
-    // Strategy 1: Find a section that explicitly mentions this page number
-    for (const section of sections) {
-      if (section.pageHints.includes(pageNum)) {
-        insertAt = section.endLine;
+    // Strategy 1: Find a line that explicitly mentions this page number
+    // Prefer inserting after a text paragraph that references the page
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      if (new RegExp(`第\\s*${pageNum}\\s*页`).test(line)) {
+        insertAt = i + 1;
         break;
       }
     }
 
-    // Strategy 2: Find the section whose page range covers this image's page
-    if (insertAt === -1 && sections.length > 0) {
-      const allPageHints = sections.flatMap(s => s.pageHints.map(p => ({ page: p, sectionIdx: sections.indexOf(s) })));
-      allPageHints.sort((a, b) => a.page - b.page);
-
-      for (const hint of allPageHints) {
-        if (hint.page <= pageNum) {
-          insertAt = sections[hint.sectionIdx].endLine;
-        } else {
+    // Strategy 2: Find a section that mentions this page number, insert at end of that section
+    if (insertAt === -1) {
+      for (const section of sections) {
+        if (section.pageHints.includes(pageNum)) {
+          // Insert before the next section heading, but after the last text paragraph in this section
+          insertAt = section.endLine;
           break;
         }
       }
     }
 
-    // Strategy 3: Distribute proportionally
+    // Strategy 3: Distribute proportionally across text paragraphs
+    // This ensures images are spread among text content, not clustered at section boundaries
+    if (insertAt === -1 && textParagraphs.length > 0) {
+      const maxPage = Math.max(...unreferencedImages.map(img => img.pageNumber), 1);
+      const targetIdx = Math.min(
+        Math.floor((pageNum / maxPage) * textParagraphs.length),
+        textParagraphs.length - 1,
+      );
+      insertAt = textParagraphs[targetIdx].lineIndex + 1;
+    }
+
+    // Strategy 4: Distribute proportionally across sections (original fallback)
     if (insertAt === -1 && sections.length > 0) {
       const maxPage = Math.max(...unreferencedImages.map(img => img.pageNumber), 1);
       const targetSectionIdx = Math.min(

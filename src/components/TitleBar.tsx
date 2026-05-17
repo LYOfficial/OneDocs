@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useAppStore } from "@/store/useAppStore";
 import { useTranslation } from "react-i18next";
+import appIcon from "../../app-icon.png";
+import { NAV_ICONS } from "@/config/uiIcons";
 
-type TabKey = "landing" | "analysis" | "analysisResult" | "settings";
+type TabKey = "analysis" | "archive" | "about" | "discover" | "settings";
 
 interface TitleBarProps {
   activeTab: TabKey;
@@ -15,48 +16,9 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   activeTab,
   onTabChange,
 }) => {
-  const { theme, setTheme } = useAppStore();
   const isTauriRuntime = isTauri();
   const appWindowRef = useRef(isTauriRuntime ? getCurrentWindow() : null);
-  const { t, i18n } = useTranslation();
-  const isChinese = i18n.language.toLowerCase().startsWith("zh");
-  const switchToLabel = isChinese
-    ? t("app.language.english")
-    : t("app.language.chinese");
-  const switchToShort = isChinese
-    ? t("app.language.short.en")
-    : t("app.language.short.zh");
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    const applyTheme = () => {
-      const effectiveTheme =
-        theme === "system"
-          ? window.matchMedia("(prefers-color-scheme: dark)").matches
-            ? "dark"
-            : "light"
-          : theme;
-
-      if (effectiveTheme === "dark") {
-        root.classList.add("dark");
-        root.setAttribute("data-theme", "dark");
-      } else {
-        root.classList.remove("dark");
-        root.setAttribute("data-theme", "light");
-      }
-    };
-
-    applyTheme();
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      if (theme === "system") applyTheme();
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
+  const { t } = useTranslation();
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -83,27 +45,50 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       onPointerDown={handlePointerDown}
     >
       <div className="titlebar-left">
-        <div className="tabs">
-          <button
-            className={`tab-button ${activeTab === "landing" ? "active" : ""}`}
-            onClick={() => onTabChange("landing")}
-            data-tauri-drag-region="false"
-          >
-            {t("app.titleBar.tabs.landing")}
-          </button>
+        <div className="titlebar-brand">
+          <img className="titlebar-logo" src={appIcon} alt="OneDocs" />
+          <span className="titlebar-name">OneDocs</span>
+        </div>
+        <div className="titlebar-nav">
           <button
             className={`tab-button ${activeTab === "analysis" ? "active" : ""}`}
             onClick={() => onTabChange("analysis")}
             data-tauri-drag-region="false"
           >
-            {t("app.titleBar.tabs.analysis")}
+            <img className="tab-icon" src={NAV_ICONS.analysis} alt="" />
+            <span className="tab-label">{t("app.titleBar.tabs.analysis")}</span>
           </button>
           <button
-            className={`tab-button ${activeTab === "analysisResult" ? "active" : ""}`}
-            onClick={() => onTabChange("analysisResult")}
+            className={`tab-button ${activeTab === "archive" ? "active" : ""}`}
+            onClick={() => onTabChange("archive")}
             data-tauri-drag-region="false"
           >
-            {t("app.titleBar.tabs.analysisResult")}
+            <img className="tab-icon" src={NAV_ICONS.archive} alt="" />
+            <span className="tab-label">{t("app.titleBar.tabs.archive")}</span>
+          </button>
+          <button
+            className={`tab-button ${activeTab === "about" ? "active" : ""}`}
+            onClick={() => onTabChange("about")}
+            data-tauri-drag-region="false"
+          >
+            <img className="tab-icon" src={NAV_ICONS.about} alt="" />
+            <span className="tab-label">{t("app.titleBar.tabs.about")}</span>
+          </button>
+          <button
+            className={`tab-button ${activeTab === "discover" ? "active" : ""}`}
+            onClick={() => onTabChange("discover")}
+            data-tauri-drag-region="false"
+          >
+            <img className="tab-icon" src={NAV_ICONS.discover} alt="" />
+            <span className="tab-label">{t("app.titleBar.tabs.discover")}</span>
+          </button>
+          <button
+            className={`tab-button ${activeTab === "settings" ? "active" : ""}`}
+            onClick={() => onTabChange("settings")}
+            data-tauri-drag-region="false"
+          >
+            <img className="tab-icon" src={NAV_ICONS.settings} alt="" />
+            <span className="tab-label">{t("app.titleBar.tabs.settings")}</span>
           </button>
         </div>
       </div>
@@ -111,53 +96,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({
       <div style={{ flex: 1, height: "100%" }} data-tauri-drag-region></div>
 
       <div className="titlebar-right">
-        <div className="control-group">
-          <div className="theme-toggle">
-            <button
-              className={`icon-btn ${theme === "light" ? "active" : ""}`}
-              onClick={() => setTheme("light")}
-              title={t("app.titleBar.theme.light")}
-              data-tauri-drag-region="false"
-            >
-              <i className="fas fa-sun"></i>
-            </button>
-            <button
-              className={`icon-btn ${theme === "dark" ? "active" : ""}`}
-              onClick={() => setTheme("dark")}
-              title={t("app.titleBar.theme.dark")}
-              data-tauri-drag-region="false"
-            >
-              <i className="fas fa-moon"></i>
-            </button>
-            <button
-              className={`icon-btn ${theme === "system" ? "active" : ""}`}
-              onClick={() => setTheme("system")}
-              title={t("app.titleBar.theme.system")}
-              data-tauri-drag-region="false"
-            >
-              <i className="fas fa-desktop"></i>
-            </button>
-          </div>
-
-          <button
-            className="icon-btn language-btn"
-            onClick={() => i18n.changeLanguage(isChinese ? "en" : "zh-CN")}
-            title={t("app.language.switchTo", { language: switchToLabel })}
-            data-tauri-drag-region="false"
-          >
-            {switchToShort}
-          </button>
-
-          <button
-            className={`icon-btn settings-btn ${activeTab === "settings" ? "active" : ""}`}
-            onClick={() => onTabChange("settings")}
-            title={t("app.titleBar.tabs.settings")}
-            data-tauri-drag-region="false"
-          >
-            <i className="fas fa-cog"></i>
-          </button>
-        </div>
-
         {isTauriRuntime && (
           <div className="window-controls">
             <button

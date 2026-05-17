@@ -8,6 +8,8 @@ import type {
   AnalysisProgress,
   AnalysisResult,
   MultiFileAnalysisResult,
+  ArchiveEntry,
+  ArchiveFileResult,
   DeveloperLogEntry,
   ViewMode,
   ProviderSettings,
@@ -67,9 +69,15 @@ interface AppState {
 
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  isSidebarCollapsed: boolean;
+  uiFontFamily: string;
+  uiFontScale: number;
+  uiBackgroundColor: string;
+  uiBackgroundImage: string;
+  setUiFontFamily: (fontFamily: string) => void;
+  setUiFontScale: (scale: number) => void;
+  setUiBackgroundColor: (color: string) => void;
+  setUiBackgroundImage: (image: string) => void;
   showFormatNotice: boolean;
-  toggleSidebar: () => void;
   setShowFormatNotice: (show: boolean) => void;
 
   dataDirectory: string;
@@ -80,6 +88,12 @@ interface AppState {
   developerLogs: DeveloperLogEntry[];
   addLog: (entry: DeveloperLogEntry) => void;
   clearLogs: () => void;
+
+  archives: ArchiveEntry[];
+  activeArchiveId: string | null;
+  setActiveArchiveId: (archiveId: string | null) => void;
+  addArchiveEntry: (entry: ArchiveEntry) => void;
+  updateArchiveEntryFiles: (archiveId: string, files: ArchiveFileResult[]) => void;
 
   resetAnalysis: () => void;
   resetAll: () => void;
@@ -333,11 +347,17 @@ export const useAppStore = create<AppState>()(
         return withProviderDefaults(provider, state.providerSettings[provider]);
       },
 
-      theme: 'system',
+      theme: 'light',
       setTheme: (theme) => set({ theme }),
-      isSidebarCollapsed: false,
+      uiFontFamily: "'Noto Serif SC', serif",
+      uiFontScale: 1,
+      uiBackgroundColor: '',
+      uiBackgroundImage: '',
+      setUiFontFamily: (fontFamily) => set({ uiFontFamily: fontFamily }),
+      setUiFontScale: (scale) => set({ uiFontScale: scale }),
+      setUiBackgroundColor: (color) => set({ uiBackgroundColor: color }),
+      setUiBackgroundImage: (image) => set({ uiBackgroundImage: image }),
       showFormatNotice: true,
-      toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
       setShowFormatNotice: (show) => set({ showFormatNotice: show }),
 
       dataDirectory: '',
@@ -357,6 +377,21 @@ export const useAppStore = create<AppState>()(
           };
         }),
       clearLogs: () => set({ developerLogs: [] }),
+
+      archives: [],
+      activeArchiveId: null,
+      setActiveArchiveId: (archiveId) => set({ activeArchiveId: archiveId }),
+      addArchiveEntry: (entry) =>
+        set((state) => ({
+          archives: [entry, ...state.archives],
+          activeArchiveId: entry.id,
+        })),
+      updateArchiveEntryFiles: (archiveId, files) =>
+        set((state) => ({
+          archives: state.archives.map((entry) =>
+            entry.id === archiveId ? { ...entry, files } : entry,
+          ),
+        })),
 
       resetAnalysis: () =>
         set({
@@ -431,8 +466,8 @@ export const useAppStore = create<AppState>()(
         currentProvider: state.currentProvider,
         providerSettings: state.providerSettings,
         customProviders: state.customProviders,
-        isSidebarCollapsed: state.isSidebarCollapsed,
         showFormatNotice: state.showFormatNotice,
+        theme: state.theme,
         dataDirectory: state.dataDirectory,
         enableFormatReview: state.enableFormatReview,
         autoSaveAnalysisResult: state.autoSaveAnalysisResult,

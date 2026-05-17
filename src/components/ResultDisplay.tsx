@@ -258,9 +258,16 @@ export const ResultDisplay: React.FC = () => {
                         : t("result.fileNotAnalyzed", { name: file.name })
                     }
                   >
-                    {file.name.length > 15
-                      ? `${file.name.substring(0, 15)}...`
-                      : file.name}
+                    <span className="file-tab-name">
+                      {file.name.length > 15
+                        ? `${file.name.substring(0, 15)}...`
+                        : file.name}
+                    </span>
+                    {!hasResult && (
+                      <span className="file-tab-progress">
+                        <span className="file-tab-progress-bar" />
+                      </span>
+                    )}
                   </button>
                 );
               })}

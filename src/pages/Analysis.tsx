@@ -4,6 +4,7 @@ import { useAnalysis } from "@/hooks/useAnalysis";
 import { FunctionSelector } from "@/components/FunctionSelector";
 import { FileUpload } from "@/components/FileUpload";
 import { ProgressBar } from "@/components/ProgressBar";
+import { ResultDisplay } from "@/components/ResultDisplay";
 import { useTranslation } from "react-i18next";
 
 export const Analysis: React.FC = () => {
@@ -37,13 +38,40 @@ export const Analysis: React.FC = () => {
     }
   };
 
-  return (
-    <div className="tool-container">
-      <main className="tool-main">
+  // When analysis results exist, show results in right panel with sidebar still visible
+  if (hasAnalysisResults) {
+    return (
+      <div className="tools-container">
         <FunctionSelector />
+        <section className="tools-content" style={{ position: "relative" }}>
+          <ResultDisplay />
+          <button
+            className="analysis-fab-new"
+            onClick={resetAll}
+            title={t("upload.analyze.new")}
+          >
+            <span className="analysis-fab-icon">+</span>
+            <span className="analysis-fab-text">{t("upload.analyze.new")}</span>
+          </button>
+        </section>
+      </div>
+    );
+  }
 
-        <div className="main-content">
-          <div className="chat-container">
+  return (
+    <div className="tools-container">
+      <FunctionSelector />
+
+      <section className="tools-content">
+        <div className="analysis-layout">
+          <div className="analysis-results">
+            <div className="result-empty-card">
+              <h3>{t("analysisResult.empty.title")}</h3>
+              <p>{t("analysisResult.empty.body")}</p>
+            </div>
+          </div>
+
+          <div className="analysis-chat">
             {showFormatNotice && (
               <div className="format-notice">
                 <p>
@@ -67,16 +95,9 @@ export const Analysis: React.FC = () => {
             />
 
             <ProgressBar />
-
-            {hasAnalysisResults && (
-              <div className="result-hint-card">
-                <h3>{t("analysis.resultHint.title")}</h3>
-                <p>{t("analysis.resultHint.body")}</p>
-              </div>
-            )}
           </div>
         </div>
-      </main>
+      </section>
     </div>
   );
 };

@@ -1,10 +1,14 @@
 {
   "app": {
+    "brand": {
+      "chinese": "一文亦闻"
+    },
     "titleBar": {
       "tabs": {
-        "landing": "Home",
         "analysis": "Analyze",
-        "analysisResult": "Results",
+        "archive": "Archive",
+        "about": "About",
+        "discover": "Discover",
         "settings": "Settings"
       },
       "theme": {
@@ -54,27 +58,53 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Centralize model and data strategy",
+    "subtitle": "Centralize app and model strategy",
     "sections": {
-      "analysis": {
-        "label": "Analysis",
-        "desc": "Control analysis preferences"
+      "general": {
+        "label": "General",
+        "desc": "Language and analysis"
+      },
+      "appearance": {
+        "label": "Appearance",
+        "desc": "Theme and background"
       },
       "model": {
         "label": "Models",
         "desc": "Manage model providers"
+      }
+    },
+    "general": {
+      "language": {
+        "title": "Language",
+        "desc": "Switch the app display language",
+        "zh": "Simplified Chinese",
+        "en": "English"
+      }
+    },
+    "appearance": {
+      "theme": {
+        "title": "Theme",
+        "desc": "Light, dark, or follow system",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
       },
-      "data": {
-        "label": "Data",
-        "desc": "Configure data directory"
+      "font": {
+        "title": "Typography",
+        "desc": "Adjust font family and size",
+        "serif": "Serif",
+        "sans": "Sans",
+        "system": "System",
+        "scale": "{{scale}}x"
       },
-      "about": {
-        "label": "About",
-        "desc": "Version and links"
-      },
-      "developer": {
-        "label": "Developer",
-        "desc": "Internal logs"
+      "background": {
+        "title": "Background",
+        "desc": "Pick a color or set a custom image",
+        "color": "Background color",
+        "upload": "Upload image",
+        "clear": "Remove image",
+        "imageInvalid": "Please choose an image file",
+        "imageApplied": "Background image updated"
       }
     }
   },
@@ -98,9 +128,10 @@
       "start": "Start analysis",
       "new": "New analysis"
     },
+    "send": "Send",
     "files": {
       "header": "Uploaded files ({{count}})",
-      "reorderHint": "Use arrows to reorder"
+      "reorderHint": "Drag to reorder"
     },
     "moveUp": "Move up",
     "moveDown": "Move down",
@@ -115,6 +146,59 @@
     "empty": {
       "title": "No analysis results yet",
       "body": "Upload documents on the “Analyze” page and run analysis to see results here."
+    }
+  },
+  "archive": {
+    "title": "Archive",
+    "subtitle": "Analysis history",
+    "list": {
+      "empty": "No history yet",
+      "files": "{{count}} files"
+    },
+    "result": {
+      "emptyTitle": "Select an archive",
+      "emptyBody": "Pick a history entry to view its results",
+      "empty": "No results to display in this archive"
+    }
+  },
+  "discover": {
+    "title": "Discover",
+    "subtitle": "Version updates & release notes",
+    "loading": "Loading...",
+    "fetchError": "Failed to fetch releases",
+    "noReleases": "No releases yet",
+    "emptyTitle": "Select a version",
+    "emptyBody": "Pick a version tag to view release notes"
+  },
+  "about": {
+    "title": "About",
+    "sections": {
+      "version": "Version",
+      "versionDesc": "Current version & project info",
+      "intro": "Intro",
+      "introDesc": "Learn about OneDocs",
+      "features": "Features",
+      "featuresDesc": "Four intelligent analysis modes"
+    },
+    "version": {
+      "title": "Version Info",
+      "desc": "Current version & project links",
+      "current": "Current version",
+      "website": "Website",
+      "repo": "Repository",
+      "license": "License",
+      "tech": "Tech Stack"
+    },
+    "intro": {
+      "title": "About OneDocs",
+      "desc": "Smart document analysis",
+      "paragraph1": "OneDocs is an AI-powered intelligent document analysis tool designed to help users quickly extract key information and organize knowledge from PDF documents. Whether it's news highlights, data analysis, or academic notes, OneDocs generates structured analysis results with one click.",
+      "paragraph2": "Built with the Tauri v2 desktop framework and React 19, OneDocs provides a lightweight, smooth local experience. All document processing happens locally — your data is never uploaded to any third-party server, ensuring privacy and security.",
+      "paragraph3": "By integrating multiple AI model providers, OneDocs supports flexible model switching to adapt to different scenarios. Four specialized analysis modes — News Overview, Data Analysis, STEM Quick Know, and Liberal Arts Richness — cover a wide range of document types from news to academia."
+    },
+    "features": {
+      "title": "Core Features",
+      "desc": "Four intelligent analysis modes"
     }
   },
   "result": {
