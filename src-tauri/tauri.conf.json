@@ -45,7 +45,7 @@
     ],
     "windows": {
       "nsis": {
-        "languages": ["SimpChinese", "English"],
+        "languages": ["SimpChinese"],
         "customLanguageFiles": {
           "SimpChinese": "nsis/zh-CN.nsh"
         },
@@ -53,7 +53,7 @@
         "headerImage": "nsis/header.bmp",
         "installerIcon": "icons/icon.ico",
         "installMode": "both",
-        "displayLanguageSelector": true
+        "displayLanguageSelector": false
       }
     }
   }
