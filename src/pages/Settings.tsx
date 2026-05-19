@@ -12,7 +12,13 @@ import { SETTINGS_ICONS } from "@/config/uiIcons";
 type SectionId = "general" | "appearance" | "model";
 
 export const Settings: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<SectionId>("general");
+  const { settingsActiveSection, setSettingsActiveSection } = useAppStore();
+  const [localSection, setLocalSection] = useState<SectionId>("general");
+  const activeSection = (settingsActiveSection as SectionId) || localSection;
+  const setActiveSection = (section: SectionId) => {
+    setLocalSection(section);
+    setSettingsActiveSection(null);
+  };
   const { t } = useTranslation();
   const { devMode } = useAppStore();
 

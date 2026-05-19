@@ -8,6 +8,8 @@ interface TourStep {
   descKey: string;
   /** CSS selector for the element to point at; empty = centered modal */
   targetSelector: string;
+  /** Section to activate on the target page (e.g. "model" for Settings, "help" for About) */
+  targetSection?: string;
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -34,18 +36,21 @@ const TOUR_STEPS: TourStep[] = [
     titleKey: "onboarding.steps.model.title",
     descKey: "onboarding.steps.model.desc",
     targetSelector: ".tools-sidebar",
+    targetSection: "model",
   },
   {
     targetTab: "settings",
     titleKey: "onboarding.steps.embedding.title",
     descKey: "onboarding.steps.embedding.desc",
-    targetSelector: ".tool-panel",
+    targetSelector: ".settings-stack .tool-panel:nth-child(2)",
+    targetSection: "general",
   },
   {
     targetTab: "about",
     titleKey: "onboarding.steps.help.title",
     descKey: "onboarding.steps.help.desc",
     targetSelector: ".tools-sidebar",
+    targetSection: "help",
   },
 ];
 
@@ -59,13 +64,16 @@ export const OnboardingTour: React.FC<{
   onPageChange: (page: string) => void;
 }> = ({ currentPage, onPageChange }) => {
   const { t } = useTranslation();
-  const { onboardingCompleted, setOnboardingCompleted } = useAppStore();
+  const onboardingCompleted = useAppStore((s) => s.onboardingCompleted);
+  const setOnboardingCompleted = useAppStore((s) => s.setOnboardingCompleted);
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const [arrowDir, setArrowDir] = useState<"top" | "bottom" | "left" | "right" | "none">("none");
   const tooltipRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
+  // Track the last section we set to avoid redundant store writes that cause re-render loops
+  const lastSetSectionRef = useRef<string | null>(null);
 
   // Show on first launch
   useEffect(() => {
@@ -79,8 +87,22 @@ export const OnboardingTour: React.FC<{
 
   // Navigate to the correct page for the current step
   useEffect(() => {
-    if (visible && currentStep && currentPage !== currentStep.targetTab) {
+    if (!visible || !currentStep) return;
+
+    if (currentPage !== currentStep.targetTab) {
       onPageChange(currentStep.targetTab);
+    }
+
+    // Set the active section on the target page using getState() to avoid
+    // subscribing to the setter (which would cause re-render loops).
+    const sectionKey = currentStep.targetTab + ":" + currentStep.targetSection;
+    if (currentStep.targetSection && sectionKey !== lastSetSectionRef.current) {
+      lastSetSectionRef.current = sectionKey;
+      if (currentStep.targetTab === "settings") {
+        useAppStore.getState().setSettingsActiveSection(currentStep.targetSection);
+      } else if (currentStep.targetTab === "about") {
+        useAppStore.getState().setAboutActiveSection(currentStep.targetSection);
+      }
     }
   }, [step, visible, currentStep, currentPage, onPageChange]);
 

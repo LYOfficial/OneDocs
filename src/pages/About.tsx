@@ -6,6 +6,7 @@ import TagIcon from "@/assets/icons/tag.svg";
 import NewspaperIcon from "@/assets/icons/newspaper.svg";
 import HelpIcon from "@/assets/icons/book-help.svg";
 import { useTranslation } from "react-i18next";
+import { useAppStore } from "@/store/useAppStore";
 import { MarkdownRenderer } from "@/utils/markdownRenderer";
 import type { PromptType } from "@/types";
 import packageJson from "../../package.json";
@@ -15,7 +16,13 @@ type AboutSection = "version" | "intro" | "features" | "help";
 
 export const About: React.FC = () => {
   const { t } = useTranslation();
-  const [activeSection, setActiveSection] = useState<AboutSection>("version");
+  const { aboutActiveSection, setAboutActiveSection } = useAppStore();
+  const [localSection, setLocalSection] = useState<AboutSection>("version");
+  const activeSection = (aboutActiveSection as AboutSection) || localSection;
+  const setActiveSection = (section: AboutSection) => {
+    setLocalSection(section);
+    setAboutActiveSection(null);
+  };
   const version = packageJson.version || "unknown";
 
   const helpHtml = useMemo(() => {

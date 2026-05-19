@@ -101,6 +101,12 @@ interface AppState {
 
   onboardingCompleted: boolean;
   setOnboardingCompleted: (completed: boolean) => void;
+
+  settingsActiveSection: string | null;
+  setSettingsActiveSection: (section: string | null) => void;
+
+  aboutActiveSection: string | null;
+  setAboutActiveSection: (section: string | null) => void;
 }
 
 const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
@@ -464,6 +470,12 @@ export const useAppStore = create<AppState>()(
 
       onboardingCompleted: false,
       setOnboardingCompleted: (completed) => set({ onboardingCompleted: completed }),
+
+      settingsActiveSection: null,
+      setSettingsActiveSection: (section) => set({ settingsActiveSection: section }),
+
+      aboutActiveSection: null,
+      setAboutActiveSection: (section) => set({ aboutActiveSection: section }),
     }),
     {
       name: 'onedocs-storage',
