@@ -55,6 +55,9 @@
         "installMode": "both",
         "displayLanguageSelector": false
       }
+    },
+    "android": {
+      "minSdkVersion": 24
     }
   }
 }

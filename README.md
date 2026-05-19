@@ -153,6 +153,86 @@ npx tauri build --bundles msi
 | NSIS | `nsis/onedocs_{version}_x64-setup.exe` |
 | MSI | `msi/onedocs_{version}_x64_en-US.msi` |
 
+### Android 构建
+
+OneDocs 支持构建 Android APK，可在手机端使用。
+
+#### 环境准备
+
+1. **安装 Android Studio**：从 [Android Developers](https://developer.android.com/studio) 下载安装
+2. **设置环境变量**（Windows 示例）：
+
+```powershell
+# JAVA_HOME 指向 Android Studio 内置 JBR
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+
+# ANDROID_HOME 指向 SDK 目录
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+
+# NDK_HOME 指向 NDK 目录（版本号根据实际安装调整）
+$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
+```
+
+3. **安装 Android SDK 组件**：在 Android Studio SDK Manager 中安装：
+   - Android SDK Platform 34
+   - Android SDK Platform-Tools
+   - NDK (Side by side)
+   - Android SDK Build-Tools
+   - Android SDK Command-line Tools
+
+4. **添加 Rust Android 目标**：
+
+```bash
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+```
+
+#### 初始化与构建
+
+```bash
+# 首次构建前，初始化 Android 项目（仅需执行一次）
+npm run android:init
+
+# 开发模式运行
+npm run android:dev
+
+# 构建 APK（通用，包含所有架构）
+npm run android:build
+
+# 构建 APK（按架构拆分，体积更小）
+npm run android:build:split
+
+# 仅构建特定架构
+npx tauri android build -- --apk --target aarch64
+```
+
+构建产物位于 `src-tauri/gen/android/app/build/outputs/apk/`：
+
+| 类型 | 路径 |
+|------|------|
+| 通用 APK | `universal/release/app-universal-release-unsigned.apk` |
+| ARM64 | `arm64-v8a/release/app-arm64-v8a-release-unsigned.apk` |
+| ARMv7 | `armeabi-v7a/release/app-armeabi-v7a-release-unsigned.apk` |
+
+> ⚠️ 首次构建需要下载 Gradle 依赖和编译 Rust 交叉目标，耗时较长。建议使用 `--target aarch64` 仅构建 ARM64 版本以加快速度。
+
+#### 签名 APK
+
+生成的 APK 默认是未签名的。如需安装到手机，需要签名：
+
+```bash
+# 生成调试签名
+jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+  -keystore ~/.android/debug.keystore -storepass android \
+  app-universal-release-unsigned.apk androiddebugkey
+
+# 或使用 apksigner（推荐）
+$ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+  --ks ~/.android/debug.keystore --ks-pass pass:android \
+  --out app-release.apk app-universal-release-unsigned.apk
+```
+
+如需正式发布，请创建自己的签名密钥并配置 `src-tauri/gen/android/key.properties`。
+
 ### 重置开发状态
 
 应用使用 `localStorage` 持久化用户设置和引导状态。开发时如需重置（例如重新触发首次启动引导），可在 DevTools（F12）Console 中执行：
@@ -167,7 +247,7 @@ localStorage.removeItem('onedocs-storage')
 ### 项目结构（核心）
 
 - src/：React + TypeScript 前端主应用
-  - components/：通用组件（上传、结果、模型选择、设置面板等）
+  - components/：通用组件（上传、结果、模型选择、设置面板、移动端导航等）
   - pages/：页面入口（Landing / Analysis / AnalysisResult / Settings）
   - hooks/：核心业务 Hook（析文流程）
   - services/：API 与 Tauri 调用封装
@@ -175,10 +255,11 @@ localStorage.removeItem('onedocs-storage')
   - utils/：文档解析、Markdown/LaTeX 渲染
   - config/：模型提供商、提示词配置、功能信息
   - i18n/：多语言资源
-  - styles/：全局与组件样式
-- src-tauri/：Tauri 桌面端（Rust）
+  - styles/：全局与组件样式（含移动端响应式适配）
+- src-tauri/：Tauri 桌面端 & 移动端（Rust）
   - src/main.rs：Tauri 入口与命令注册
   - src/lib.rs：请求转发与 API 调用
+  - gen/android/：Android 构建项目（由 `tauri android init` 生成）
 - docs/：软件使用指南文档
 - web/：静态站点资源
 - dist/：构建输出（自动生成）
@@ -224,6 +305,7 @@ localStorage.removeItem('onedocs-storage')
 |------|------|
 | 前端框架 | React 19 + TypeScript |
 | 桌面端 | Tauri v2（Rust） |
+| 移动端 | Tauri v2 Android（APK） |
 | 构建工具 | Vite 7 |
 | 状态管理 | Zustand 5 |
 | PDF 解析 | pdfjs-dist v5（前端文本提取）+ lopdf（Rust 端图片提取） |
@@ -235,6 +317,7 @@ localStorage.removeItem('onedocs-storage')
 - 支持：PDF
 - 最大文件体积：30 MB（FILE_SIZE_LIMIT）
 - 解析位于 utils/documentProcessor.ts（基于 pdfjs），图片提取位于 Rust 端（lopdf）
+- 移动端：已适配手机版 UI（768px 以下自动切换移动端布局），支持构建 Android APK
 
 ## 贡献指南
 

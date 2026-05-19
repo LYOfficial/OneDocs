@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "android:init": "tauri android init",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build -- --apk",
+    "android:build:split": "tauri android build -- --apk --split-per-abi"
   },
   "dependencies": {
     "@lobehub/icons-static-png": "^1.88.0",

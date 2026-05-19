@@ -7,7 +7,11 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { useTranslation } from "react-i18next";
 
-export const Analysis: React.FC = () => {
+interface AnalysisProps {
+  isMobile?: boolean;
+}
+
+export const Analysis: React.FC<AnalysisProps> = ({ isMobile = false }) => {
   const { t } = useTranslation();
   const {
     files,
@@ -41,8 +45,8 @@ export const Analysis: React.FC = () => {
   // When analysis results exist, show results in right panel with sidebar still visible
   if (hasAnalysisResults) {
     return (
-      <div className="tools-container">
-        <FunctionSelector />
+      <div className={`tools-container ${isMobile ? 'mobile' : ''}`}>
+        <FunctionSelector isMobile={isMobile} />
         <section className="tools-content" style={{ position: "relative" }}>
           <ResultDisplay />
           <button
@@ -59,8 +63,8 @@ export const Analysis: React.FC = () => {
   }
 
   return (
-    <div className="tools-container">
-      <FunctionSelector />
+    <div className={`tools-container ${isMobile ? 'mobile' : ''}`}>
+      <FunctionSelector isMobile={isMobile} />
 
       <section className="tools-content">
         <div className="analysis-layout">

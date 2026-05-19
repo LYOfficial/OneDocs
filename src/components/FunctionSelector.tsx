@@ -1,25 +1,34 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { FUNCTION_INFO } from "@/config/providers";
 import { FUNCTION_ICONS } from "@/config/uiIcons";
 import { useToast } from "./Toast";
 import { useTranslation } from "react-i18next";
+import { MobileSidebarDrawer, MobileSidebarToggle } from "./MobileSidebarDrawer";
 import type { PromptType } from "@/types";
 
-export const FunctionSelector: React.FC = () => {
+interface FunctionSelectorProps {
+  isMobile?: boolean;
+}
+
+export const FunctionSelector: React.FC<FunctionSelectorProps> = ({ isMobile = false }) => {
   const { selectedFunction, setSelectedFunction } = useAppStore();
   const toast = useToast();
   const { t } = useTranslation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleFunctionSelect = (func: PromptType) => {
     setSelectedFunction(func);
     const info = FUNCTION_INFO[func];
     const name = t(info.nameKey);
     toast.show(t("functionSelector.toastSelected", { name }));
+    if (isMobile) {
+      setDrawerOpen(false);
+    }
   };
 
-  return (
-    <aside className="tools-sidebar">
+  const sidebarContent = (
+    <>
       <div className="tools-sidebar-header">
         <h2>{t("functionSelector.title")}</h2>
       </div>
@@ -46,6 +55,30 @@ export const FunctionSelector: React.FC = () => {
           );
         })}
       </nav>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <MobileSidebarToggle
+          onClick={() => setDrawerOpen(true)}
+          label={t("functionSelector.title")}
+        />
+        <MobileSidebarDrawer
+          title={t("functionSelector.title")}
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+        >
+          {sidebarContent}
+        </MobileSidebarDrawer>
+      </>
+    );
+  }
+
+  return (
+    <aside className="tools-sidebar">
+      {sidebarContent}
     </aside>
   );
 };

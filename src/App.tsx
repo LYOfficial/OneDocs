@@ -6,13 +6,19 @@ import { Discover } from "@/pages/Discover";
 import { Settings } from "@/pages/Settings";
 import { Toast } from "@/components/Toast";
 import { TitleBar } from "@/components/TitleBar";
+import { MobileNav } from "@/components/MobileNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { useAppStore } from "@/store/useAppStore";
 
 type Page = "analysis" | "archive" | "about" | "discover" | "settings";
 
+const MOBILE_BREAKPOINT = 768;
+
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>("analysis");
+  const [isMobile, setIsMobile] = useState(
+    () => window.innerWidth < MOBILE_BREAKPOINT,
+  );
   const {
     theme,
     uiFontFamily,
@@ -20,6 +26,14 @@ const App: React.FC = () => {
     uiBackgroundColor,
     uiBackgroundImage,
   } = useAppStore();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -70,14 +84,18 @@ const App: React.FC = () => {
   }, [uiFontFamily, uiFontScale, uiBackgroundColor, uiBackgroundImage]);
 
   return (
-    <div className="app-container">
-      <TitleBar activeTab={currentPage} onTabChange={setCurrentPage} />
+    <div className={`app-container ${isMobile ? "mobile" : "desktop"}`}>
+      {isMobile ? (
+        <MobileNav activeTab={currentPage} onTabChange={setCurrentPage} />
+      ) : (
+        <TitleBar activeTab={currentPage} onTabChange={setCurrentPage} />
+      )}
       <div className="page-content">
         {currentPage === "about" && <About />}
-        {currentPage === "analysis" && <Analysis />}
-        {currentPage === "archive" && <Archive />}
+        {currentPage === "analysis" && <Analysis isMobile={isMobile} />}
+        {currentPage === "archive" && <Archive isMobile={isMobile} />}
         {currentPage === "discover" && <Discover />}
-        {currentPage === "settings" && <Settings />}
+        {currentPage === "settings" && <Settings isMobile={isMobile} />}
       </div>
       <Toast />
       <OnboardingTour
