@@ -117,18 +117,23 @@ After installation, set the `JAVA_HOME` environment variable:
 ```powershell
 # Temporary (current terminal only)
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"   # ⚠️ Must prepend JDK 17 to PATH, otherwise Gradle still uses the system default Java
 
 # Permanent (system-wide, restart terminal to take effect)
 [System.Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot', 'Machine')
+# After permanent setup, also move %JAVA_HOME%\bin to the front of system PATH
 ```
+
+> ⚠️ **Setting `JAVA_HOME` alone is not enough!** If another Java version (e.g., Java 26) is already in the system PATH, Gradle will use that version first, causing `Unsupported class file major version 70`. You must prepend JDK 17's `bin` directory to PATH.
 
 > 💡 If you have Android Studio installed, you can also use its bundled JBR: `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"`
 
 **2. Set environment variables**
 
 ```powershell
-# Windows example
+# Windows example (run in terminal before building)
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"  # JDK 17 path
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"                              # Prepend JDK 17 to PATH
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
 ```

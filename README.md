@@ -116,19 +116,24 @@ Start-Process -Wait -FilePath "$env:TEMP\jdk17.msi"
 
 ```powershell
 # 临时设置（仅当前终端生效）
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"
+$env:JAVA_HOME = "D:/Program Files/JDK/jdk-17.0.19+10"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"   # ⚠️ 必须将 JDK 17 加入 PATH 前面，否则 Gradle 仍会使用系统默认的 Java
 
 # 永久设置（写入系统环境变量，重启终端后生效）
 [System.Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot', 'Machine')
+# 永久设置后还需将 %JAVA_HOME%\bin 移到系统 PATH 的最前面
 ```
+
+> ⚠️ **仅设置 `JAVA_HOME` 不够！** 如果系统 PATH 中已有其他版本的 Java（如 Java 26），Gradle 会优先使用 PATH 中的版本，导致 `Unsupported class file major version 70` 错误。必须将 JDK 17 的 `bin` 目录加到 PATH 最前面。
 
 > 💡 如果你已安装 Android Studio，也可使用其内置 JBR：`$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"`
 
 **2. 设置环境变量**
 
 ```powershell
-# Windows 示例
+# Windows 示例（构建前在终端中执行）
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"  # JDK 17 路径
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"                              # 将 JDK 17 加入 PATH
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
 ```
