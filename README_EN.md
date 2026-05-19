@@ -155,6 +155,17 @@ Build outputs are located in `src-tauri/target/release/bundle/`:
 | NSIS | `nsis/onedocs_{version}_x64-setup.exe` |
 | MSI | `msi/onedocs_{version}_x64_en-US.msi` |
 
+### Reset Development State
+
+The app uses `localStorage` to persist user settings and onboarding state. To reset during development (e.g., to re-trigger the first-launch onboarding tour), run the following in DevTools (F12) Console:
+
+```js
+// Reset onboarding state to re-trigger the first-launch tour
+localStorage.removeItem('onedocs-storage')
+```
+
+Then press **Ctrl+R** to refresh the page. To clear all app state entirely, use `localStorage.clear()`.
+
 ### Project Structure (Core)
 
 - src/: React + TypeScript front end
@@ -170,7 +181,8 @@ Build outputs are located in `src-tauri/target/release/bundle/`:
 - src-tauri/: Tauri desktop shell (Rust)
   - src/main.rs: Tauri entry + command registration
   - src/lib.rs: request forwarding + API calls
-- docs/: static site assets
+- docs/: software documentation and user guide
+- web/: static site assets
 - dist/: build output (generated)
 
 ### Data Flow

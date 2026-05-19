@@ -3,7 +3,8 @@
 ## Project Structure & Module Organization
 - `src/`: React + TypeScript front end (core app). Key areas include `components/`, `pages/`, `services/`, `store/`, `hooks/`, `utils/`, and `styles/`.
 - `src-tauri/`: Tauri (Rust) desktop shell and configuration.
-- `docs/`: Static docs/site assets.
+- `docs/`: Software documentation and user guide.
+- `web/`: Static site assets.
 - `dist/`: Build output (generated).
 - `index.html`, `vite.config.ts`, `tsconfig*.json`: Vite and TypeScript setup.
 

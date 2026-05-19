@@ -155,6 +155,17 @@ npx tauri build --bundles msi
 | NSIS | `nsis/onedocs_{version}_x64-setup.exe` |
 | MSI | `msi/onedocs_{version}_x64_en-US.msi` |
 
+### 重置开发状态
+
+应用使用 `localStorage` 持久化用户设置和引导状态。开发时如需重置（例如重新触发首次启动引导），可在 DevTools（F12）Console 中执行：
+
+```js
+// 重置引导状态，重新触发首次启动引导
+localStorage.removeItem('onedocs-storage')
+```
+
+执行后按 **Ctrl+R** 刷新页面即可生效。如需彻底清除所有应用状态，可使用 `localStorage.clear()`。
+
 ### 项目结构（核心）
 
 - src/：React + TypeScript 前端主应用
@@ -170,7 +181,8 @@ npx tauri build --bundles msi
 - src-tauri/：Tauri 桌面端（Rust）
   - src/main.rs：Tauri 入口与命令注册
   - src/lib.rs：请求转发与 API 调用
-- docs/：静态站点资源
+- docs/：软件使用指南文档
+- web/：静态站点资源
 - dist/：构建输出（自动生成）
 
 ### 运行流程与构成
