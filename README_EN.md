@@ -98,16 +98,42 @@ Build outputs are in `src-tauri/target/release/bundle/`.
 
 Per the [Tauri docs](https://v2.tauri.org.cn/distribute/google-play/#build-apks), building an APK locally only requires Android SDK/NDK environment variables — no Android Studio needed.
 
-**1. Set environment variables**
+**1. Install JDK 17**
+
+> ⚠️ **JDK 17 is required.** The project uses Gradle 8.9, which does not support Java 21+ (e.g., Java 26 causes `Unsupported class file major version 70`).
+
+Download JDK 17 from [Adoptium (Eclipse Temurin)](https://adoptium.net/):
+
+```powershell
+# Windows PowerShell — Download and install JDK 17 (Adoptium Temurin)
+Invoke-WebRequest -Uri "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" -OutFile "$env:TEMP\jdk17.msi"
+Start-Process -Wait -FilePath "$env:TEMP\jdk17.msi"
+```
+
+Or download manually: <https://adoptium.net/temurin/releases/?version=17&os=windows&arch=x64>
+
+After installation, set the `JAVA_HOME` environment variable:
+
+```powershell
+# Temporary (current terminal only)
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"
+
+# Permanent (system-wide, restart terminal to take effect)
+[System.Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot', 'Machine')
+```
+
+> 💡 If you have Android Studio installed, you can also use its bundled JBR: `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"`
+
+**2. Set environment variables**
 
 ```powershell
 # Windows example
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"   # or any JDK 17+
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"  # JDK 17 path
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
 ```
 
-**2. Add Rust Android targets**
+**3. Add Rust Android targets**
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android

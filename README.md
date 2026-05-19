@@ -98,16 +98,42 @@ npx tauri build --bundles nsis         # 仅 NSIS（推荐）
 
 参照 [Tauri 官方文档](https://v2.tauri.org.cn/distribute/google-play/#build-apks)，本地构建 APK 只需配置 Android SDK/NDK 环境变量，无需安装 Android Studio。
 
-**1. 设置环境变量**
+**1. 安装 JDK 17**
+
+> ⚠️ **必须使用 JDK 17**。项目使用的 Gradle 8.9 不支持 Java 21+（如 Java 26 会导致 `Unsupported class file major version 70` 错误）。
+
+从 [Adoptium（Eclipse Temurin）](https://adoptium.net/) 下载 JDK 17：
+
+```powershell
+# Windows PowerShell — 下载并安装 JDK 17（Adoptium Temurin）
+Invoke-WebRequest -Uri "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" -OutFile "$env:TEMP\jdk17.msi"
+Start-Process -Wait -FilePath "$env:TEMP\jdk17.msi"
+```
+
+或手动下载：<https://adoptium.net/temurin/releases/?version=17&os=windows&arch=x64>
+
+安装完成后，设置 `JAVA_HOME` 环境变量：
+
+```powershell
+# 临时设置（仅当前终端生效）
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"
+
+# 永久设置（写入系统环境变量，重启终端后生效）
+[System.Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot', 'Machine')
+```
+
+> 💡 如果你已安装 Android Studio，也可使用其内置 JBR：`$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"`
+
+**2. 设置环境变量**
 
 ```powershell
 # Windows 示例
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"   # 或任意 JDK 17+
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"  # JDK 17 路径
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
 ```
 
-**2. 添加 Rust Android 目标**
+**3. 添加 Rust Android 目标**
 
 ```bash
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
