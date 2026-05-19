@@ -108,7 +108,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK
+      - name: Install Android NDK
         run: sdkmanager "ndk;27.0.12077973"
 
       - name: Add Rust Android targets
