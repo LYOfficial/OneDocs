@@ -98,6 +98,9 @@ interface AppState {
   resetAnalysis: () => void;
   resetAll: () => void;
   clearAllCache: () => void;
+
+  onboardingCompleted: boolean;
+  setOnboardingCompleted: (completed: boolean) => void;
 }
 
 const getDefaultSettings = (provider: AIProvider): ProviderSettings => {
@@ -458,6 +461,9 @@ export const useAppStore = create<AppState>()(
           },
           customProviders: {},
         }),
+
+      onboardingCompleted: false,
+      setOnboardingCompleted: (completed) => set({ onboardingCompleted: completed }),
     }),
     {
       name: 'onedocs-storage',
@@ -472,6 +478,7 @@ export const useAppStore = create<AppState>()(
         enableFormatReview: state.enableFormatReview,
         autoSaveAnalysisResult: state.autoSaveAnalysisResult,
         devMode: state.devMode,
+        onboardingCompleted: state.onboardingCompleted,
       }),
     }
   )

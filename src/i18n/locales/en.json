@@ -178,7 +178,9 @@
       "intro": "Intro",
       "introDesc": "Learn about OneDocs",
       "features": "Features",
-      "featuresDesc": "Four intelligent analysis modes"
+      "featuresDesc": "Four intelligent analysis modes",
+      "help": "Help",
+      "helpDesc": "Beginner's tutorial"
     },
     "version": {
       "title": "Version Info",
@@ -199,6 +201,11 @@
     "features": {
       "title": "Core Features",
       "desc": "Four intelligent analysis modes"
+    },
+    "help": {
+      "title": "Help & Guide",
+      "desc": "Step-by-step tutorial for new users",
+      "content": "# OneDocs Beginner's Guide\n\nWelcome to OneDocs! This tutorial will walk you through installation, configuration, and your first document analysis.\n\n---\n\n## 1. Download & Install\n\nVisit the [OneDocs Releases page](https://github.com/LYOfficial/OneDocs/releases/latest) and download the installer for your OS:\n\n- **Windows**: Download the `.exe` installer (NSIS recommended), double-click to install\n- **macOS**: Download the `.dmg` installer, drag to Applications folder\n- **Linux**: Download the `.AppImage` or `.deb` package\n\nAfter installation, launch OneDocs and click \"**Start with One Text**\" to enter the main interface.\n\n---\n\n## 2. Choose a Model & Configure API Key\n\nOneDocs supports multiple AI model providers. You need to select a model and enter the corresponding API Key to use the analysis features.\n\n### 2.1 Free Models (Recommended for Beginners)\n\nOneDocs includes free models that **require no API Key**:\n\n1. Click \"**Settings**\" in the top navigation bar\n2. Select \"**Models**\" on the left\n3. Choose the **OneDocs** provider (marked as \"Free Models\")\n4. No API Key needed — just select a model\n\n> ⚠️ Free models have limited capacity and may occasionally be unavailable. If you encounter errors, switch to another model.\n\n### 2.2 Paid Models\n\nIf you have an API Key from another provider:\n\n| Provider | Recommended Model | Get API Key |\n|----------|-------------------|-------------|\n| OpenAI | GPT-4o mini | [platform.openai.com](https://platform.openai.com) |\n| Zhipu GLM | GLM-4.7 Flash | [open.bigmodel.cn](https://open.bigmodel.cn) |\n| DeepSeek | DeepSeek V4 Flash | [platform.deepseek.com](https://platform.deepseek.com) |\n| SiliconFlow | GPT-OSS 120B (Free) | [siliconflow.cn](https://cloud.siliconflow.cn) |\n| OpenRouter | Various models | [openrouter.ai](https://openrouter.ai) |\n\n**Configuration Steps:**\n\n1. Go to \"**Settings**\" → \"**Models**\"\n2. Select your provider\n3. Enter your **API Key** (required)\n4. Enter a custom **Base URL** if needed (optional)\n5. Select the model you want to use\n6. Click \"**Save**\"\n\n### 2.3 Local Models (Advanced)\n\nIf you have a locally deployed model service, choose **Ollama** or **LM Studio**:\n\n- **Ollama**: Default address `http://localhost:11434/v1`, usually no API Key needed\n- **LM Studio**: Default address `http://localhost:1234/v1`, usually no API Key needed\n\n---\n\n## 3. Configure RAG Embedding Model (Optional)\n\nOneDocs uses RAG (Retrieval-Augmented Generation) to improve analysis quality, which requires a SiliconFlow embedding model Token.\n\n### 3.1 Why Do I Need an Embedding Token?\n\nThe embedding model vectorizes document content, helping AI understand document structure and semantics more precisely, significantly improving analysis quality.\n\n### 3.2 How to Get One?\n\n1. Register for free at [SiliconFlow](https://cloud.siliconflow.cn/i/AOugEVKt)\n2. Free credits are provided upon registration; BAAI/bge-m3 is a free model\n3. Get your API Token from the dashboard\n\n### 3.3 Configuration Steps\n\n1. Go to \"**Settings**\" → \"**General**\"\n2. Find \"**RAG Embedding Model Configuration**\"\n3. Enter your SiliconFlow API Token\n4. The status indicator turns green ✅ when configured successfully\n\n> 💡 You can use basic analysis without an embedding Token, but analysis quality may be reduced.\n\n---\n\n## 4. Upload Documents\n\n1. Click \"**Analyze**\" in the top navigation bar\n2. Select an analysis function on the left (see Section 5)\n3. Click the \"**Click to select documents**\" area, or drag and drop PDF files directly\n4. **Multiple file upload** is supported — hold Ctrl/Cmd to select multiple files\n\n### File Requirements\n\n- Format: **PDF only**\n- Size: Max **30 MB** per file\n\n---\n\n## 5. Choose an Analysis Function\n\nOneDocs offers four specialized analysis modes, selectable from the left sidebar:\n\n| Function | Use Case | Output Structure |\n|----------|----------|-----------------|\n| **News Overview** | News articles, reports | Core summary + Key information |\n| **Data Analysis** | Data reports, statistics | Analysis conclusions + Data details |\n| **STEM Quick Know** | STEM courseware, textbooks | Fundamentals + Typical examples |\n| **Liberal Arts Richness** | Humanities courseware | Core interpretation + Critical thinking |\n\n---\n\n## 6. File Ordering\n\nAfter uploading multiple files, you can reorder them by **dragging**:\n\n1. Press and hold a file tag in the file list\n2. Drag it to the target position and release\n3. File order affects the arrangement of merged results\n\n---\n\n## 7. Start Analysis\n\n1. Confirm you've selected a function and uploaded files\n2. Click the \"**Start analysis**\" button\n3. Wait for analysis to complete — the progress bar shows current progress\n\n> 💡 Analysis time depends on document length and model response speed, typically ranging from tens of seconds to a few minutes.\n\n---\n\n## 8. View & Process Results\n\nAfter analysis completes, results are automatically displayed in the right panel:\n\n### 8.1 Switch View Modes\n\n- **Render mode**: View formatted Markdown rendering (supports LaTeX formulas)\n- **Source mode**: View raw Markdown text\n\n### 8.2 Switch Between Files\n\nIf you uploaded multiple files, click file tabs to switch between analysis results.\n\n### 8.3 Merge Results\n\nWhen **2 or more** files have been analyzed, click the \"**Merge All**\" button to combine all results into one document.\n\n### 8.4 Copy & Export\n\n- **Copy**: Click the \"Copy\" button to copy Markdown source to clipboard\n- **Export**: Click the \"Export\" button to save results as a `.md` file\n\n---\n\n## 9. Archive Management\n\nAnalysis results are automatically saved to the \"**Archive**\" page:\n\n1. Click \"**Archive**\" in the top navigation bar\n2. The left panel shows a list of historical analysis records\n3. Click any record to view detailed results\n\n---\n\n## 10. Other Features\n\n### Appearance Settings\n\nIn \"**Settings**\" → \"**Appearance**\" you can:\n\n- Switch between **Light/Dark/System** themes\n- Adjust **font family** and **font size**\n- Set **background color** or upload a **custom background image**\n\n### Language Switching\n\nIn \"**Settings**\" → \"**General**\" you can switch between Chinese and English interface.\n\n### Format Review\n\nIn \"**Settings**\" → \"**General**\", enable \"**Format Review**\" to automatically optimize formatting after analysis, ensuring headings and formulas meet standards.\n\n### Discover Page\n\nThe \"**Discover**\" page shows OneDocs version update history and release notes.\n\n---\n\n## FAQ\n\n### Q: What if I get an error during analysis?\n\n1. Check if your API Key is correct\n2. Check your network connection\n3. Try switching to another model\n4. If using free models, the quota may be exhausted — switch to a paid model\n\n### Q: Formulas display incorrectly in results?\n\nCopy the Markdown source to an external Markdown editor (e.g., Typora, VS Code) for viewing, or export and save as a file.\n\n### Q: What file formats are supported?\n\nCurrently only **PDF** format is supported. More formats will be added in the future.\n\n### Q: Is my data safe?\n\nOneDocs is a local application. All document processing happens locally — your files are never uploaded to any third-party server. API calls only send document text content to the model provider.\n\n---\n\n*Current version: v{{version}}*\n\n*For more questions, visit [GitHub Issues](https://github.com/LYOfficial/OneDocs/issues) or [OneDocs Wiki](https://github.com/LYOfficial/OneDocs/wiki)*\n"
     }
   },
   "result": {
@@ -231,6 +238,38 @@
       "mergeSuccess": "Merged {{count}} files successfully!",
       "unknownError": "Unknown error",
       "mergeFail": "Merge failed: {{message}}"
+    }
+  },
+  "onboarding": {
+    "prev": "Previous",
+    "next": "Next",
+    "skip": "Skip",
+    "finish": "Finish",
+    "steps": {
+      "welcome": {
+        "title": "👋 Welcome to OneDocs!",
+        "desc": "A smart document analysis tool. Let's quickly walk you through the basics — just a few steps to get started."
+      },
+      "function": {
+        "title": "Choose Analysis Function",
+        "desc": "The left sidebar offers four specialized analysis modes: News Overview, Data Analysis, STEM Quick Know, and Liberal Arts Richness. Select the one that matches your document type."
+      },
+      "upload": {
+        "title": "Upload Documents",
+        "desc": "Click the upload area or drag & drop PDF files here. Multiple file upload is supported. You can reorder files by dragging after upload."
+      },
+      "model": {
+        "title": "Configure Model",
+        "desc": "In \"Settings → Models\", select an AI model provider and enter your API Key. OneDocs offers free models, or you can use paid models like OpenAI, Zhipu, DeepSeek, etc."
+      },
+      "embedding": {
+        "title": "Configure Embedding Model (Optional)",
+        "desc": "In \"Settings → General\", configure a SiliconFlow Token to enable RAG embedding, which significantly improves analysis quality. Free credits are available upon registration."
+      },
+      "help": {
+        "title": "View Detailed Help",
+        "desc": "For more detailed tutorials and FAQs, visit the \"About → Help\" page for the complete beginner's guide. Enjoy using OneDocs! 🎉"
+      }
     }
   }
 }

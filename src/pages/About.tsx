@@ -1,19 +1,26 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { FUNCTION_INFO } from "@/config/providers";
 import { FUNCTION_ICONS } from "@/config/uiIcons";
 import InfoIcon from "@/assets/icons/info-circle.svg";
 import TagIcon from "@/assets/icons/tag.svg";
 import NewspaperIcon from "@/assets/icons/newspaper.svg";
+import HelpIcon from "@/assets/icons/book-help.svg";
 import { useTranslation } from "react-i18next";
+import { MarkdownRenderer } from "@/utils/markdownRenderer";
 import type { PromptType } from "@/types";
 import packageJson from "../../package.json";
+import "katex/dist/katex.min.css";
 
-type AboutSection = "version" | "intro" | "features";
+type AboutSection = "version" | "intro" | "features" | "help";
 
 export const About: React.FC = () => {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<AboutSection>("version");
   const version = packageJson.version || "unknown";
+
+  const helpHtml = useMemo(() => {
+    return MarkdownRenderer.render(t("about.help.content", { version }));
+  }, [t]);
 
   const sections = [
     {
@@ -33,6 +40,12 @@ export const About: React.FC = () => {
       labelKey: "about.sections.features",
       descKey: "about.sections.featuresDesc",
       icon: NewspaperIcon,
+    },
+    {
+      id: "help" as AboutSection,
+      labelKey: "about.sections.help",
+      descKey: "about.sections.helpDesc",
+      icon: HelpIcon,
     },
   ];
 
@@ -155,6 +168,25 @@ export const About: React.FC = () => {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === "help" && (
+          <div className="settings-stack">
+            <div className="tool-panel">
+              <div className="data-card">
+                <div className="data-card-header">
+                  <div>
+                    <h3>{t("about.help.title")}</h3>
+                    <p>{t("about.help.desc")}</p>
+                  </div>
+                </div>
+                <div
+                  className="about-help-content markdown-body"
+                  dangerouslySetInnerHTML={{ __html: helpHtml }}
+                />
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ import GeneralIcon from "@/assets/icons/sliders.svg";
 import AppearanceIcon from "@/assets/icons/palette.svg";
 import ModelIcon from "@/assets/icons/cpu.svg";
 import ArchiveItemIcon from "@/assets/icons/clock-history.svg";
+import HelpIcon from "@/assets/icons/book-help.svg";
 
 export const NAV_ICONS = {
   analysis: AnalysisIcon,
@@ -34,3 +35,10 @@ export const SETTINGS_ICONS = {
 };
 
 export const ARCHIVE_ICON = ArchiveItemIcon;
+
+export const ABOUT_ICONS = {
+  version: AboutIcon,
+  intro: AboutIcon,
+  features: NewsIcon,
+  help: HelpIcon,
+};

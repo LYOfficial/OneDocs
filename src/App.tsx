@@ -6,6 +6,7 @@ import { Discover } from "@/pages/Discover";
 import { Settings } from "@/pages/Settings";
 import { Toast } from "@/components/Toast";
 import { TitleBar } from "@/components/TitleBar";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import { useAppStore } from "@/store/useAppStore";
 
 type Page = "analysis" | "archive" | "about" | "discover" | "settings";
@@ -79,6 +80,10 @@ const App: React.FC = () => {
         {currentPage === "settings" && <Settings />}
       </div>
       <Toast />
+      <OnboardingTour
+        currentPage={currentPage}
+        onPageChange={(page) => setCurrentPage(page as Page)}
+      />
     </div>
   );
 };

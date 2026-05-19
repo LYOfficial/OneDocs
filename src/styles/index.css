@@ -579,6 +579,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .tools-nav-item {
@@ -3548,7 +3551,293 @@ option[value^="custom_"] {
     margin-bottom: 0;
 }
 
+.about-help-content {
+    padding: 0.5rem 0;
+    line-height: 1.8;
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+}
+
+.about-help-content h1 {
+    font-size: 1.5rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--primary-color);
+}
+
+.about-help-content h2 {
+    font-size: 1.2rem;
+    margin: 1.5rem 0 0.75rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--primary-color);
+}
+
+.about-help-content h3 {
+    font-size: 1.05rem;
+    margin: 1rem 0 0.5rem;
+    color: var(--primary-color);
+}
+
+.about-help-content p {
+    margin: 0 0 0.75rem;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+}
+
+.about-help-content ul,
+.about-help-content ol {
+    margin: 0 0 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.about-help-content li {
+    margin: 0.25rem 0;
+    font-size: 0.95rem;
+}
+
+.about-help-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    font-size: 0.9rem;
+}
+
+.about-help-content th,
+.about-help-content td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.about-help-content th {
+    background: var(--surface-color);
+    font-weight: 600;
+}
+
+.about-help-content blockquote {
+    margin: 0.75rem 0;
+    padding: 0.5rem 1rem;
+    border-left: 3px solid var(--accent-color);
+    background: var(--surface-color);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+.about-help-content blockquote p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.about-help-content hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1.5rem 0;
+}
+
+.about-help-content a {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.about-help-content a:hover {
+    text-decoration: underline;
+}
+
+.about-help-content code {
+    background: var(--surface-color);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.88rem;
+}
+
+.about-help-content strong {
+    font-weight: 600;
+}
+
 /* 960px breakpoint removed — app window is 960x720, left-right split is the default */
+
+/* Onboarding Tour */
+.onboarding-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    animation: onboarding-fade-in 0.3s ease;
+}
+
+@keyframes onboarding-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.onboarding-highlight {
+    position: fixed;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.onboarding-tooltip {
+    position: fixed;
+    background: var(--glass-strong-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(20px);
+    padding: 1.25rem 1.5rem;
+    width: 340px;
+    animation: onboarding-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 10001;
+    transition: top 0.3s ease, left 0.3s ease;
+}
+
+.onboarding-tooltip-centered {
+    /* no extra transform needed — position is pre-calculated */
+}
+
+@keyframes onboarding-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Arrow pointing from tooltip toward the highlighted element */
+.onboarding-arrow {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--glass-strong-bg);
+    border: 1px solid var(--glass-border);
+    transform: rotate(45deg);
+}
+
+.onboarding-arrow-left {
+    left: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.onboarding-arrow-top {
+    top: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.onboarding-arrow-right {
+    right: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-left: none;
+    border-top: none;
+}
+
+.onboarding-arrow-bottom {
+    bottom: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-top: none;
+    border-left: none;
+}
+
+.onboarding-step-indicator {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.onboarding-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0 0 0.5rem;
+}
+
+.onboarding-desc {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    line-height: 1.6;
+    margin: 0 0 1rem;
+}
+
+.onboarding-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.onboarding-btn {
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.onboarding-btn:hover {
+    background: var(--hover-color);
+}
+
+.onboarding-btn-next {
+    background: var(--accent-color);
+    color: #fff;
+    border-color: var(--accent-color);
+}
+
+.onboarding-btn-next:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.onboarding-btn-skip {
+    margin-right: auto;
+    color: var(--secondary-color);
+    border: none;
+    background: none;
+    font-size: 0.82rem;
+}
+
+.onboarding-btn-skip:hover {
+    color: var(--primary-color);
+    background: none;
+}
+
+.onboarding-btn-prev {
+    color: var(--secondary-color);
+}
+
+/* Dark mode adjustments for onboarding */
+.dark .onboarding-tooltip {
+    background: rgba(30, 30, 40, 0.95);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .onboarding-step-indicator {
+    background: rgba(59, 130, 246, 0.2);
+}
 
 @media (max-width: 720px) {
     .analysis-layout {
