@@ -14,11 +14,16 @@ import "katex/dist/katex.min.css";
 
 type AboutSection = "version" | "intro" | "features" | "help";
 
-export const About: React.FC = () => {
+interface AboutProps {
+  isMobile?: boolean;
+  mobileSubTab?: string;
+}
+
+export const About: React.FC<AboutProps> = ({ isMobile = false, mobileSubTab }) => {
   const { t } = useTranslation();
   const { aboutActiveSection, setAboutActiveSection } = useAppStore();
   const [localSection, setLocalSection] = useState<AboutSection>("version");
-  const activeSection = (aboutActiveSection as AboutSection) || localSection;
+  const activeSection = (isMobile && mobileSubTab ? mobileSubTab : (aboutActiveSection as AboutSection) || localSection) as AboutSection;
   const setActiveSection = (section: AboutSection) => {
     setLocalSection(section);
     setAboutActiveSection(null);
@@ -57,30 +62,32 @@ export const About: React.FC = () => {
   ];
 
   return (
-    <div className="tools-container">
-      <aside className="tools-sidebar">
-        <div className="tools-sidebar-header">
-          <h2>{t("about.title")}</h2>
-          <p>{t("app.brand.chinese")}</p>
-        </div>
-        <nav className="tools-nav">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              className={`tools-nav-item ${activeSection === section.id ? "active" : ""}`}
-              onClick={() => setActiveSection(section.id)}
-            >
-              <div className="tools-nav-icon">
-                <img src={section.icon} alt="" />
-              </div>
-              <div className="tools-nav-meta">
-                <span>{t(section.labelKey)}</span>
-                <small>{t(section.descKey)}</small>
-              </div>
-            </button>
-          ))}
-        </nav>
-      </aside>
+    <div className={`tools-container ${isMobile ? 'mobile' : ''}`}>
+      {!isMobile && (
+        <aside className="tools-sidebar">
+          <div className="tools-sidebar-header">
+            <h2>{t("about.title")}</h2>
+            <p>{t("app.brand.chinese")}</p>
+          </div>
+          <nav className="tools-nav">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                className={`tools-nav-item ${activeSection === section.id ? "active" : ""}`}
+                onClick={() => setActiveSection(section.id)}
+              >
+                <div className="tools-nav-icon">
+                  <img src={section.icon} alt="" />
+                </div>
+                <div className="tools-nav-meta">
+                  <span>{t(section.labelKey)}</span>
+                  <small>{t(section.descKey)}</small>
+                </div>
+              </button>
+            ))}
+          </nav>
+        </aside>
+      )}
 
       <section className="tools-content">
         {activeSection === "version" && (

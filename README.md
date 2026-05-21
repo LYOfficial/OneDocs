@@ -144,18 +144,79 @@ $env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
 rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 ```
 
-**3. 初始化并构建**
+**4. 生成签名密钥库**
+
+> ⚠️ 发布 APK 必须签名。以下步骤仅需执行一次。
+
+在项目根目录执行（需要 JDK 17 的 `keytool`）：
+
+```bash
+keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+按提示设置密码并填写证书信息。生成的 `upload-keystore.jks` 文件请妥善保管，**切勿提交到版本控制**。
+
+生成 Base64 编码（用于 GitHub Actions Secrets）：
+
+```powershell
+# Windows PowerShell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks")) | Set-Content keystore_base64.txt
+```
+
+```bash
+# macOS / Linux
+base64 -i upload-keystore.jks
+```
+
+**5. 配置签名信息**
+
+将签名信息填入 `.env` 文件（参考 `.env.example`）：
+
+```env
+ANDROID_KEY_BASE64=<keystore_base64.txt 的内容>
+ANDROID_KEY_ALIAS=upload
+ANDROID_KEY_PASSWORD=<你设置的密码>
+ANDROID_KEYSTORE_PATH=upload-keystore.jks
+```
+
+在 GitHub 仓库 → **Settings** → **Secrets and variables** → **Actions** 中添加以下 Secrets：
+
+| Secret 名称 | 值 |
+|---|---|
+| `ANDROID_KEY_BASE64` | `keystore_base64.txt` 的内容 |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_KEY_PASSWORD` | 你设置的密码 |
+
+**6. 初始化并构建**
 
 ```bash
 npm run android:init          # 初始化 Android 项目（仅需一次）
 npm run android:dev           # 开发模式
-npm run android:build         # 构建 APK（通用）
+npm run android:build         # 构建签名 APK（通用）
 npm run android:build:split   # 按架构拆分（体积更小）
+```
+
+构建前需生成 `keystore.properties`（本地签名用）：
+
+```powershell
+# Windows PowerShell — 请替换实际密码和密钥库路径
+$keystoreDir = "src-tauri/gen/android"
+$keyAlias = "upload"
+$password = "你的密码"
+$storeFile = "E:\Github\OneDocs\upload-keystore.jks"  # 密钥库绝对路径
+
+# 写入 keystore.properties（无 BOM UTF-8）
+$content = "keyAlias=$keyAlias`npassword=$password`nstoreFile=$storeFile"
+[System.IO.File]::WriteAllText("$keystoreDir/keystore.properties", $content, [System.Text.UTF8Encoding]::new($false))
 ```
 
 构建产物位于 `src-tauri/gen/android/app/build/outputs/apk/`。
 
 > ⚠️ 首次构建需下载 Gradle 依赖和编译 Rust 交叉目标，耗时较长。建议使用 `--target aarch64` 仅构建 ARM64 以加快速度。
+
+**CI/CD 构建**
+
+项目配置了独立的 Android workflow（`.github/workflows/android.yml`），在 GitHub Actions 页面手动触发即可自动构建签名 APK + AAB 并发布到 GitHub Releases。
 
 ### 重置开发状态
 
@@ -167,9 +228,10 @@ localStorage.clear()                         // 清除所有状态
 
 ## 📦 CI/CD
 
-项目使用 GitHub Actions 自动构建发行版（桌面端 + Android APK），配置见 `.github/workflows/release.yml`。
+项目使用 GitHub Actions 自动构建发行版：
 
-推送 `v*` 标签或手动触发 workflow 即可构建并发布到 GitHub Releases。
+- **桌面端**（`.github/workflows/release.yml`）：推送 `v*` 标签或手动触发，构建 Windows / macOS / Linux 安装包
+- **Android**（`.github/workflows/android.yml`）：手动触发，构建签名 APK + AAB 并发布到 GitHub Releases
 
 ## 🤝 贡献指南
 

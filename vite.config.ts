@@ -3,16 +3,22 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 
 const buildTargetEnv = process.env.VITE_BUILD_TARGET?.trim();
+const isAndroid = process.env.TAURI_ENV_PLATFORM === "android";
 const buildTarget = (() => {
-  if (!buildTargetEnv) {
-    return ["esnext", "chrome120", "safari17"];
+  if (buildTargetEnv) {
+    if (!buildTargetEnv.includes(",")) {
+      return buildTargetEnv;
+    }
+    return buildTargetEnv.split(",").map((item) => item.trim()).filter(Boolean);
   }
 
-  if (!buildTargetEnv.includes(",")) {
-    return buildTargetEnv;
+  // Android WebView on older devices doesn't support esnext/chrome120
+  // Chrome 70 covers Android 10+; es2021 is widely supported
+  if (isAndroid) {
+    return ["es2021", "chrome70"];
   }
 
-  return buildTargetEnv.split(",").map((item) => item.trim()).filter(Boolean);
+  return ["esnext", "chrome120", "safari17"];
 })();
 
 export default defineConfig({

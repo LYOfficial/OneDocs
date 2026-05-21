@@ -5,7 +5,6 @@ import { DataManagementPanel } from "@/components/DataManagementPanel";
 import { DeveloperModePanel } from "@/components/DeveloperModePanel";
 import { AppearanceSettingsPanel } from "@/components/AppearanceSettingsPanel";
 import { LanguageSettingsPanel } from "@/components/LanguageSettingsPanel";
-import { MobileSidebarDrawer, MobileSidebarToggle } from "@/components/MobileSidebarDrawer";
 import { useTranslation } from "react-i18next";
 import { useAppStore } from "@/store/useAppStore";
 import { SETTINGS_ICONS } from "@/config/uiIcons";
@@ -19,12 +18,10 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ isMobile = false }) => {
   const { settingsActiveSection, setSettingsActiveSection } = useAppStore();
   const [localSection, setLocalSection] = useState<SectionId>("general");
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const activeSection = (settingsActiveSection as SectionId) || localSection;
   const setActiveSection = (section: SectionId) => {
     setLocalSection(section);
     setSettingsActiveSection(null);
-    if (isMobile) setDrawerOpen(false);
   };
   const { t } = useTranslation();
   const { devMode } = useAppStore();
@@ -96,17 +93,6 @@ export const Settings: React.FC<SettingsProps> = ({ isMobile = false }) => {
   if (isMobile) {
     return (
       <div className="tools-container mobile">
-        <MobileSidebarToggle
-          onClick={() => setDrawerOpen(true)}
-          label={t("settings.title")}
-        />
-        <MobileSidebarDrawer
-          title={t("settings.title")}
-          isOpen={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-        >
-          {sidebarContent}
-        </MobileSidebarDrawer>
         {contentSection}
       </div>
     );

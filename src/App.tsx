@@ -19,13 +19,59 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(
     () => window.innerWidth < MOBILE_BREAKPOINT,
   );
+  const [mobileSubTab, setMobileSubTab] = useState<string>("news");
   const {
     theme,
     uiFontFamily,
     uiFontScale,
     uiBackgroundColor,
     uiBackgroundImage,
+    selectedFunction,
+    setSelectedFunction,
+    aboutActiveSection,
+    setAboutActiveSection,
+    settingsActiveSection,
+    setSettingsActiveSection,
   } = useAppStore();
+
+  // When page changes, reset sub-tab to a sensible default
+  useEffect(() => {
+    if (isMobile) {
+      switch (currentPage) {
+        case "analysis":
+          setMobileSubTab(selectedFunction || "news");
+          break;
+        case "about":
+          setMobileSubTab((aboutActiveSection as string) || "version");
+          break;
+        case "settings":
+          setMobileSubTab((settingsActiveSection as string) || "general");
+          break;
+        case "archive":
+          setMobileSubTab("list");
+          break;
+        case "discover":
+          setMobileSubTab("list");
+          break;
+      }
+    }
+  }, [currentPage, isMobile]);
+
+  const handleMobileSubTabChange = (subTab: string) => {
+    setMobileSubTab(subTab);
+    // Sync with store where applicable
+    switch (currentPage) {
+      case "analysis":
+        setSelectedFunction(subTab as any);
+        break;
+      case "about":
+        setAboutActiveSection(subTab as any);
+        break;
+      case "settings":
+        setSettingsActiveSection(subTab as any);
+        break;
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -86,15 +132,20 @@ const App: React.FC = () => {
   return (
     <div className={`app-container ${isMobile ? "mobile" : "desktop"}`}>
       {isMobile ? (
-        <MobileNav activeTab={currentPage} onTabChange={setCurrentPage} />
+        <MobileNav
+          activeTab={currentPage}
+          onTabChange={setCurrentPage}
+          activeSubTab={mobileSubTab}
+          onSubTabChange={handleMobileSubTabChange}
+        />
       ) : (
         <TitleBar activeTab={currentPage} onTabChange={setCurrentPage} />
       )}
       <div className="page-content">
-        {currentPage === "about" && <About />}
+        {currentPage === "about" && <About isMobile={isMobile} mobileSubTab={isMobile ? mobileSubTab : undefined} />}
         {currentPage === "analysis" && <Analysis isMobile={isMobile} />}
-        {currentPage === "archive" && <Archive isMobile={isMobile} />}
-        {currentPage === "discover" && <Discover />}
+        {currentPage === "archive" && <Archive isMobile={isMobile} mobileSubTab={isMobile ? mobileSubTab : undefined} onMobileSubTabChange={isMobile ? handleMobileSubTabChange : undefined} />}
+        {currentPage === "discover" && <Discover isMobile={isMobile} mobileSubTab={isMobile ? mobileSubTab : undefined} onMobileSubTabChange={isMobile ? handleMobileSubTabChange : undefined} />}
         {currentPage === "settings" && <Settings isMobile={isMobile} />}
       </div>
       <Toast />

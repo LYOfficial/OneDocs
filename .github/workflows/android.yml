@@ -1,0 +1,94 @@
+name: Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    environment: Build Release
+    env:
+      VITE_ONEDOCS_API_URL: ${{ secrets.ONEDOCS_API_URL }}
+      VITE_ONEDOCS_API_KEY: ${{ secrets.ONEDOCS_API_KEY }}
+      VITE_SILICONFLOW_TOKEN: ${{ secrets.SILICONFLOW_TOKEN }}
+      VITE_BUILD_TARGET: esnext
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.0.12077973"
+
+      - name: Add Rust Android targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Initialize Android project
+        run: npm run android:init
+
+      - name: Setup Android signing
+        run: |
+          cd src-tauri/gen/android
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
+          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
+          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
+
+      - name: Build signed Android APK
+        run: npm run android:build
+
+      - name: Build signed Android AAB
+        run: npm run tauri -- android build -- --aab
+
+      - name: Rename APK and AAB
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          APK_DIR="src-tauri/gen/android/app/build/outputs/apk/universal/release"
+          AAB_DIR="src-tauri/gen/android/app/build/outputs/bundle/universalRelease"
+          cp "$APK_DIR/app-universal-release.apk" "$APK_DIR/OneDocs_${VERSION}_android-universal.apk"
+          cp "$AAB_DIR/app-universal-release.aab" "$AAB_DIR/OneDocs_${VERSION}_android-universal.aab"
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/gen/android/app/build/outputs/apk/universal/release/OneDocs_*_android-universal.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload AAB to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            src-tauri/gen/android/app/build/outputs/bundle/universalRelease/OneDocs_*_android-universal.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

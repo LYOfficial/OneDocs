@@ -3860,12 +3860,12 @@ option[value^="custom_"] {
 @media (max-width: 768px) {
     /* --- App Container --- */
     .app-container.mobile {
-        padding-bottom: 60px; /* space for bottom bar */
+        padding-bottom: 56px; /* space for bottom bar */
     }
 
     .app-container.mobile .page-content {
-        padding: 8px;
-        padding-top: 4px;
+        padding: 4px;
+        padding-top: 2px;
     }
 
     /* --- Hide desktop titlebar on mobile --- */
@@ -3873,202 +3873,86 @@ option[value^="custom_"] {
         display: none;
     }
 
-    /* --- Mobile Top Bar --- */
+    /* --- Mobile Top Bar — logo + sub-tabs --- */
     .mobile-topbar {
         display: flex;
         align-items: center;
-        height: 48px;
-        padding: 0 12px;
+        height: 40px;
+        padding: 0 8px;
         background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(243, 244, 248, 0.95) 100%);
         border-bottom: 1px solid var(--border-color);
         backdrop-filter: blur(12px);
         flex-shrink: 0;
         z-index: 200;
+        gap: 6px;
     }
 
     :root.dark .mobile-topbar {
         background: linear-gradient(180deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
     }
 
-    .mobile-hamburger {
-        width: 36px;
-        height: 36px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        gap: 5px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 8px;
-        transition: background 0.2s;
-    }
-
-    .mobile-hamburger:hover {
-        background: var(--hover-color);
-    }
-
-    .hamburger-line {
-        display: block;
-        width: 20px;
-        height: 2px;
-        background: var(--primary-color);
-        border-radius: 2px;
-        transition: all 0.3s ease;
-    }
-
-    .hamburger-line.open:nth-child(1) {
-        transform: translateY(7px) rotate(45deg);
-    }
-
-    .hamburger-line.open:nth-child(2) {
-        opacity: 0;
-    }
-
-    .hamburger-line.open:nth-child(3) {
-        transform: translateY(-7px) rotate(-45deg);
-    }
-
-    .mobile-topbar-brand {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: 12px;
-    }
-
     .mobile-topbar-logo {
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         border-radius: 5px;
+        flex-shrink: 0;
     }
 
-    .mobile-topbar-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--primary-color);
-        letter-spacing: 0.04em;
-    }
-
-    .mobile-topbar-spacer {
-        flex: 1;
-    }
-
-    /* --- Mobile Drawer (Navigation) --- */
-    .mobile-drawer-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 500;
-        animation: mobile-fade-in 0.2s ease;
-    }
-
-    @keyframes mobile-fade-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    .mobile-drawer {
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 280px;
-        max-width: 80vw;
-        background: var(--background-color);
-        z-index: 501;
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-    }
-
-    .mobile-drawer.open {
-        transform: translateX(0);
-    }
-
-    .mobile-drawer-header {
+    /* --- Mobile Sub-tab Bar (inside topbar, right of logo) --- */
+    .mobile-subbar {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 16px 16px 12px;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .mobile-drawer-logo {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-    }
-
-    .mobile-drawer-brand {
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--primary-color);
-        flex: 1;
-    }
-
-    .mobile-drawer-close {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: none;
-        border: none;
-        font-size: 16px;
-        color: var(--secondary-color);
-        cursor: pointer;
-        border-radius: 8px;
-        transition: background 0.2s;
-    }
-
-    .mobile-drawer-close:hover {
-        background: var(--hover-color);
-    }
-
-    .mobile-drawer-nav {
-        display: flex;
-        flex-direction: column;
-        padding: 8px;
         gap: 2px;
+        flex: 1;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 2px 0;
     }
 
-    .mobile-drawer-item {
+    .mobile-subbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .mobile-subbar-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 14px;
+        gap: 3px;
+        padding: 4px 8px;
         border: none;
         background: transparent;
-        border-radius: var(--border-radius);
+        border-radius: 6px;
         cursor: pointer;
-        font-size: 15px;
-        color: var(--primary-color);
+        font-size: 12px;
+        color: var(--secondary-color);
         font-family: inherit;
-        transition: background 0.2s;
-        text-align: left;
+        white-space: nowrap;
+        transition: background 0.2s, color 0.2s;
     }
 
-    .mobile-drawer-item:hover {
+    .mobile-subbar-item:hover {
         background: var(--hover-color);
     }
 
-    .mobile-drawer-item.active {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
+    .mobile-subbar-item.active {
         color: var(--accent-color);
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
         font-weight: 600;
     }
 
-    .mobile-drawer-icon {
-        width: 18px;
-        height: 18px;
+    .mobile-subbar-icon {
+        width: 14px;
+        height: 14px;
         filter: var(--icon-filter);
+    }
+
+    .mobile-subbar-item.active .mobile-subbar-icon {
+        filter: none;
+    }
+
+    .mobile-subbar-label {
+        font-size: 12px;
+        line-height: 1;
     }
 
     /* --- Mobile Bottom Tab Bar --- */
@@ -4248,18 +4132,18 @@ option[value^="custom_"] {
     /* --- Mobile tools-container layout --- */
     .tools-container.mobile {
         flex-direction: column;
-        gap: 8px;
-        padding: 8px;
+        gap: 4px;
+        padding: 4px;
     }
 
     .tools-container.mobile .tools-sidebar {
-        display: none; /* Hidden on mobile, replaced by drawer */
+        display: none; /* Hidden on mobile, replaced by bottom bar */
     }
 
     .tools-container.mobile .tools-content {
         flex: 1;
-        padding: 12px;
-        border-radius: 14px;
+        padding: 8px;
+        border-radius: 10px;
     }
 
     /* --- Mobile Landing Page --- */
@@ -4348,8 +4232,7 @@ option[value^="custom_"] {
 /* Hide mobile elements on desktop */
 @media (min-width: 769px) {
     .mobile-topbar,
-    .mobile-drawer,
-    .mobile-drawer-overlay,
+    .mobile-subbar,
     .mobile-bottombar,
     .mobile-sidebar-overlay,
     .mobile-sidebar-drawer,

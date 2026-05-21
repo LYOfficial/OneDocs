@@ -13,7 +13,13 @@ interface GitHubRelease {
   html_url: string;
 }
 
-export const Discover: React.FC = () => {
+interface DiscoverProps {
+  isMobile?: boolean;
+  mobileSubTab?: string;
+  onMobileSubTabChange?: (subTab: string) => void;
+}
+
+export const Discover: React.FC<DiscoverProps> = ({ isMobile = false, mobileSubTab, onMobileSubTabChange }) => {
   const { t } = useTranslation();
   const [releases, setReleases] = useState<GitHubRelease[]>([]);
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -65,70 +71,147 @@ export const Discover: React.FC = () => {
     }
   };
 
+  // When user selects a release on mobile, switch to detail view
+  const handleReleaseSelect = (tag: string) => {
+    setActiveTag(tag);
+    if (isMobile && onMobileSubTabChange) {
+      onMobileSubTabChange('detail');
+    }
+  };
+
   return (
-    <div className="tools-container">
-      <aside className="tools-sidebar">
-        <div className="tools-sidebar-header">
-          <h2>{t("discover.title")}</h2>
-          <p>{t("discover.subtitle")}</p>
-        </div>
-
-        {loading ? (
-          <div className="discover-loading">
-            <span>{t("discover.loading")}</span>
-          </div>
-        ) : error ? (
-          <div className="discover-error">
-            <p>{t("discover.fetchError")}</p>
-            <small>{error}</small>
-          </div>
-        ) : releases.length === 0 ? (
-          <div className="archive-empty">
-            <p>{t("discover.noReleases")}</p>
-          </div>
-        ) : (
-          <nav className="tools-nav">
-            {releases.map((release) => (
-              <button
-                key={release.id}
-                className={`tools-nav-item ${release.tag_name === activeTag ? "active" : ""}`}
-                onClick={() => setActiveTag(release.tag_name)}
-              >
-                <div className="tools-nav-icon">
-                  <img src={TagIcon} alt="" />
-                </div>
-                <div className="tools-nav-meta">
-                  <span>{release.tag_name}</span>
-                  <small>{formatDate(release.published_at)}</small>
-                </div>
-              </button>
-            ))}
-          </nav>
-        )}
-      </aside>
-
-      <section className="tools-content">
-        {activeRelease ? (
-          <div className="discover-release">
-            <div className="discover-release-header">
-              <h2>{activeRelease.name || activeRelease.tag_name}</h2>
-              <div className="discover-release-meta">
-                <span className="discover-tag-badge">{activeRelease.tag_name}</span>
-                <span>{formatDate(activeRelease.published_at)}</span>
-              </div>
+    <div className={`tools-container ${isMobile ? 'mobile' : ''}`}>
+      {isMobile ? (
+        mobileSubTab === 'list' ? (
+          <section className="tools-content">
+            <div className="tools-sidebar-header">
+              <h2>{t("discover.title")}</h2>
+              <p>{t("discover.subtitle")}</p>
             </div>
-            <div
-              className="discover-release-body markdown-body"
-              dangerouslySetInnerHTML={{ __html: renderReleaseBody(activeRelease.body) }}
-            />
-          </div>
+
+            {loading ? (
+              <div className="discover-loading">
+                <span>{t("discover.loading")}</span>
+              </div>
+            ) : error ? (
+              <div className="discover-error">
+                <p>{t("discover.fetchError")}</p>
+                <small>{error}</small>
+              </div>
+            ) : releases.length === 0 ? (
+              <div className="archive-empty">
+                <p>{t("discover.noReleases")}</p>
+              </div>
+            ) : (
+              <nav className="tools-nav">
+                {releases.map((release) => (
+                  <button
+                    key={release.id}
+                    className={`tools-nav-item ${release.tag_name === activeTag ? "active" : ""}`}
+                    onClick={() => handleReleaseSelect(release.tag_name)}
+                  >
+                    <div className="tools-nav-icon">
+                      <img src={TagIcon} alt="" />
+                    </div>
+                    <div className="tools-nav-meta">
+                      <span>{release.tag_name}</span>
+                      <small>{formatDate(release.published_at)}</small>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            )}
+          </section>
         ) : (
-          <div className="result-empty-card">
-            <h3>{t("discover.emptyTitle")}</h3>
-            <p>{t("discover.emptyBody")}</p>
-          </div>
-        )}
-      </section>
+          <section className="tools-content">
+            {activeRelease ? (
+              <div className="discover-release">
+                <div className="discover-release-header">
+                  <h2>{activeRelease.name || activeRelease.tag_name}</h2>
+                  <div className="discover-release-meta">
+                    <span className="discover-tag-badge">{activeRelease.tag_name}</span>
+                    <span>{formatDate(activeRelease.published_at)}</span>
+                  </div>
+                </div>
+                <div
+                  className="discover-release-body markdown-body"
+                  dangerouslySetInnerHTML={{ __html: renderReleaseBody(activeRelease.body) }}
+                />
+              </div>
+            ) : (
+              <div className="result-empty-card">
+                <h3>{t("discover.emptyTitle")}</h3>
+                <p>{t("discover.emptyBody")}</p>
+              </div>
+            )}
+          </section>
+        )
+      ) : (
+        <>
+          <aside className="tools-sidebar">
+            <div className="tools-sidebar-header">
+              <h2>{t("discover.title")}</h2>
+              <p>{t("discover.subtitle")}</p>
+            </div>
+
+            {loading ? (
+              <div className="discover-loading">
+                <span>{t("discover.loading")}</span>
+              </div>
+            ) : error ? (
+              <div className="discover-error">
+                <p>{t("discover.fetchError")}</p>
+                <small>{error}</small>
+              </div>
+            ) : releases.length === 0 ? (
+              <div className="archive-empty">
+                <p>{t("discover.noReleases")}</p>
+              </div>
+            ) : (
+              <nav className="tools-nav">
+                {releases.map((release) => (
+                  <button
+                    key={release.id}
+                    className={`tools-nav-item ${release.tag_name === activeTag ? "active" : ""}`}
+                    onClick={() => setActiveTag(release.tag_name)}
+                  >
+                    <div className="tools-nav-icon">
+                      <img src={TagIcon} alt="" />
+                    </div>
+                    <div className="tools-nav-meta">
+                      <span>{release.tag_name}</span>
+                      <small>{formatDate(release.published_at)}</small>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            )}
+          </aside>
+
+          <section className="tools-content">
+            {activeRelease ? (
+              <div className="discover-release">
+                <div className="discover-release-header">
+                  <h2>{activeRelease.name || activeRelease.tag_name}</h2>
+                  <div className="discover-release-meta">
+                    <span className="discover-tag-badge">{activeRelease.tag_name}</span>
+                    <span>{formatDate(activeRelease.published_at)}</span>
+                  </div>
+                </div>
+                <div
+                  className="discover-release-body markdown-body"
+                  dangerouslySetInnerHTML={{ __html: renderReleaseBody(activeRelease.body) }}
+                />
+              </div>
+            ) : (
+              <div className="result-empty-card">
+                <h3>{t("discover.emptyTitle")}</h3>
+                <p>{t("discover.emptyBody")}</p>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 };

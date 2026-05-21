@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { FUNCTION_INFO } from "@/config/providers";
 import { FUNCTION_ICONS } from "@/config/uiIcons";
 import { useToast } from "./Toast";
 import { useTranslation } from "react-i18next";
-import { MobileSidebarDrawer, MobileSidebarToggle } from "./MobileSidebarDrawer";
 import type { PromptType } from "@/types";
 
 interface FunctionSelectorProps {
@@ -15,16 +14,12 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({ isMobile = f
   const { selectedFunction, setSelectedFunction } = useAppStore();
   const toast = useToast();
   const { t } = useTranslation();
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleFunctionSelect = (func: PromptType) => {
     setSelectedFunction(func);
     const info = FUNCTION_INFO[func];
     const name = t(info.nameKey);
     toast.show(t("functionSelector.toastSelected", { name }));
-    if (isMobile) {
-      setDrawerOpen(false);
-    }
   };
 
   const sidebarContent = (
@@ -59,21 +54,9 @@ export const FunctionSelector: React.FC<FunctionSelectorProps> = ({ isMobile = f
   );
 
   if (isMobile) {
-    return (
-      <>
-        <MobileSidebarToggle
-          onClick={() => setDrawerOpen(true)}
-          label={t("functionSelector.title")}
-        />
-        <MobileSidebarDrawer
-          title={t("functionSelector.title")}
-          isOpen={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-        >
-          {sidebarContent}
-        </MobileSidebarDrawer>
-      </>
-    );
+    // On mobile, sub-tabs are handled by the bottom bar in MobileNav
+    // FunctionSelector just renders nothing visible (sidebar is hidden)
+    return null;
   }
 
   return (

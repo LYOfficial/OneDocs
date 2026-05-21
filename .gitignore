@@ -26,3 +26,6 @@ package-lock.json
 src-tauri/Cargo.toml
 src-tauri/Cargo.toml
 .env
+upload-keystore.jks
+keystore_base64.txt
+src-tauri/gen/android/keystore.properties

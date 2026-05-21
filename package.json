@@ -13,7 +13,8 @@
     "android:init": "tauri android init",
     "android:dev": "tauri android dev",
     "android:build": "tauri android build",
-    "android:build:split": "tauri android build -- --split-per-abi"
+    "android:build:split": "tauri android build -- --split-per-abi",
+    "android:build:signed": "tauri android build && node scripts/rename-apk.mjs"
   },
   "dependencies": {
     "@lobehub/icons-static-png": "^1.88.0",

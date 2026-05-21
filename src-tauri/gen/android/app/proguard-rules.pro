@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Tauri / Wry — keep all JNI bridge classes and native methods
+-keep class com.ijune.onedocs.** { *; }
+-keep class app.tauri.** { *; }
+-keepclassmembers class app.tauri.** { *; }
+-dontwarn app.tauri.**
+
+# Ensure Tauri plugins are not stripped
+-keep class com.ijune.onedocs.generated.** { *; }
