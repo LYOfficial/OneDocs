@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc: http://ipc.localhost https://tauri.localhost; img-src 'self' asset: http://asset.localhost https://tauri.localhost data: blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; connect-src ipc: http://ipc.localhost https://tauri.localhost https://*",
+      "csp": "default-src 'self' ipc: http://ipc.localhost https://tauri.localhost; img-src 'self' asset: http://asset.localhost https://tauri.localhost data: blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src ipc: http://ipc.localhost https://tauri.localhost https://*",
       "capabilities": ["default"],
       "assetProtocol": {
         "enable": true,

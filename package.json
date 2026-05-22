@@ -17,6 +17,7 @@
     "android:build:signed": "tauri android build && node scripts/rename-apk.mjs"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@lobehub/icons-static-png": "^1.88.0",
     "@tauri-apps/api": "2.6.0",
     "@tauri-apps/plugin-dialog": "2.3.0",

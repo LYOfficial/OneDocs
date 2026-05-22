@@ -65,7 +65,7 @@ OneDocs（一文亦闻）是一款基于 AI 的智能文档分析工具，结合
 - Rust + Tauri CLI（桌面端必须）
 - Android SDK + NDK（仅 Android 构建需要）
 
-### Tauri 版本说明（重要）
+### Tauri 版本说明
 
 请固定使用当前仓库已验证的版本组合，使用**精确版本**（不要使用 `^`）：
 
@@ -96,16 +96,10 @@ npx tauri build --bundles nsis         # 仅 NSIS（推荐）
 
 ### Android APK
 
-参照 [Tauri 官方文档](https://v2.tauri.org.cn/distribute/google-play/#build-apks)，本地构建 APK 只需配置 Android SDK/NDK 环境变量，无需安装 Android Studio。
-
 **1. 安装 JDK 17**
 
-> ⚠️ **必须使用 JDK 17**。项目使用的 Gradle 8.9 不支持 Java 21+（如 Java 26 会导致 `Unsupported class file major version 70` 错误）。
-
-从 [Adoptium（Eclipse Temurin）](https://adoptium.net/) 下载 JDK 17：
-
 ```powershell
-# Windows PowerShell — 下载并安装 JDK 17（Adoptium Temurin）
+# Windows PowerShell
 Invoke-WebRequest -Uri "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" -OutFile "$env:TEMP\jdk17.msi"
 Start-Process -Wait -FilePath "$env:TEMP\jdk17.msi"
 ```
@@ -124,14 +118,10 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"   # ⚠️ 必须将 JDK 17 加入 PA
 # 永久设置后还需将 %JAVA_HOME%\bin 移到系统 PATH 的最前面
 ```
 
-> ⚠️ **仅设置 `JAVA_HOME` 不够！** 如果系统 PATH 中已有其他版本的 Java（如 Java 26），Gradle 会优先使用 PATH 中的版本，导致 `Unsupported class file major version 70` 错误。必须将 JDK 17 的 `bin` 目录加到 PATH 最前面。
-
-> 💡 如果你已安装 Android Studio，也可使用其内置 JBR：`$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"`
-
 **2. 设置环境变量**
 
 ```powershell
-# Windows 示例（构建前在终端中执行）
+# Windows PowerShell
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"  # JDK 17 路径
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"                              # 将 JDK 17 加入 PATH
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
@@ -145,8 +135,6 @@ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-andro
 ```
 
 **4. 生成签名密钥库**
-
-> ⚠️ 发布 APK 必须签名。以下步骤仅需执行一次。
 
 在项目根目录执行（需要 JDK 17 的 `keytool`）：
 
@@ -179,13 +167,6 @@ ANDROID_KEY_PASSWORD=<你设置的密码>
 ANDROID_KEYSTORE_PATH=upload-keystore.jks
 ```
 
-在 GitHub 仓库 → **Settings** → **Secrets and variables** → **Actions** 中添加以下 Secrets：
-
-| Secret 名称 | 值 |
-|---|---|
-| `ANDROID_KEY_BASE64` | `keystore_base64.txt` 的内容 |
-| `ANDROID_KEY_ALIAS` | `upload` |
-| `ANDROID_KEY_PASSWORD` | 你设置的密码 |
 
 **6. 初始化并构建**
 
@@ -212,7 +193,6 @@ $content = "keyAlias=$keyAlias`npassword=$password`nstoreFile=$storeFile"
 
 构建产物位于 `src-tauri/gen/android/app/build/outputs/apk/`。
 
-> ⚠️ 首次构建需下载 Gradle 依赖和编译 Rust 交叉目标，耗时较长。建议使用 `--target aarch64` 仅构建 ARM64 以加快速度。
 
 **CI/CD 构建**
 
@@ -262,7 +242,7 @@ localStorage.clear()                         // 清除所有状态
 ## 👥 作者
 
 - [@LYOfficial](https://github.com/LYOfficial/) — 主要开发，项目主管
-- [@JHL-HK](https://github.com/JHL-HK) — 部分重构，图床提供
+- [@JHL-HK](https://github.com/JHL-HK) — 部分重构，macOS 适配，i18n 支持
 
 ## ⭐ Star 里程图
 
