@@ -43,6 +43,7 @@ OneDocs（一文亦闻）是一款基于 AI 的智能文档分析工具，结合
 
 <img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p1.png?raw=true" alt="OneDocs" height="300"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p2.png?raw=true" alt="OneDocs" height="300"/>
 <img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p3.png?raw=true" alt="OneDocs" height="300"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p4.png?raw=true" alt="OneDocs" height="300"/>
+<img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p5.png?raw=true" alt="OneDocs" height="300"/><img src="https://github.com/LYOfficial/OneDocs/blob/main/public/img/p6.png?raw=true" alt="OneDocs" height="300"/>
 
 ## 🛠️ 技术栈
 
