@@ -96,79 +96,9 @@ npx tauri build --bundles nsis         # 仅 NSIS（推荐）
 
 ### Android APK
 
-**1. 安装 JDK 17**
+👉 详细的 Android 构建步骤请参阅 [docs/BUILD_ANDROID.md](docs/BUILD_ANDROID.md)
 
-```powershell
-# Windows PowerShell
-Invoke-WebRequest -Uri "https://api.adoptium.net/v3/binary/latest/17/ga/windows/x64/jdk/hotspot/normal/eclipse" -OutFile "$env:TEMP\jdk17.msi"
-Start-Process -Wait -FilePath "$env:TEMP\jdk17.msi"
-```
-
-或手动下载：<https://adoptium.net/temurin/releases/?version=17&os=windows&arch=x64>
-
-安装完成后，设置 `JAVA_HOME` 环境变量：
-
-```powershell
-# 临时设置（仅当前终端生效）
-$env:JAVA_HOME = "D:/Program Files/JDK/jdk-17.0.19+10"
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"   # ⚠️ 必须将 JDK 17 加入 PATH 前面，否则 Gradle 仍会使用系统默认的 Java
-
-# 永久设置（写入系统环境变量，重启终端后生效）
-[System.Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot', 'Machine')
-# 永久设置后还需将 %JAVA_HOME%\bin 移到系统 PATH 的最前面
-```
-
-**2. 设置环境变量**
-
-```powershell
-# Windows PowerShell
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.x.x-hotspot"  # JDK 17 路径
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"                              # 将 JDK 17 加入 PATH
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:NDK_HOME = "$env:ANDROID_HOME\ndk\27.0.12077973"
-```
-
-**3. 添加 Rust Android 目标**
-
-```bash
-rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
-```
-
-**4. 生成签名密钥库**
-
-在项目根目录执行（需要 JDK 17 的 `keytool`）：
-
-```bash
-keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
-```
-
-按提示设置密码并填写证书信息。生成的 `upload-keystore.jks` 文件请妥善保管，**切勿提交到版本控制**。
-
-生成 Base64 编码（用于 GitHub Actions Secrets）：
-
-```powershell
-# Windows PowerShell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload-keystore.jks")) | Set-Content keystore_base64.txt
-```
-
-```bash
-# macOS / Linux
-base64 -i upload-keystore.jks
-```
-
-**5. 配置签名信息**
-
-将签名信息填入 `.env` 文件（参考 `.env.example`）：
-
-```env
-ANDROID_KEY_BASE64=<keystore_base64.txt 的内容>
-ANDROID_KEY_ALIAS=upload
-ANDROID_KEY_PASSWORD=<你设置的密码>
-ANDROID_KEYSTORE_PATH=upload-keystore.jks
-```
-
-
-**6. 初始化并构建**
+快速开始：
 
 ```bash
 npm run android:init          # 初始化 Android 项目（仅需一次）
@@ -176,27 +106,6 @@ npm run android:dev           # 开发模式
 npm run android:build         # 构建签名 APK（通用）
 npm run android:build:split   # 按架构拆分（体积更小）
 ```
-
-构建前需生成 `keystore.properties`（本地签名用）：
-
-```powershell
-# Windows PowerShell — 请替换实际密码和密钥库路径
-$keystoreDir = "src-tauri/gen/android"
-$keyAlias = "upload"
-$password = "你的密码"
-$storeFile = "E:\Github\OneDocs\upload-keystore.jks"  # 密钥库绝对路径
-
-# 写入 keystore.properties（无 BOM UTF-8）
-$content = "keyAlias=$keyAlias`npassword=$password`nstoreFile=$storeFile"
-[System.IO.File]::WriteAllText("$keystoreDir/keystore.properties", $content, [System.Text.UTF8Encoding]::new($false))
-```
-
-构建产物位于 `src-tauri/gen/android/app/build/outputs/apk/`。
-
-
-**CI/CD 构建**
-
-项目配置了独立的 Android workflow（`.github/workflows/android.yml`），在 GitHub Actions 页面手动触发即可自动构建签名 APK + AAB 并发布到 GitHub Releases。
 
 ### 重置开发状态
 
