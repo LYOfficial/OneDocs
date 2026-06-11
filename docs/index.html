@@ -3,391 +3,498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OneDocs - 一文亦闻 | 文章千卷，一览而知</title>
-    <meta name="description" content="OneDocs - 一文亦闻，集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。">
-    <meta name="keywords" content="OneDocs, 一文亦闻, 文档分析, 智能分析, AI文档处理, 文档总结">
-    
-    
-    <link rel="icon" type="image/png" href="icon.png">>
-    
-    
+    <title>OneDocs 2.0 — 一文亦闻 | 文章千卷，一览而知</title>
+    <meta name="description" content="OneDocs 2.0 — 全新升级的智能文档分析工具。集四十余种 AI 模型之力，助君速览文档精髓。">
+    <meta name="keywords" content="OneDocs, 一文亦闻, 文档分析, 智能分析, AI文档处理, 文档总结, v2.0">
+
+    <link rel="icon" type="image/png" href="icon.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@300;400;500;600;700&family=SF+Pro+Display:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <h1 class="nav-logo">OneDocs</h1>
-                <span class="nav-subtitle">一文亦闻</span>
+
+    <!-- 顶部导航 -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="#hero" class="nav-logo">
+                <img src="https://github.com/LYOfficial/OneDocs/raw/main/app-icon.png?raw=true" alt="" class="nav-logo-img">
+                <span class="nav-logo-text">OneDocs</span>
+            </a>
+            <div class="nav-menu" id="navMenu">
+                <a href="#whats-new" class="nav-link">v2.0 新特性</a>
+                <a href="#features" class="nav-link">功能</a>
+                <a href="#showcase" class="nav-link">预览</a>
+                <a href="#models" class="nav-link">AI 模型</a>
+                <a href="#download" class="nav-link">下载</a>
+                <a href="legacy.html" class="nav-link nav-link-legacy">返回旧版</a>
             </div>
-            <ul class="nav-menu">
-                <li class="nav-item"><a href="#home" class="nav-link active">首页</a></li>
-                <li class="nav-item"><a href="#features" class="nav-link">功能</a></li>
-                <li class="nav-item"><a href="#download" class="nav-link">下载</a></li>
-                <li class="nav-item"><a href="#about" class="nav-link">关于</a></li>
-            </ul>
-            <div class="nav-toggle">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </div>
+            <a href="#download" class="nav-cta">获取</a>
+            <button class="nav-toggle" id="navToggle" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
 
-    
-    <main id="home" class="main-container">
-        
-        <header class="header">
-            <div class="hero-background"></div>
-            <div class="hero-content">
-                <div class="logo-section">
-                    <h1 class="logo-text">OneDocs</h1>
-                    <h2 class="logo-chinese">一文亦闻</h2>
-                </div>
-                
-                <div class="title-section">
-                    <h3 class="main-title">文章千卷，一览而知</h3>
-                    <p class="subtitle">智慧之器，助君析文明理</p>
-                </div>
+    <main>
 
-                <div class="description">
-                    <p>
-                        OneDocs者，一文亦闻也，乃集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。
-                    </p>
-                </div>
-
-                <div class="cta-section">
-                    <button class="download-button primary" onclick="scrollToDownload()">
-                        <span class="button-text">立即下载</span>
-                        <span class="button-arrow">
-                            <i class="fas fa-download"></i>
-                        </span>
-                    </button>
-                    <button class="demo-button secondary" onclick="openWiki()">
-                        <span class="button-text">使用说明</span>
-                        <span class="button-arrow">
-                            <i class="fas fa-book"></i>
-                        </span>
-                    </button>
-                </div>
+        <!-- 首屏 · Apple Keynote 风格 -->
+        <section class="hero" id="hero">
+            <div class="hero-eyebrow">
+                <span class="eyebrow-dot"></span>
+                全新登场 · 2026
             </div>
-        </header>
+            <h1 class="hero-title">
+                OneDocs
+                <span class="hero-version">2.0</span>
+            </h1>
+            <h2 class="hero-subtitle">文章千卷，一览而知。</h2>
+            <p class="hero-tagline">
+                智慧之器，助君析文明理。集四十余种 AI 模型之力，<br>
+                速览新闻要览、数据解析与学科要点，一键尽在掌握。
+            </p>
+            <div class="hero-ctas">
+                <a href="#download" class="btn btn-primary">
+                    <span>免费下载</span>
+                    <span class="btn-arrow">→</span>
+                </a>
+                <a href="#showcase" class="btn btn-link">观看预览 ›</a>
+            </div>
+            <div class="hero-platforms">
+                <span>支持</span>
+                <span class="platform-pill"><i class="platform-icon windows"></i>Windows</span>
+                <span class="platform-pill"><i class="platform-icon apple"></i>macOS</span>
+                <span class="platform-pill"><i class="platform-icon linux"></i>Linux</span>
+            </div>
+            <div class="hero-device">
+                <div class="hero-device-glow"></div>
+                <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p1.png?raw=true" alt="OneDocs 主界面" class="hero-image">
+            </div>
+        </section>
 
-        
-        <section id="features" class="features-section">
-            <div class="section-container">
-                <h2 class="section-title">核心功能</h2>
-                <p class="section-description">四大智能分析功能，满足不同场景需求</p>
-                
-                <div class="features-grid">
-                    <div class="feature-card" data-feature="news">
-                        <div class="feature-icon">📰</div>
-                        <div class="feature-content">
-                            <h3 class="feature-name">要闻概览</h3>
-                            <p class="feature-desc">新闻要点梳理</p>
-                        </div>
-                    </div>
-                    
-                    <div class="feature-card" data-feature="data">
-                        <div class="feature-icon">📊</div>
-                        <div class="feature-content">
-                            <h3 class="feature-name">罗森析数</h3>
-                            <p class="feature-desc">数据内容分析</p>
-                        </div>
-                    </div>
-                    
-                    <div class="feature-card" data-feature="science">
-                        <div class="feature-icon">🔬</div>
-                        <div class="feature-content">
-                            <h3 class="feature-name">理工速知</h3>
-                            <p class="feature-desc">理工课件整理</p>
-                        </div>
-                    </div>
-                    
-                    <div class="feature-card" data-feature="liberal">
-                        <div class="feature-icon">📚</div>
-                        <div class="feature-content">
-                            <h3 class="feature-name">文采丰呈</h3>
-                            <p class="feature-desc">文科课件整理</p>
-                        </div>
-                    </div>
+        <!-- What's New -->
+        <section class="whats-new" id="whats-new">
+            <div class="section-head">
+                <p class="section-eyebrow">v2.0 · What's New</p>
+                <h2 class="section-title">全新升级，焕然一新。</h2>
+                <p class="section-lede">从界面到内核，OneDocs 2.0 带来更精致的设计、更智能的分析与更强大的模型阵容。</p>
+            </div>
+
+            <div class="whats-new-grid">
+                <div class="whats-new-card">
+                    <div class="wn-tag">全新界面</div>
+                    <h3>玻璃拟物，焕然新生</h3>
+                    <p>采用全新玻璃拟态设计语言，整体观感更轻盈、更现代，操作更直觉。</p>
+                </div>
+                <div class="whats-new-card">
+                    <div class="wn-tag">模型阵容</div>
+                    <h3>40+ AI 模型，任你调度</h3>
+                    <p>支持 OpenAI、Anthropic、Gemini、智谱、DeepSeek、Ollama 等主流模型自由切换。</p>
+                </div>
+                <div class="whats-new-card">
+                    <div class="wn-tag">性能</div>
+                    <h3>更快的解析速度</h3>
+                    <p>基于最新 PDF 解析内核，30 MB 文档秒级响应，处理更迅速。</p>
+                </div>
+                <div class="whats-new-card">
+                    <div class="wn-tag">隐私</div>
+                    <h3>本地运行，零上传</h3>
+                    <p>所有文件解析在本地完成，文档内容与 API Key 不离开你的设备。</p>
                 </div>
             </div>
         </section>
 
-        
-        <section class="formats-section">
-            <div class="section-container">
-                <h2 class="section-title">支持格式</h2>
-                <p class="section-description">支持多种常见文档格式，满足各种使用场景</p>
-                
-                <div class="formats-grid">
-                    <div class="format-item">
-                        <i class="fas fa-file-pdf"></i>
-                        <span>PDF</span>
-                    </div>
+        <!-- 核心功能 · Feature 1: 要闻概览 -->
+        <section class="feature feature-news" id="features">
+            <div class="feature-inner">
+                <div class="feature-text">
+                    <p class="feature-eyebrow">要闻概览</p>
+                    <h2 class="feature-title">新闻要点，<br>一目了然。</h2>
+                    <p class="feature-desc">上传 PDF，AI 自动提取关键事件、时间线与人物观点。告别冗长阅读，重要信息分秒必达。</p>
+                    <ul class="feature-list">
+                        <li>智能识别新闻五要素</li>
+                        <li>多文档合并分析</li>
+                        <li>支持 Markdown / LaTeX 渲染</li>
+                    </ul>
                 </div>
-                
-                <div class="format-note">
-                    <i class="fas fa-info-circle"></i>
-                    <span>支持最大 30MB 文件大小</span>
+                <div class="feature-visual">
+                    <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p2.png?raw=true" alt="要闻概览效果" loading="lazy">
                 </div>
             </div>
         </section>
 
-        
-        <section id="download" class="download-section">
-            <div class="section-container">
-                <h2 class="section-title">立即下载</h2>
-                <p class="section-description">选择适合您操作系统的版本</p>
-                
-                
-                <div class="download-notice">
-                    <i class="fas fa-info-circle"></i>
-                    <span>如果下载被浏览器拦截，请点击"保留"继续下载</span>
+        <!-- Feature 2: 罗森析数 -->
+        <section class="feature feature-data feature-reverse">
+            <div class="feature-inner">
+                <div class="feature-text">
+                    <p class="feature-eyebrow">罗森析数</p>
+                    <h2 class="feature-title">数据内容，<br>抽丝剥茧。</h2>
+                    <p class="feature-desc">面对繁杂的论文与报告，OneDocs 自动解析图表数据，提炼核心结论，帮你从数字中读懂故事。</p>
+                    <ul class="feature-list">
+                        <li>图表与公式自动识别</li>
+                        <li>多模型协作复核</li>
+                        <li>导出标准化 Markdown</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p3.png?raw=true" alt="罗森析数效果" loading="lazy">
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature 3: 理工速知 + 文采丰呈 组合展示 -->
+        <section class="feature feature-combo">
+            <div class="feature-inner">
+                <div class="feature-text">
+                    <p class="feature-eyebrow">理工速知 · 文采丰呈</p>
+                    <h2 class="feature-title">课件整理，<br>一手掌握。</h2>
+                    <p class="feature-desc">无论是理工科公式推导，还是文科知识梳理，OneDocs 都能将凌乱课件整理为结构清晰的知识手册。</p>
+                    <ul class="feature-list">
+                        <li>LaTeX 公式完美渲染</li>
+                        <li>多文件批量处理</li>
+                        <li>本地运行，隐私无忧</li>
+                    </ul>
+                </div>
+                <div class="feature-visual">
+                    <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p3.png?raw=true" alt="课件整理" loading="lazy">
+                </div>
+            </div>
+        </section>
+
+        <!-- App Store 风格预览 · Showcase -->
+        <section class="showcase" id="showcase">
+            <div class="section-head">
+                <p class="section-eyebrow">Preview</p>
+                <h2 class="section-title">看 OneDocs 2.0 一眼。</h2>
+                <p class="section-lede">精致的界面、流畅的交互，以及一目了然的信息层级。点击右侧任一截图，即可在左侧预览大图。</p>
+            </div>
+
+            <div class="showcase-device">
+                <div class="showcase-screen" id="showcaseScreen">
+                    <div class="showcase-screen-glow"></div>
+                    <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p1.png?raw=true" alt="OneDocs 主界面" id="showcaseMainImg" loading="lazy">
+                </div>
+                <div class="showcase-grid" id="showcaseGrid">
+                    <button type="button" class="showcase-tile active" data-src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p1.png?raw=true" data-alt="OneDocs 主界面" onclick="selectShowcase(this)" aria-label="预览主界面">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p1.png?raw=true" alt="主界面" loading="lazy">
+                    </button>
+                    <button type="button" class="showcase-tile" data-src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p2.png?raw=true" data-alt="要闻概览" onclick="selectShowcase(this)" aria-label="预览要闻概览">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p2.png?raw=true" alt="要闻概览" loading="lazy">
+                    </button>
+                    <button type="button" class="showcase-tile" data-src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p3.png?raw=true" data-alt="理工速知" onclick="selectShowcase(this)" aria-label="预览理工速知">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p3.png?raw=true" alt="理工速知" loading="lazy">
+                    </button>
+                    <button type="button" class="showcase-tile" data-src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p4.png?raw=true" data-alt="发现更新" onclick="selectShowcase(this)" aria-label="预览发现更新">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p4.png?raw=true" alt="发现更新" loading="lazy">
+                    </button>
+                    <button type="button" class="showcase-tile" data-src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p5.png?raw=true" data-alt="AI 模型" onclick="selectShowcase(this)" aria-label="预览 AI 模型">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p5.png?raw=true" alt="AI 模型" loading="lazy">
+                    </button>
+                    <button type="button" class="showcase-tile" data-src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p6.png?raw=true" data-alt="关于 OneDocs" onclick="selectShowcase(this)" aria-label="预览关于 OneDocs">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/public/img/p6.png?raw=true" alt="关于 OneDocs" loading="lazy">
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模型阵容 -->
+        <section class="models" id="models">
+            <div class="section-head">
+                <p class="section-eyebrow">AI · 40+ Models</p>
+                <h2 class="section-title">选择你钟爱的 AI 模型。</h2>
+                <p class="section-lede">从云端旗舰到本地离线，OneDocs 让你在 OpenAI、Anthropic、Gemini、智谱、DeepSeek、Ollama 等主流服务间自由切换。</p>
+            </div>
+
+            <div class="models-grid">
+                <!-- OneDocs 本身用项目 LOGO -->
+                <div class="model-card">
+                    <picture class="model-logo model-logo-app">
+                        <img src="https://github.com/LYOfficial/OneDocs/raw/main/app-icon.png?raw=true" alt="OneDocs" loading="lazy">
+                    </picture>
+                    <h4>OneDocs</h4>
+                    <p>内置免费模型</p>
                 </div>
 
-                
-                <div class="download-options">
-                    <label class="source-toggle">
-                        <input type="checkbox" id="useProxy" checked>
-                        <span class="slider"></span>
-                        <span class="label-text">使用加速镜像下载 (推荐中国大陆用户开启)</span>
-                    </label>
+                <!-- @lobehub/icons · openai -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/openai.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/openai.png" alt="OpenAI" loading="lazy">
+                    </picture>
+                    <h4>OpenAI</h4>
+                    <p>GPT 系列</p>
                 </div>
-                
-                <div class="download-grid">
-                    <div class="download-card">
-                        <div class="download-icon">
-                            <i class="fab fa-windows"></i>
-                        </div>
-                        <h3>Windows</h3>
-                        <p>适用于 Windows 10 及以上版本</p>
-                        <div class="button-group">
-                            <button class="download-btn" onclick="downloadApp('windows', 'exe')">
-                                <i class="fas fa-download"></i>
-                                下载 .exe
-                            </button>
-                            <button class="download-btn secondary" onclick="downloadApp('windows', 'msi')">
-                                下载 .msi
-                            </button>
-                        </div>
-                        <div class="download-info">
-                            <span>版本: 1.4.0</span>
-                            <span>大小: ~4 MB</span>
-                        </div>
+
+                <!-- @lobehub/icons · gemini -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/gemini.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/gemini.png" alt="Google Gemini" loading="lazy">
+                    </picture>
+                    <h4>Google Gemini</h4>
+                    <p>Gemini 系列</p>
+                </div>
+
+                <!-- @lobehub/icons · anthropic -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/anthropic.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/anthropic.png" alt="Anthropic" loading="lazy">
+                    </picture>
+                    <h4>Anthropic</h4>
+                    <p>Claude 系列</p>
+                </div>
+
+                <!-- @lobehub/icons · zhipu (智谱) -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/zhipu.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/zhipu.png" alt="智谱 GLM" loading="lazy">
+                    </picture>
+                    <h4>智谱 GLM</h4>
+                    <p>GLM-4 等</p>
+                </div>
+
+                <!-- @lobehub/icons · siliconcloud (硅基流动) -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/siliconcloud.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/siliconcloud.png" alt="硅基流动" loading="lazy">
+                    </picture>
+                    <h4>硅基流动</h4>
+                    <p>SiliconFlow</p>
+                </div>
+
+                <!-- @lobehub/icons · stepfun (星河大模型 占位) -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/stepfun.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/stepfun.png" alt="星河大模型" loading="lazy">
+                    </picture>
+                    <h4>星河大模型</h4>
+                    <p>Xinghe LLM</p>
+                </div>
+
+                <!-- @lobehub/icons · newapi -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/newapi.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/newapi.png" alt="NewAPI" loading="lazy">
+                    </picture>
+                    <h4>NewAPI</h4>
+                    <p>统一 API 网关</p>
+                </div>
+
+                <!-- @lobehub/icons · qwen (通义千问) -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/qwen.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/qwen.png" alt="通义千问" loading="lazy">
+                    </picture>
+                    <h4>通义千问</h4>
+                    <p>Qwen 系列</p>
+                </div>
+
+                <!-- @lobehub/icons · moonshot -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/moonshot.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/moonshot.png" alt="Moonshot AI" loading="lazy">
+                    </picture>
+                    <h4>Moonshot AI</h4>
+                    <p>Kimi 等</p>
+                </div>
+
+                <!-- @lobehub/icons · deepseek -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/deepseek.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/deepseek.png" alt="DeepSeek" loading="lazy">
+                    </picture>
+                    <h4>DeepSeek</h4>
+                    <p>深度求索</p>
+                </div>
+
+                <!-- @lobehub/icons · ollama -->
+                <div class="model-card">
+                    <picture class="model-logo">
+                        <source media="(prefers-color-scheme: dark)" srcset="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/dark/ollama.png" />
+                        <img src="https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/ollama.png" alt="Ollama" loading="lazy">
+                    </picture>
+                    <h4>Ollama</h4>
+                    <p>本地离线运行</p>
+                </div>
+            </div>
+
+            <p class="models-more">
+                以及 <strong>40+</strong> 其它模型 · 智谱、硅基流动、NewAPI 等服务统一接入
+            </p>
+        </section>
+
+        <!-- 隐私承诺 -->
+        <section class="privacy">
+            <div class="privacy-inner">
+                <div class="privacy-icon">🛡</div>
+                <h2 class="privacy-title">本地运行，<br>隐私无忧。</h2>
+                <p class="privacy-desc">OneDocs 在你的设备本地处理文件，文档内容不会上传至服务器，API Key 也仅保存在本地。再无文件和隐私泄露的担忧。</p>
+            </div>
+        </section>
+
+        <!-- 下载 -->
+        <section class="download" id="download">
+            <div class="section-head">
+                <p class="section-eyebrow">Download</p>
+                <h2 class="section-title">立即获取 OneDocs 2.0。</h2>
+                <p class="section-lede">选择适合你设备的版本，开始你的智能文档分析之旅。</p>
+            </div>
+
+            <div class="download-toggle">
+                <label class="toggle">
+                    <input type="checkbox" id="useProxy" checked>
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-text">使用加速镜像下载（推荐中国大陆用户开启）</span>
+                </label>
+            </div>
+
+            <div class="download-grid">
+                <div class="download-card">
+                    <div class="download-os">
+                        <svg class="os-icon-svg os-icon-windows" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true">
+                            <path d="M0 3.449L9.75 2.1v9.451H0V3.449zM10.949 1.949L24 0v11.4H10.95V1.949zM0 12.6h9.75v9.451L0 20.699V12.6zM10.949 12.6H24V24l-13.05-1.949V12.6z"/>
+                        </svg>
+                        <span>Windows</span>
                     </div>
-                    
-                    <div class="download-card">
-                        <div class="download-icon">
-                            <i class="fab fa-apple"></i>
-                        </div>
-                        <h3>macOS</h3>
-                        <p>适用于 macOS 10.15 及以上版本</p>
-                        <button class="download-btn" onclick="downloadApp('macos', 'dmg')">
-                            <i class="fas fa-download"></i>
-                            下载 macOS 版
+                    <p class="download-meta">Windows 10 及以上</p>
+                    <div class="download-buttons">
+                        <button class="btn btn-primary btn-block" onclick="downloadApp('windows', 'exe')">
+                            下载 .exe
                         </button>
-                        <div class="download-info">
-                            <span>版本: 1.4.0</span>
-                            <span>大小: ~6 MB</span>
-                        </div>
+                        <button class="btn btn-secondary btn-block" onclick="downloadApp('windows', 'msi')">
+                            下载 .msi
+                        </button>
                     </div>
-                    
-                    <div class="download-card">
-                        <div class="download-icon">
-                            <i class="fab fa-linux"></i>
-                        </div>
-                        <h3>Linux</h3>
-                        <p>适用于主流 Linux 发行版</p>
-                        <div class="button-group">
-                            <button class="download-btn" onclick="downloadApp('linux', 'appimage')">
-                                <i class="fas fa-download"></i>
-                                下载 .AppImage
-                            </button>
-                            <button class="download-btn secondary" onclick="downloadApp('linux', 'deb')">
-                                下载 .deb
-                            </button>
-                        </div>
-                        <div class="download-info">
-                            <span>版本: 1.4.0</span>
-                            <span>大小: ~80 MB</span>
-                        </div>
+                    <div class="download-info">
+                        <span>v2.0.0</span>
+                        <span>~5 MB</span>
                     </div>
                 </div>
-                
-                <div class="github-link">
-                    <a href="https://github.com/LYOfficial/OneDocs" target="_blank">
-                        <i class="fab fa-github"></i>
-                        在 GitHub 上查看源码
-                    </a>
+
+                <div class="download-card">
+                    <div class="download-os">
+                        <svg class="os-icon-svg os-icon-apple" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true">
+                            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                        </svg>
+                        <span>macOS</span>
+                    </div>
+                    <p class="download-meta">macOS 10.15 及以上</p>
+                    <div class="download-buttons">
+                        <button class="btn btn-primary btn-block" onclick="downloadApp('macos', 'dmg')">
+                            下载 .dmg
+                        </button>
+                    </div>
+                    <div class="download-info">
+                        <span>v2.0.0</span>
+                        <span>~7 MB</span>
+                    </div>
                 </div>
+
+                <div class="download-card">
+                    <div class="download-os">
+                        <svg class="os-icon-svg os-icon-linux" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true">
+                            <path d="M12.504 0c-.155 0-.315.008-.483.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 0 0-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68a1.36 1.36 0 0 0-.157.706c.014.226.075.435.097.658.014.231-.008.469-.104.738-.318.781-.702 1.619-.84 2.151-.107.4-.165.755-.04 1.106.137.387.452.65.876.798.646.226 1.376.124 1.69-.022.396-.193.527-.439.667-.788.094-.227.16-.482.267-.732.207-.493.516-.96.793-1.347.139-.192.276-.371.408-.527.325.155.677.282 1.062.394.553.163 1.18.272 1.882.347.605.066 1.259.099 1.93.099.673 0 1.327-.033 1.93-.099.7-.075 1.328-.184 1.882-.347.385-.112.737-.239 1.062-.394.132.156.27.335.408.527.277.387.586.854.793 1.347.107.25.173.505.267.732.14.349.27.595.667.788.314.146 1.044.248 1.69.022.424-.148.739-.411.876-.798.125-.351.067-.706-.04-1.106-.138-.532-.522-1.37-.84-2.151-.096-.269-.118-.507-.104-.738.022-.223.083-.432.097-.658a1.36 1.36 0 0 0-.157-.706c-.206-.411-.551-.544-.864-.68-.312-.133-.598-.201-.797-.4-.213-.239-.403-.571-.663-.839a.424.424 0 0 0-.11-.135c.123-.805-.009-1.657-.287-2.489-.589-1.771-1.831-3.47-2.716-4.521-.75-1.067-.974-1.928-1.05-3.02-.065-1.491 1.056-5.965-3.17-6.298a4.616 4.616 0 0 0-.483-.021z"/>
+                        </svg>
+                        <span>Linux</span>
+                    </div>
+                    <p class="download-meta">主流 Linux 发行版</p>
+                    <div class="download-buttons">
+                        <button class="btn btn-primary btn-block" onclick="downloadApp('linux', 'appimage')">
+                            下载 .AppImage
+                        </button>
+                        <button class="btn btn-secondary btn-block" onclick="downloadApp('linux', 'deb')">
+                            下载 .deb
+                        </button>
+                    </div>
+                    <div class="download-info">
+                        <span>v2.0.0</span>
+                        <span>~85 MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <p class="download-note">
+                如果下载被浏览器拦截，请点击「保留」继续下载。
+            </p>
+
+            <div class="github-link">
+                <a href="https://github.com/LYOfficial/OneDocs" target="_blank" rel="noopener">
+                    <span class="gh-icon"></span>
+                    在 GitHub 上查看源码
+                </a>
             </div>
         </section>
 
-        
-        <section id="about" class="about-section">
-            <div class="section-container">
-                <h2 class="section-title">关于 OneDocs</h2>
-                
-                <div class="about-content">
-                    <div class="about-text">
-                        <p>
-                            OneDocs 是一款开源的文件分析工具，可以对输入的各种文本文件进行析读，并摘选出对用户有用的信息内容。
-                        </p>
-                        <p>
-                            OneDocs 适用于处理内容比较繁杂且有大量无关内容的文件，可以轻松地从中采撷重点信息，最终整理并渲染展示，用户亦可复制全文或导出备份。
-                        </p>
-                        
-                        <div class="about-features">
-                            <div class="about-feature">
-                                <i class="fas fa-rocket"></i>
-                                <div>
-                                    <h4>高效分析</h4>
-                                    <p>AI 驱动的智能分析，数秒内完成文档处理</p>
-                                </div>
-                            </div>
-                            <div class="about-feature">
-                                <i class="fas fa-shield-alt"></i>
-                                <div>
-                                    <h4>隐私安全</h4>
-                                    <p>本地处理，数据不上传，保护您的隐私</p>
-                                </div>
-                            </div>
-                            <div class="about-feature">
-                                <i class="fas fa-cogs"></i>
-                                <div>
-                                    <h4>多模型支持</h4>
-                                    <p>支持 OpenAI、DeepSeek、智谱等多种 AI 模型</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="about-stats">
-                        <div class="stat-item">
-                            <div class="stat-number" data-target="30">0</div>
-                            <div class="stat-label">MB 最大文件</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" data-target="4">0</div>
-                            <div class="stat-label">种分析模式</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-number" data-target="40">0</div>
-                            <div class="stat-label">+ AI 模型</div>
-                        </div>
-                    </div>
-                </div>
+        <!-- 鸣谢 -->
+        <section class="ack">
+            <div class="section-head">
+                <p class="section-eyebrow">Acknowledgments</p>
+                <h2 class="section-title">致谢开源。</h2>
+            </div>
+            <div class="ack-grid">
+                <a class="ack-card" href="https://github.com/tauri-apps/tauri" target="_blank" rel="noopener">Tauri</a>
+                <a class="ack-card" href="https://github.com/facebook/react" target="_blank" rel="noopener">React</a>
+                <a class="ack-card" href="https://github.com/nicbarker/pdfjs-dist" target="_blank" rel="noopener">pdfjs-dist</a>
+                <a class="ack-card" href="https://github.com/J-F-Liu/lopdf" target="_blank" rel="noopener">lopdf</a>
+                <a class="ack-card" href="https://github.com/markedjs/marked" target="_blank" rel="noopener">marked</a>
+                <a class="ack-card" href="https://github.com/KaTeX/KaTeX" target="_blank" rel="noopener">KaTeX</a>
+                <a class="ack-card" href="https://github.com/pmndrs/zustand" target="_blank" rel="noopener">Zustand</a>
+                <a class="ack-card" href="https://github.com/i18next/i18next" target="_blank" rel="noopener">i18next</a>
+                <a class="ack-card" href="https://github.com/lobehub/lobe-icons" target="_blank" rel="noopener">@lobehub/icons</a>
             </div>
         </section>
 
-        
-        <section class="acknowledgments-section">
-            <div class="section-container">
-                <h2 class="section-title">鸣谢</h2>
-                <p class="section-description">衷心感谢以下开源项目</p>
-                
-                <div class="ack-grid">
-                    <a class="ack-card" href="https://github.com/tauri-apps/tauri" target="_blank">
-                        <h4>Tauri</h4>
-                        <p>跨平台桌面应用框架</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/J-F-Liu/lopdf" target="_blank">
-                        <h4>lopdf</h4>
-                        <p>Rust PDF 处理库</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/nicbarker/pdfjs-dist" target="_blank">
-                        <h4>pdfjs-dist</h4>
-                        <p>PDF 文本解析</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/facebook/react" target="_blank">
-                        <h4>React</h4>
-                        <p>用户界面构建库</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/markedjs/marked" target="_blank">
-                        <h4>marked</h4>
-                        <p>Markdown 解析器</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/KaTeX/KaTeX" target="_blank">
-                        <h4>KaTeX</h4>
-                        <p>LaTeX 数学公式渲染</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/pmndrs/zustand" target="_blank">
-                        <h4>Zustand</h4>
-                        <p>轻量状态管理</p>
-                    </a>
-                    <a class="ack-card" href="https://github.com/i18next/i18next" target="_blank">
-                        <h4>i18next</h4>
-                        <p>国际化框架</p>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        
-        <footer class="footer">
-            <div class="footer-container">
-                <div class="footer-content">
-                    <div class="footer-brand">
-                        <h3>OneDocs</h3>
-                        <p>一文亦闻</p>
-                    </div>
-                    
-                    <div class="footer-links">
-                        <div class="footer-section">
-                            <h4>产品</h4>
-                            <ul>
-                                <li><a href="https://github.com/LYOfficial/OneDocs/releases/latest">立即下载</a></li>
-                                <li><a href="#" onclick="openWiki()">使用说明</a></li>
-                            </ul>
-                        </div>
-                        
-                        <div class="footer-section">
-                            <h4>支持</h4>
-                            <ul>
-                                <li><a href="https://github.com/LYOfficial/OneDocs/wiki/Frequently-Asked-Questions">常见问题</a></li>
-                                <li><a href="mailto:coldregion@qq.com">联系我们</a></li>
-                            </ul>
-                        </div>
-                        
-                        <div class="footer-section">
-                            <h4>开发者</h4>
-                            <ul>
-                                <li><a href="https://github.com/LYOfficial/OneDocs" target="_blank">GitHub</a></li>
-                                <li><a href="https://github.com/LYOfficial/OneDocs/wiki/Api-Key">API 文档</a></li>
-                                <li><a href="https://github.com/LYOfficial/OneDocs/releases/">更新日志</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="footer-bottom">
-                    <p>&copy; 2024-2026 OneDocs - 一文亦闻. Licensed under GPLv3.</p>
-                    <div class="footer-social">
-                        <a href="https://github.com/LYOfficial/OneDocs" target="_blank">
-                            <i class="fab fa-github"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </footer>
     </main>
 
-    
-    <button class="back-to-top" id="backToTop">
-        <i class="fas fa-chevron-up"></i>
-    </button>
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <h3>OneDocs</h3>
+                    <p>一文亦闻</p>
+                </div>
+                <div class="footer-cols">
+                    <div class="footer-col">
+                        <h4>产品</h4>
+                        <a href="#download">下载</a>
+                        <a href="#" onclick="openWiki(); return false;">使用说明</a>
+                        <a href="https://github.com/LYOfficial/OneDocs/releases/" target="_blank" rel="noopener">更新日志</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>支持</h4>
+                        <a href="https://github.com/LYOfficial/OneDocs/wiki/Frequently-Asked-Questions" target="_blank" rel="noopener">常见问题</a>
+                        <a href="mailto:coldregion@qq.com">联系我们</a>
+                    </div>
+                    <div class="footer-col">
+                        <h4>开发者</h4>
+                        <a href="https://github.com/LYOfficial/OneDocs" target="_blank" rel="noopener">GitHub</a>
+                        <a href="https://github.com/LYOfficial/OneDocs/wiki/Api-Key" target="_blank" rel="noopener">API 文档</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2024-2026 OneDocs · 一文亦闻 · Licensed under GPLv3.</p>
+                <a href="https://github.com/LYOfficial/OneDocs" target="_blank" rel="noopener" class="footer-social" aria-label="GitHub">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 .5C5.4.5 0 5.9 0 12.5c0 5.3 3.4 9.8 8.2 11.4.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2 1-.3 2-.4 3-.4s2 .1 3 .4c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.8-1.6 8.2-6.1 8.2-11.4C24 5.9 18.6.5 12 .5z"/></svg>
+                </a>
+            </div>
+        </div>
+    </footer>
 
-    
+    <button class="back-to-top" id="backToTop" aria-label="回到顶部">回到顶部</button>
+
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,379 +1,249 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const navToggle = document.querySelector('.nav-toggle');
-    const navMenu = document.querySelector('.nav-menu');
+/* =========================================================
+   OneDocs 2.0 · Site interactions
+   ========================================================= */
+
+document.addEventListener('DOMContentLoaded', function () {
+    const nav = document.getElementById('nav');
+    const navMenu = document.getElementById('navMenu');
+    const navToggle = document.getElementById('navToggle');
     const navLinks = document.querySelectorAll('.nav-link');
     const backToTop = document.getElementById('backToTop');
 
-    navToggle.addEventListener('click', function() {
-        navMenu.classList.toggle('active');
-        navToggle.classList.toggle('active');
-    });
+    // 移动端导航
+    if (navToggle) {
+        navToggle.addEventListener('click', function () {
+            navMenu.classList.toggle('open');
+        });
+    }
 
     navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            navLinks.forEach(l => l.classList.remove('active'));
-            this.classList.add('active');
-            
-            navMenu.classList.remove('active');
-            navToggle.classList.remove('active');
-            
-            const targetId = this.getAttribute('href');
-            if (targetId.startsWith('#')) {
-                e.preventDefault();
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    const offsetTop = targetElement.offsetTop - 70; // 考虑导航栏高度
-                    window.scrollTo({
-                        top: offsetTop,
-                        behavior: 'smooth'
-                    });
-                }
-            }
+        link.addEventListener('click', function () {
+            navMenu.classList.remove('open');
         });
     });
 
-    window.addEventListener('scroll', function() {
+    // 滚动时导航样式
+    let lastScroll = 0;
+    window.addEventListener('scroll', function () {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        const navbar = document.querySelector('.navbar');
-        if (scrollTop > 100) {
-            navbar.style.background = 'rgba(255, 255, 255, 0.98)';
-            navbar.style.boxShadow = 'var(--shadow-medium)';
+
+        if (scrollTop > 30) {
+            nav.classList.add('scrolled');
         } else {
-            navbar.style.background = 'rgba(255, 255, 255, 0.95)';
-            navbar.style.boxShadow = 'none';
+            nav.classList.remove('scrolled');
         }
-        
-        if (scrollTop > 500) {
+
+        if (scrollTop > 600) {
             backToTop.classList.add('visible');
         } else {
             backToTop.classList.remove('visible');
         }
-        
-        updateActiveNavLink();
+
+        lastScroll = scrollTop;
+    }, { passive: true });
+
+    // 回到顶部
+    backToTop.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    backToTop.addEventListener('click', function() {
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
-    });
-
-    function updateActiveNavLink() {
-        const sections = ['home', 'features', 'download', 'about'];
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        
-        let currentSection = 'home';
-        
-        sections.forEach(sectionId => {
-            const section = document.getElementById(sectionId);
-            if (section) {
-                const sectionTop = section.offsetTop - 100;
-                const sectionBottom = sectionTop + section.offsetHeight;
-                
-                if (scrollTop >= sectionTop && scrollTop < sectionBottom) {
-                    currentSection = sectionId;
+    // 平滑滚动（带偏移）
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+        link.addEventListener('click', function (e) {
+            const targetId = this.getAttribute('href');
+            if (targetId.length > 1) {
+                const target = document.querySelector(targetId);
+                if (target) {
+                    e.preventDefault();
+                    const offset = 52;
+                    const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top, behavior: 'smooth' });
                 }
             }
         });
-        
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${currentSection}`) {
-                link.classList.add('active');
-            }
-        });
-    }
+    });
 
-    function animateNumbers() {
-        const statNumbers = document.querySelectorAll('.stat-number');
-        
-        statNumbers.forEach(stat => {
-            const target = parseInt(stat.getAttribute('data-target'));
-            const increment = target / 100;
-            let current = 0;
-            
-            const timer = setInterval(() => {
-                current += increment;
-                if (current >= target) {
-                    stat.textContent = target + (stat.textContent.includes('+') ? '+' : '');
-                    clearInterval(timer);
-                } else {
-                    stat.textContent = Math.ceil(current);
-                }
-            }, 20);
-        });
-    }
+    // 滚动入场动画
+    const revealTargets = document.querySelectorAll(
+        '.section-head, .whats-new-card, .feature-inner, .model-card, ' +
+        '.download-card, .ack-card, .showcase-screen, .showcase-tile, .privacy-inner'
+    );
+    revealTargets.forEach(el => el.classList.add('reveal'));
 
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
+    const revealObserver = new IntersectionObserver(function (entries) {
+        entries.forEach((entry, index) => {
             if (entry.isIntersecting) {
-                entry.target.classList.add('animate');
-                
-                if (entry.target.classList.contains('about-stats')) {
-                    animateNumbers();
-                }
+                // 错开兄弟元素的延迟
+                const siblings = entry.target.parentElement
+                    ? Array.from(entry.target.parentElement.children).filter(c => c.classList.contains('reveal'))
+                    : [];
+                const idx = siblings.indexOf(entry.target);
+                const delay = idx > 0 ? Math.min(idx * 60, 240) : 0;
+
+                setTimeout(() => {
+                    entry.target.classList.add('visible');
+                }, delay);
+
+                revealObserver.unobserve(entry.target);
             }
         });
-    }, observerOptions);
+    }, {
+        threshold: 0.12,
+        rootMargin: '0px 0px -50px 0px'
+    });
 
-    const animateElements = document.querySelectorAll('.feature-card, .download-card, .about-stats');
-    animateElements.forEach(el => observer.observe(el));
+    revealTargets.forEach(el => revealObserver.observe(el));
 
-    const featureCards = document.querySelectorAll('.feature-card');
-    featureCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-10px) scale(1.02)';
+    // 模型卡片 3D 倾斜
+    document.querySelectorAll('.model-card').forEach(card => {
+        card.addEventListener('mousemove', function (e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = (y - centerY) / 25;
+            const rotateY = (centerX - x) / 25;
+            card.style.transform = `translateY(-4px) perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
         });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0) scale(1)';
+        card.addEventListener('mouseleave', function () {
+            card.style.transform = '';
         });
     });
 
-    const formatItems = document.querySelectorAll('.format-item');
-    formatItems.forEach(item => {
-        item.addEventListener('mouseenter', function() {
-            const icon = this.querySelector('i');
-            icon.style.transform = 'scale(1.2) rotate(5deg)';
-            icon.style.color = 'var(--accent-hover)';
+    // What's New 卡片视差
+    document.querySelectorAll('.whats-new-card').forEach(card => {
+        card.addEventListener('mousemove', function (e) {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width - 0.5) * 6;
+            const y = ((e.clientY - rect.top) / rect.height - 0.5) * 6;
+            card.style.transform = `translateY(-6px) perspective(800px) rotateX(${-y}deg) rotateY(${x}deg)`;
         });
-        
-        item.addEventListener('mouseleave', function() {
-            const icon = this.querySelector('i');
-            icon.style.transform = 'scale(1) rotate(0deg)';
-            icon.style.color = 'var(--accent-color)';
+        card.addEventListener('mouseleave', function () {
+            card.style.transform = '';
         });
+    });
+
+    // 平台徽章在 hero 视口中循环高亮
+    const platformPills = document.querySelectorAll('.platform-pill');
+    if (platformPills.length) {
+        let i = 0;
+        setInterval(() => {
+            platformPills.forEach(p => p.style.boxShadow = '');
+            platformPills[i].style.boxShadow = '0 4px 14px rgba(0, 113, 227, 0.25)';
+            i = (i + 1) % platformPills.length;
+        }, 1800);
+    }
+
+    // 键盘快捷键
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && navMenu.classList.contains('open')) {
+            navMenu.classList.remove('open');
+        }
     });
 });
 
+/* =========================================================
+   下载逻辑
+   ========================================================= */
 function downloadApp(platform, type) {
     const useProxy = document.getElementById('useProxy').checked;
-    const baseUrl = 'https://github.com/LYOfficial/OneDocs/releases/download/v1.4.0/';
+    const baseUrl = 'https://github.com/LYOfficial/OneDocs/releases/download/v2.0.0/';
     const proxyUrl = 'https://gh-proxy.com/';
-    
+
     let filename = '';
     let platformName = '';
-    
-    switch(platform) {
+
+    switch (platform) {
         case 'windows':
             platformName = 'Windows';
             if (type === 'msi') {
-                filename = 'onedocs_1.4.0_x64_en-US.msi';
+                filename = 'onedocs_2.0.0_x64_en-US.msi';
             } else {
-                filename = 'onedocs_1.4.0_x64-setup.exe';
+                filename = 'onedocs_2.0.0_x64-setup.exe';
             }
             break;
         case 'macos':
             platformName = 'macOS';
-            filename = 'onedocs_1.4.0_aarch64.dmg';
+            filename = 'onedocs_2.0.0_aarch64.dmg';
             break;
         case 'linux':
             platformName = 'Linux';
             if (type === 'deb') {
-                filename = 'onedocs_1.4.0_amd64.deb';
+                filename = 'onedocs_2.0.0_amd64.deb';
             } else {
-                filename = 'onedocs_1.4.0_amd64.AppImage';
+                filename = 'onedocs_2.0.0_amd64.AppImage';
             }
             break;
         default:
             showToast('该平台版本暂未发布', 'warning');
             return;
     }
-    
+
     let downloadUrl = baseUrl + filename;
     if (useProxy) {
         downloadUrl = proxyUrl + downloadUrl;
     }
-    
-    showToast(`正在下载 ${platformName} ${type ? type : ''} 版本...如果被浏览器拦截，请点击"保留"`, 'info', 4000);
-    
+
+    showToast(`正在下载 ${platformName} ${type ? '.' + type : ''} 版本…若被浏览器拦截，请点击「保留」`, 'info', 4500);
+
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = '';
     link.style.display = 'none';
     document.body.appendChild(link);
-    
     setTimeout(() => {
         link.click();
         document.body.removeChild(link);
-    }, 500);
+    }, 400);
 }
 
 function openWiki() {
-    showToast('正在跳转到使用说明...');
+    showToast('正在跳转到使用说明…', 'info', 2000);
     setTimeout(() => {
-        window.open('https://github.com/LYOfficial/OneDocs/wiki', '_blank');
-    }, 500);
+        window.open('https://github.com/LYOfficial/OneDocs/wiki', '_blank', 'noopener');
+    }, 400);
 }
 
-function scrollToDownload() {
-    const downloadSection = document.getElementById('download');
-    const offsetTop = downloadSection.offsetTop - 70;
-    window.scrollTo({
-        top: offsetTop,
-        behavior: 'smooth'
-    });
-}
-
+/* =========================================================
+   Toast
+   ========================================================= */
 function showToast(message, type = 'info', duration = 3000) {
-    const existingToast = document.querySelector('.toast');
-    if (existingToast) {
-        existingToast.remove();
-    }
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
 
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `toast toast-${type} visible`;
     toast.textContent = message;
-
     document.body.appendChild(toast);
 
     setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(-50%) translateY(0)';
-    }, 100);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-50%) translateY(-30px)';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 300);
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 300);
     }, duration);
 }
 
-function copyToClipboard(text) {
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(() => {
-            showToast('已复制到剪贴板', 'success');
-        });
-    } else {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showToast('已复制到剪贴板', 'success');
-        } catch (err) {
-            showToast('复制失败', 'error');
-        }
-        document.body.removeChild(textArea);
-    }
+/* =========================================================
+   Showcase · 点击右侧小图 → 左侧大图
+   ========================================================= */
+function selectShowcase(tile) {
+    const screen = document.getElementById('showcaseScreen');
+    const mainImg = document.getElementById('showcaseMainImg');
+    if (!screen || !mainImg) return;
+
+    const newSrc = tile.dataset.src;
+    const newAlt = tile.dataset.alt;
+    if (!newSrc || mainImg.src === newSrc) return;
+
+    // 切换 active
+    document.querySelectorAll('.showcase-tile').forEach(t => t.classList.remove('active'));
+    tile.classList.add('active');
+
+    // 淡出旧图 → 换 src → 淡入
+    screen.classList.add('is-changing');
+    setTimeout(() => {
+        mainImg.src = newSrc;
+        mainImg.alt = newAlt;
+        screen.classList.remove('is-changing');
+    }, 220);
 }
-
-window.addEventListener('load', function() {
-    document.body.classList.remove('loading');
-    
-    const heroContent = document.querySelector('.hero-content');
-    if (heroContent) {
-        heroContent.classList.add('animate');
-    }
-    
-    preloadResources();
-});
-
-function preloadResources() {
-    const fonts = [
-        'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap'
-    ];
-    
-    fonts.forEach(fontUrl => {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.href = fontUrl;
-        link.as = 'style';
-        document.head.appendChild(link);
-    });
-}
-
-window.addEventListener('error', function(e) {
-    console.error('页面发生错误:', e.error);
-});
-
-document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        showToast('搜索功能即将上线');
-    }
-    
-    if (e.key === 'Escape') {
-        const navMenu = document.querySelector('.nav-menu');
-        const navToggle = document.querySelector('.nav-toggle');
-        if (navMenu && navMenu.classList.contains('active')) {
-            navMenu.classList.remove('active');
-            navToggle.classList.remove('active');
-        }
-    }
-});
-
-if ('performance' in window) {
-    window.addEventListener('load', function() {
-        setTimeout(() => {
-            const perfData = performance.timing;
-            const loadTime = perfData.loadEventEnd - perfData.navigationStart;
-            console.log(`页面加载时间: ${loadTime}ms`);
-            
-            if (loadTime > 3000) {
-                console.warn('页面加载时间较长，建议优化');
-            }
-        }, 0);
-    });
-}
-
-function toggleTheme() {
-    const body = document.body;
-    const currentTheme = body.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
-    body.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    showToast(`已切换到${newTheme === 'dark' ? '深色' : '浅色'}模式`);
-}
-
-function restoreTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        document.body.setAttribute('data-theme', savedTheme);
-    }
-}
-
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        document.querySelectorAll('.feature-icon').forEach(icon => {
-            icon.style.animationPlayState = 'paused';
-        });
-    } else {
-        document.querySelectorAll('.feature-icon').forEach(icon => {
-            icon.style.animationPlayState = 'running';
-        });
-    }
-});
-
-function lazyLoadImages() {
-    const images = document.querySelectorAll('img[data-src]');
-    
-    const imageObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const img = entry.target;
-                img.src = img.getAttribute('data-src');
-                img.removeAttribute('data-src');
-                imageObserver.unobserve(img);
-            }
-        });
-    });
-    
-    images.forEach(img => imageObserver.observe(img));
-}
-
-document.addEventListener('DOMContentLoaded', lazyLoadImages);

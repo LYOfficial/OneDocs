@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneDocs v1.4.0 - 一文亦闻 | 文章千卷，一览而知</title>
+    <meta name="description" content="OneDocs - 一文亦闻，集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary-color: #1a1a1a;
+            --secondary-color: #6b7280;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --background-color: #ffffff;
+            --surface-color: #f9fafb;
+            --border-color: #e5e7eb;
+            --hover-color: #f3f4f6;
+            --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --border-radius: 8px;
+            --border-radius-lg: 12px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #357abd 100%);
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Noto Serif SC', serif;
+            line-height: 1.6;
+            color: var(--primary-color);
+            background: var(--background-color);
+            overflow-x: hidden;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* 顶部横幅：返回新版 */
+        .legacy-banner {
+            position: sticky;
+            top: 0;
+            z-index: 2000;
+            background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 50%, #1e3a8a 100%);
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 14px;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .legacy-banner strong { font-weight: 600; }
+        .legacy-banner a {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 14px;
+            border-radius: 980px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .legacy-banner a:hover { background: rgba(255, 255, 255, 0.32); }
+
+        /* 导航 */
+        .navbar {
+            position: sticky;
+            top: 44px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: var(--transition);
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 2rem;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 1rem; }
+        .nav-logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav-subtitle { font-size: 0.9rem; color: var(--secondary-color); font-weight: 300; }
+        .nav-menu { display: flex; list-style: none; gap: 2rem; }
+        .nav-link {
+            color: var(--secondary-color);
+            font-weight: 400;
+            transition: var(--transition);
+            position: relative;
+        }
+        .nav-link:hover, .nav-link.active { color: var(--accent-color); }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+            transition: var(--transition);
+        }
+        .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+        .main-container { margin-top: 0; }
+
+        /* 首屏 */
+        .header {
+            min-height: 90vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: linear-gradient(135deg, #f9fafb 0%, #ffffff 50%, #f3f4f6 100%);
+            overflow: hidden;
+        }
+        .hero-content {
+            text-align: center;
+            max-width: 800px;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+            animation: fadeInUp 1s ease-out;
+        }
+        .logo-section { margin-bottom: 3rem; animation: fadeInDown 0.8s ease-out; }
+        .logo-text {
+            font-size: 4rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .logo-chinese {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--secondary-color);
+            letter-spacing: 0.3em;
+        }
+        .title-section { margin-bottom: 2.5rem; animation: fadeInUp 0.8s ease-out 0.2s both; }
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+        .subtitle { font-size: 1.2rem; color: var(--secondary-color); font-weight: 300; }
+        .description {
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+            line-height: 1.8;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+        .cta-section {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            align-items: center;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+        .download-button, .demo-button {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: inherit;
+            font-weight: 500;
+        }
+        .download-button.primary { background: var(--gradient-primary); color: white; box-shadow: var(--shadow-medium); }
+        .download-button.primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-large); }
+        .demo-button.secondary { background: white; color: var(--primary-color); border: 1px solid var(--border-color); }
+        .demo-button.secondary:hover { background: var(--hover-color); transform: translateY(-2px); box-shadow: var(--shadow-medium); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 通用 section */
+        section { padding: 5rem 0; }
+        .section-container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+        .section-title {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        .section-description {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--secondary-color);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 核心功能 */
+        .features-section { background: var(--background-color); }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+        .feature-card {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: var(--transition);
+        }
+        .feature-card:hover { transform: translateY(-10px); box-shadow: var(--shadow-large); border-color: var(--accent-color); }
+        .feature-card:hover::before { transform: scaleX(1); }
+        .feature-icon { font-size: 3rem; margin-bottom: 1.5rem; }
+        .feature-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .feature-desc { font-size: 1rem; color: var(--secondary-color); }
+
+        /* 支持格式 */
+        .formats-section { background: var(--surface-color); }
+        .formats-grid { display: flex; justify-content: center; gap: 2rem; margin-top: 2rem; flex-wrap: wrap; }
+        .format-item {
+            display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+            padding: 1.5rem; background: var(--background-color);
+            border-radius: var(--border-radius); box-shadow: var(--shadow-light);
+            transition: var(--transition); min-width: 120px;
+        }
+        .format-item:hover { transform: translateY(-5px); box-shadow: var(--shadow-medium); }
+        .format-item i { font-size: 2.5rem; color: var(--accent-color); }
+        .format-item span { font-weight: 500; }
+        .format-note {
+            text-align: center; margin-top: 2rem; color: var(--secondary-color);
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+
+        /* 下载 */
+        .download-section { background: var(--background-color); }
+        .download-notice {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            margin: 2rem 0;
+            text-align: center;
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .download-notice i { color: var(--accent-color); }
+        .download-options { display: flex; justify-content: center; margin-bottom: 2rem; }
+        .source-toggle { display: flex; align-items: center; gap: 1rem; cursor: pointer; user-select: none; }
+        .source-toggle input { display: none; }
+        .source-toggle .slider {
+            position: relative; width: 50px; height: 26px;
+            background-color: var(--secondary-color);
+            border-radius: 20px; transition: var(--transition);
+        }
+        .source-toggle .slider::before {
+            content: ''; position: absolute;
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background-color: white; border-radius: 50%;
+            transition: var(--transition);
+        }
+        .source-toggle input:checked + .slider { background-color: var(--accent-color); }
+        .source-toggle input:checked + .slider::before { transform: translateX(24px); }
+        .source-toggle .label-text { font-size: 1rem; }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        .download-card {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .download-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-large); border-color: var(--accent-color); }
+        .download-icon { font-size: 3rem; color: var(--accent-color); margin-bottom: 1rem; }
+        .download-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .download-card p { color: var(--secondary-color); margin-bottom: 2rem; }
+        .button-group { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; align-items: center; }
+        .download-btn {
+            background: var(--gradient-primary); color: white; border: none;
+            padding: 1rem 2rem; border-radius: var(--border-radius);
+            font-size: 1rem; font-weight: 500; cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            font-family: inherit; width: 100%; justify-content: center;
+        }
+        .download-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-medium); }
+        .download-btn.secondary { background: transparent; border: 1px solid var(--accent-color); color: var(--accent-color); }
+        .download-btn.secondary:hover { background: rgba(59, 130, 246, 0.1); }
+        .download-info { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--secondary-color); margin-top: 1rem; }
+        .github-link { text-align: center; margin-top: 3rem; }
+        .github-link a { display: inline-flex; align-items: center; gap: 0.5rem; color: var(--secondary-color); transition: var(--transition); }
+        .github-link a:hover { color: var(--accent-color); }
+
+        /* 关于 */
+        .about-section { background: var(--surface-color); }
+        .about-content { display: grid; grid-template-columns: 2fr 1fr; gap: 4rem; margin-top: 3rem; }
+        .about-text p { font-size: 1.1rem; line-height: 1.8; margin-bottom: 1.5rem; color: var(--secondary-color); }
+        .about-features { margin-top: 2rem; }
+        .about-feature { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
+        .about-feature i { font-size: 1.5rem; color: var(--accent-color); margin-top: 0.2rem; }
+        .about-feature h4 { font-size: 1.1rem; margin-bottom: 0.3rem; }
+        .about-feature p { font-size: 0.95rem; margin: 0; }
+        .about-stats {
+            display: flex; flex-direction: column; gap: 2rem;
+            background: var(--background-color); padding: 2rem;
+            border-radius: var(--border-radius-lg); box-shadow: var(--shadow-medium);
+        }
+        .stat-item { text-align: center; }
+        .stat-number { font-size: 3rem; font-weight: 700; color: var(--accent-color); display: block; margin-bottom: 0.5rem; }
+        .stat-label { font-size: 0.9rem; color: var(--secondary-color); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* 鸣谢 */
+        .acknowledgments-section { background: var(--surface-color); }
+        .ack-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .ack-card {
+            display: block; background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            transition: var(--transition);
+        }
+        .ack-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-medium); border-color: var(--accent-color); }
+        .ack-card h4 { font-size: 1.1rem; margin-bottom: 0.4rem; color: var(--accent-color); }
+        .ack-card p { font-size: 0.9rem; color: var(--secondary-color); margin: 0; }
+
+        /* 页脚 */
+        .footer { background: var(--primary-color); color: white; padding: 3rem 0 1rem; }
+        .footer-container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+        .footer-content { display: grid; grid-template-columns: 1fr 3fr; gap: 3rem; margin-bottom: 2rem; }
+        .footer-brand h3 { font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 400; }
+        .footer-brand p { color: rgba(255, 255, 255, 0.7); }
+        .footer-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .footer-section h4 { margin-bottom: 1rem; font-size: 1.1rem; }
+        .footer-section ul { list-style: none; }
+        .footer-section li { margin-bottom: 0.5rem; }
+        .footer-section a { color: rgba(255, 255, 255, 0.7); transition: var(--transition); }
+        .footer-section a:hover { color: white; }
+        .footer-bottom {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-top: 2rem; border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);
+        }
+        .footer-social a { color: rgba(255, 255, 255, 0.7); font-size: 1.2rem; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 70px; left: 50%;
+            transform: translateX(-50%) translateY(-30px);
+            background: rgba(0, 0, 0, 0.85);
+            color: white; padding: 12px 24px;
+            border-radius: 980px; font-size: 14px;
+            z-index: 9999; opacity: 0;
+            transition: all 0.3s ease-out;
+        }
+        .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-warning { background: rgba(255, 159, 10, 0.95); }
+        .toast-info { background: rgba(0, 0, 0, 0.85); }
+
+        @media (max-width: 768px) {
+            .legacy-banner { flex-direction: column; gap: 6px; font-size: 13px; }
+            .navbar { top: 76px; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .download-grid { grid-template-columns: 1fr; }
+            .about-content { grid-template-columns: 1fr; gap: 2rem; }
+            .footer-content { grid-template-columns: 1fr; gap: 2rem; }
+            .footer-links { grid-template-columns: 1fr; }
+            .footer-bottom { flex-direction: column; gap: 1rem; text-align: center; }
+        }
+        @media (max-width: 480px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .logo-text { font-size: 2.5rem; }
+            .main-title { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 旧版横幅：返回新版 -->
+    <div class="legacy-banner">
+        <span>📦 您正在浏览 <strong>OneDocs v1.4.0</strong> 旧版页面</span>
+        <a href="index.html">↪ 返回新版 OneDocs 2.0</a>
+    </div>
+
+    <!-- 导航 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1 class="nav-logo">OneDocs</h1>
+                <span class="nav-subtitle">一文亦闻</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link active">首页</a></li>
+                <li><a href="#features" class="nav-link">功能</a></li>
+                <li><a href="#download" class="nav-link">下载</a></li>
+                <li><a href="#about" class="nav-link">关于</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main id="home" class="main-container">
+
+        <header class="header">
+            <div class="hero-content">
+                <div class="logo-section">
+                    <h1 class="logo-text">OneDocs</h1>
+                    <h2 class="logo-chinese">一文亦闻</h2>
+                </div>
+                <div class="title-section">
+                    <h3 class="main-title">文章千卷，一览而知</h3>
+                    <p class="subtitle">智慧之器，助君析文明理</p>
+                </div>
+                <div class="description">
+                    <p>
+                        OneDocs者，一文亦闻也，乃集诸多智能提示之力，助君速览文档精髓，无论新闻要览、数据解析，抑或学科要点，皆可一键明了。
+                    </p>
+                </div>
+                <div class="cta-section">
+                    <button class="download-button primary" onclick="scrollToDownload()">
+                        <span>立即下载</span>
+                        <span><i class="fas fa-download"></i></span>
+                    </button>
+                    <button class="demo-button secondary" onclick="openWiki()">
+                        <span>使用说明</span>
+                        <span><i class="fas fa-book"></i></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <section id="features" class="features-section">
+            <div class="section-container">
+                <h2 class="section-title">核心功能</h2>
+                <p class="section-description">四大智能分析功能，满足不同场景需求</p>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📰</div>
+                        <h3 class="feature-name">要闻概览</h3>
+                        <p class="feature-desc">新闻要点梳理</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3 class="feature-name">罗森析数</h3>
+                        <p class="feature-desc">数据内容分析</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔬</div>
+                        <h3 class="feature-name">理工速知</h3>
+                        <p class="feature-desc">理工课件整理</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📚</div>
+                        <h3 class="feature-name">文采丰呈</h3>
+                        <p class="feature-desc">文科课件整理</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="formats-section">
+            <div class="section-container">
+                <h2 class="section-title">支持格式</h2>
+                <p class="section-description">支持多种常见文档格式，满足各种使用场景</p>
+                <div class="formats-grid">
+                    <div class="format-item">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>PDF</span>
+                    </div>
+                </div>
+                <div class="format-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>支持最大 30MB 文件大小</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="download" class="download-section">
+            <div class="section-container">
+                <h2 class="section-title">立即下载</h2>
+                <p class="section-description">选择适合您操作系统的版本</p>
+
+                <div class="download-notice">
+                    <i class="fas fa-info-circle"></i>
+                    <span>如果下载被浏览器拦截，请点击"保留"继续下载</span>
+                </div>
+
+                <div class="download-options">
+                    <label class="source-toggle">
+                        <input type="checkbox" id="useProxy" checked>
+                        <span class="slider"></span>
+                        <span class="label-text">使用加速镜像下载 (推荐中国大陆用户开启)</span>
+                    </label>
+                </div>
+
+                <div class="download-grid">
+                    <div class="download-card">
+                        <div class="download-icon"><i class="fab fa-windows"></i></div>
+                        <h3>Windows</h3>
+                        <p>适用于 Windows 10 及以上版本</p>
+                        <div class="button-group">
+                            <button class="download-btn" onclick="downloadApp('windows', 'exe')">
+                                <i class="fas fa-download"></i>
+                                下载 .exe
+                            </button>
+                            <button class="download-btn secondary" onclick="downloadApp('windows', 'msi')">
+                                下载 .msi
+                            </button>
+                        </div>
+                        <div class="download-info">
+                            <span>版本: 1.4.0</span>
+                            <span>大小: ~4 MB</span>
+                        </div>
+                    </div>
+
+                    <div class="download-card">
+                        <div class="download-icon"><i class="fab fa-apple"></i></div>
+                        <h3>macOS</h3>
+                        <p>适用于 macOS 10.15 及以上版本</p>
+                        <button class="download-btn" onclick="downloadApp('macos', 'dmg')">
+                            <i class="fas fa-download"></i>
+                            下载 macOS 版
+                        </button>
+                        <div class="download-info">
+                            <span>版本: 1.4.0</span>
+                            <span>大小: ~6 MB</span>
+                        </div>
+                    </div>
+
+                    <div class="download-card">
+                        <div class="download-icon"><i class="fab fa-linux"></i></div>
+                        <h3>Linux</h3>
+                        <p>适用于主流 Linux 发行版</p>
+                        <div class="button-group">
+                            <button class="download-btn" onclick="downloadApp('linux', 'appimage')">
+                                <i class="fas fa-download"></i>
+                                下载 .AppImage
+                            </button>
+                            <button class="download-btn secondary" onclick="downloadApp('linux', 'deb')">
+                                下载 .deb
+                            </button>
+                        </div>
+                        <div class="download-info">
+                            <span>版本: 1.4.0</span>
+                            <span>大小: ~80 MB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="github-link">
+                    <a href="https://github.com/LYOfficial/OneDocs" target="_blank" rel="noopener">
+                        <i class="fab fa-github"></i>
+                        在 GitHub 上查看源码
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="about" class="about-section">
+            <div class="section-container">
+                <h2 class="section-title">关于 OneDocs</h2>
+                <div class="about-content">
+                    <div class="about-text">
+                        <p>
+                            OneDocs 是一款开源的文件分析工具，可以对输入的各种文本文件进行析读，并摘选出对用户有用的信息内容。
+                        </p>
+                        <p>
+                            OneDocs 适用于处理内容比较繁杂且有大量无关内容的文件，可以轻松地从中采撷重点信息，最终整理并渲染展示，用户亦可复制全文或导出备份。
+                        </p>
+                        <div class="about-features">
+                            <div class="about-feature">
+                                <i class="fas fa-rocket"></i>
+                                <div>
+                                    <h4>高效分析</h4>
+                                    <p>AI 驱动的智能分析，数秒内完成文档处理</p>
+                                </div>
+                            </div>
+                            <div class="about-feature">
+                                <i class="fas fa-shield-alt"></i>
+                                <div>
+                                    <h4>隐私安全</h4>
+                                    <p>本地处理，数据不上传，保护您的隐私</p>
+                                </div>
+                            </div>
+                            <div class="about-feature">
+                                <i class="fas fa-cogs"></i>
+                                <div>
+                                    <h4>多模型支持</h4>
+                                    <p>支持 OpenAI、DeepSeek、智谱等多种 AI 模型</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="about-stats">
+                        <div class="stat-item">
+                            <div class="stat-number">30</div>
+                            <div class="stat-label">MB 最大文件</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">4</div>
+                            <div class="stat-label">种分析模式</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">40+</div>
+                            <div class="stat-label">AI 模型</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="acknowledgments-section">
+            <div class="section-container">
+                <h2 class="section-title">鸣谢</h2>
+                <p class="section-description">衷心感谢以下开源项目</p>
+                <div class="ack-grid">
+                    <a class="ack-card" href="https://github.com/tauri-apps/tauri" target="_blank" rel="noopener">
+                        <h4>Tauri</h4><p>跨平台桌面应用框架</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/J-F-Liu/lopdf" target="_blank" rel="noopener">
+                        <h4>lopdf</h4><p>Rust PDF 处理库</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/nicbarker/pdfjs-dist" target="_blank" rel="noopener">
+                        <h4>pdfjs-dist</h4><p>PDF 文本解析</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/facebook/react" target="_blank" rel="noopener">
+                        <h4>React</h4><p>用户界面构建库</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/markedjs/marked" target="_blank" rel="noopener">
+                        <h4>marked</h4><p>Markdown 解析器</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/KaTeX/KaTeX" target="_blank" rel="noopener">
+                        <h4>KaTeX</h4><p>LaTeX 数学公式渲染</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/pmndrs/zustand" target="_blank" rel="noopener">
+                        <h4>Zustand</h4><p>轻量状态管理</p>
+                    </a>
+                    <a class="ack-card" href="https://github.com/i18next/i18next" target="_blank" rel="noopener">
+                        <h4>i18next</h4><p>国际化框架</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="footer-container">
+                <div class="footer-content">
+                    <div class="footer-brand">
+                        <h3>OneDocs</h3>
+                        <p>一文亦闻</p>
+                    </div>
+                    <div class="footer-links">
+                        <div class="footer-section">
+                            <h4>产品</h4>
+                            <ul>
+                                <li><a href="https://github.com/LYOfficial/OneDocs/releases/latest">立即下载</a></li>
+                                <li><a href="#" onclick="openWiki(); return false;">使用说明</a></li>
+                            </ul>
+                        </div>
+                        <div class="footer-section">
+                            <h4>支持</h4>
+                            <ul>
+                                <li><a href="https://github.com/LYOfficial/OneDocs/wiki/Frequently-Asked-Questions">常见问题</a></li>
+                                <li><a href="mailto:coldregion@qq.com">联系我们</a></li>
+                            </ul>
+                        </div>
+                        <div class="footer-section">
+                            <h4>开发者</h4>
+                            <ul>
+                                <li><a href="https://github.com/LYOfficial/OneDocs" target="_blank" rel="noopener">GitHub</a></li>
+                                <li><a href="https://github.com/LYOfficial/OneDocs/wiki/Api-Key">API 文档</a></li>
+                                <li><a href="https://github.com/LYOfficial/OneDocs/releases/">更新日志</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2024-2026 OneDocs - 一文亦闻. Licensed under GPLv3.</p>
+                    <div class="footer-social">
+                        <a href="https://github.com/LYOfficial/OneDocs" target="_blank" rel="noopener">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        // 滚动时更新导航高亮
+        window.addEventListener('scroll', function () {
+            const sections = ['home', 'features', 'download', 'about'];
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            let currentSection = 'home';
+            sections.forEach(id => {
+                const sec = document.getElementById(id);
+                if (sec) {
+                    const top = sec.offsetTop - 100;
+                    if (scrollTop >= top && scrollTop < top + sec.offsetHeight) {
+                        currentSection = id;
+                    }
+                }
+            });
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // 平滑滚动到下载区
+        function scrollToDownload() {
+            const dl = document.getElementById('download');
+            const top = dl.offsetTop - 60;
+            window.scrollTo({ top, behavior: 'smooth' });
+        }
+
+        // 跳转 Wiki
+        function openWiki() {
+            showToast('正在跳转到使用说明...', 'info');
+            setTimeout(() => {
+                window.open('https://github.com/LYOfficial/OneDocs/wiki', '_blank', 'noopener');
+            }, 500);
+        }
+
+        // 1.4.0 版本下载逻辑
+        function downloadApp(platform, type) {
+            const useProxy = document.getElementById('useProxy').checked;
+            const baseUrl = 'https://github.com/LYOfficial/OneDocs/releases/download/v1.4.0/';
+            const proxyUrl = 'https://gh-proxy.com/';
+
+            let filename = '';
+            let platformName = '';
+
+            switch (platform) {
+                case 'windows':
+                    platformName = 'Windows';
+                    filename = type === 'msi' ? 'onedocs_1.4.0_x64_en-US.msi' : 'onedocs_1.4.0_x64-setup.exe';
+                    break;
+                case 'macos':
+                    platformName = 'macOS';
+                    filename = 'onedocs_1.4.0_aarch64.dmg';
+                    break;
+                case 'linux':
+                    platformName = 'Linux';
+                    filename = type === 'deb' ? 'onedocs_1.4.0_amd64.deb' : 'onedocs_1.4.0_amd64.AppImage';
+                    break;
+                default:
+                    showToast('该平台版本暂未发布', 'warning');
+                    return;
+            }
+
+            let url = baseUrl + filename;
+            if (useProxy) url = proxyUrl + url;
+
+            showToast(`正在下载 ${platformName} ${type ? '.' + type : ''} 版本...如果被浏览器拦截，请点击"保留"`, 'info', 4000);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            setTimeout(() => { a.click(); document.body.removeChild(a); }, 500);
+        }
+
+        // Toast
+        function showToast(message, type) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.className = 'toast toast-' + (type || 'info') + ' visible';
+            t.textContent = message;
+            document.body.appendChild(t);
+            setTimeout(() => {
+                t.classList.remove('visible');
+                setTimeout(() => t.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
